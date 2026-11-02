@@ -1,0 +1,8 @@
+* text=auto eol=lf
+# Patch hashes pin exact bytes, including upstream context line endings.
+*.patch -text
+*.py text eol=lf
+*.rs text eol=lf
+*.json text eol=lf
+*.sh text eol=lf
+bin/codux text eol=lf

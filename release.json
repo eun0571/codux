@@ -1,0 +1,10 @@
+{
+  "name": "codux",
+  "display_name": "Codux",
+  "version": "0.1.2",
+  "target": "x86_64-pc-windows-msvc",
+  "provisional_name": false,
+  "repository": "eun0571/codux",
+  "npm_package": "@neulkeukeu/codux",
+  "npm_tag": "latest"
+}

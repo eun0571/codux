@@ -1,0 +1,8 @@
+{
+  "name": "codux-mermaid-live-preview",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "mermaid": "12.2.0"
+  }
+}

@@ -1,0 +1,125 @@
+name: Verify native npm packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Native build host (Linux and macOS are experimental until verified)
+        type: choice
+        default: windows
+        options: [windows, linux, macos, all]
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        default: windows
+      ref:
+        description: Exact source commit to verify
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  select:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - id: targets
+        env:
+          PLATFORM: ${{ inputs.platform }}
+        run: |
+          python - <<'PY'
+          import json, os
+          targets = [
+            {"platform": "windows", "runner": "windows-2022"},
+            {"platform": "linux", "runner": "ubuntu-22.04"},
+            {"platform": "macos", "runner": "macos-15"},
+          ]
+          selected = [t for t in targets if os.environ["PLATFORM"] in (t["platform"], "all")]
+          if not selected:
+            raise SystemExit("Unknown native build platform")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
+            stream.write("matrix=" + json.dumps({"include": selected}) + "\n")
+          PY
+
+  native:
+    needs: select
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 350
+    env:
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Rust
+        shell: bash
+        run: |
+          toolchain=$(python -c 'import json; print(json.load(open("upstream.lock.json"))["rust_toolchain"])')
+          rustup toolchain install "$toolchain" --profile minimal
+      - name: Linux build dependencies
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libcap-dev libasound2-dev libssl-dev cmake ripgrep
+      - name: Native build, renderer check, and isolated npm install
+        run: python scripts/ci_build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-${{ matrix.platform }}
+          overwrite: true
+          path: dist/npm/**/*.tgz
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-${{ matrix.platform }}
+          overwrite: true
+          path: .build/logs/
+
+  assemble:
+    needs: native
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: npm-*
+          path: .build/native-artifacts
+      - name: Assemble command package from verified targets only
+        run: |
+          python - <<'PY'
+          import json, pathlib, subprocess, sys, tarfile
+          natives = []
+          for path in pathlib.Path(".build/native-artifacts").rglob("*.tgz"):
+            with tarfile.open(path) as tar:
+              metadata = json.load(tar.extractfile("package/package.json"))
+            if "codux_target" in metadata:
+              natives.append(str(path))
+          if not natives:
+            raise SystemExit("No verified native packages")
+          subprocess.run([sys.executable, "scripts/package_npm.py", "--assemble", *natives], check=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-release-candidate
+          overwrite: true
+          path: dist/npm/
+          if-no-files-found: error

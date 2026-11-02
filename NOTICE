@@ -1,0 +1,19 @@
+OpenAI Codex
+Copyright 2025 OpenAI
+
+This project includes code derived from [Ratatui](https://github.com/ratatui/ratatui), licensed under the MIT license.
+Copyright (c) 2016-2022 Florian Dehau
+Copyright (c) 2023-2025 The Ratatui Developers
+
+This distribution modifies the Codex transcript UI, local UI settings,
+command branding, and build/packaging workflow. It is an independent project
+and is not an official OpenAI release. The upstream notices above are retained.
+
+Optional Mermaid text rendering uses beautiful-mermaid (MIT),
+https://github.com/lukilabs/beautiful-mermaid, and string-width (MIT).
+Their license files and those of their dependencies are retained in bundled
+node_modules directories when the optional runtime is included.
+
+Mermaid image rendering bundles Mermaid (MIT) and Puppeteer (Apache-2.0).
+Mermaid 12 assets retain their license beside live-dist; dependency license
+files are retained in node_modules. Node.js and Chrome/Edge are not bundled.

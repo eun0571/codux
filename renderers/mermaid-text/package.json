@@ -1,0 +1,11 @@
+{
+  "name": "codux-mermaid-text-renderer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "beautiful-mermaid": "1.1.3",
+    "string-width": "4.2.3"
+  },
+  "overrides": { "elkjs": "0.11.0", "entities": "7.0.1" }
+}

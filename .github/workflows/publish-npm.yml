@@ -1,0 +1,98 @@
+name: Publish npm release
+
+on:
+  push:
+    paths: [release.json]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact release.json version to publish from the default branch
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codux-npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  select:
+    if: vars.CODUX_NPM_PUBLISH_ENABLED == 'true' && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-22.04
+    outputs:
+      publish: ${{ steps.release.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: release
+        env:
+          BEFORE: ${{ github.event.before }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          from scripts.prepare_upstream import version
+          release = json.loads(Path('release.json').read_text())
+          if release.get('repository') != os.environ['GITHUB_REPOSITORY']:
+              raise SystemExit('Set release.json repository to this GitHub repository')
+          current = version(release['version'])
+          if os.environ['EVENT_NAME'] == 'workflow_dispatch':
+              if os.environ['REQUESTED_VERSION'] != release['version']:
+                  raise SystemExit('Requested version differs from the checked-out source')
+              changed = True
+          else:
+              before = os.environ['BEFORE']
+              if not before or set(before) == {'0'}:
+                  raise SystemExit('First publication must be started manually')
+              old = json.loads(subprocess.check_output(['git', 'show', before + ':release.json']))
+              previous = version(old['version'])
+              if current < previous:
+                  raise SystemExit('Release version must not decrease')
+              changed = current > previous
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
+              stream.write('publish=' + str(changed).lower() + '\n')
+          PY
+
+  build:
+    needs: select
+    if: needs.select.outputs.publish == 'true'
+    uses: ./.github/workflows/native-build.yml
+    with:
+      platform: windows
+      ref: ${{ github.sha }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check npm trusted publishing support
+        run: |
+          node -e "const v=require('child_process').execFileSync('npm',['--version'],{encoding:'utf8'}).trim().split('.').map(Number); if(v[0]<11||(v[0]===11&&(v[1]<5||(v[1]===5&&v[2]<1))))process.exit(1)"
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-release-candidate
+          path: .build/npm-publish
+      - name: Publish native packages, then command package
+        run: python scripts/publish_npm.py --artifacts .build/npm-publish --publish
