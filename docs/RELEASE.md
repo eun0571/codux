@@ -32,7 +32,7 @@ Verify installation from npm before removing the unpublished notice from README.
 
 ## Enable automated publication
 
-The workflows are included, but npm publication is off until repository and npm setup is complete:
+The workflows are included, but automatic npm publication is off until repository and npm setup is complete:
 
 1. Set `release.json`'s `repository` to the real public `owner/project`. Keep the npm scope tied to its npm owner; it need not match the GitHub owner. Build and publish the initial packages manually as above so each package exists on npm.
 2. For **both** `@neulkeukeu/codux-win32-x64` and `@neulkeukeu/codux`, configure an npm trusted publisher with the GitHub owner, repository, workflow filename **`publish-npm.yml`**, and environment **`npm`**. Permit direct publishing if npm offers a staging-only setting. Repeat for every future native package. The package repository URL must match this repository.
@@ -53,13 +53,15 @@ python scripts/publish_npm.py --artifacts <artifact-directory>
 
 This only validates and lists publication order. Adding `--publish` uploads using the current npm identity, so use it only for a deliberate release.
 
-npm may accept an upload before making it publicly available. The publisher waits up to ten minutes for each archive's version, dist-tag, and checksum before publishing the next package. If processing takes longer, keep the same archives and resume verification without uploading again:
+npm may accept an upload before making it publicly available. The publisher waits up to ten minutes for each archive's version, dist-tag, and checksum before publishing the next package. If all uploads completed but processing takes longer, keep the same archives and resume verification without uploading again:
 
 ```sh
 python scripts/publish_npm.py --artifacts <artifact-directory> --verify-only
 ```
 
 An unavailable version is reported separately from a checksum mismatch. Do not rebuild or increment the version just to retry a pending registry check.
+
+If publication stopped while waiting for a native package, the command package has not been uploaded yet. Once the native package becomes available, rerun `--publish` with the same artifacts; identical published archives are skipped before the remaining uploads.
 
 ## Update
 

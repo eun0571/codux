@@ -23,7 +23,7 @@ The official `codex` installation stays available. Codux shares its login, confi
 
 ## Install and keep up to date
 
-Windows x64 is the currently tested platform. **The npm package has not been published yet.** The following commands will be available after publication. Install Node.js 22+ first.
+Windows x64 is the currently tested platform. Install Node.js 22+ first.
 
 ```sh
 npm install -g @neulkeukeu/codux
@@ -79,7 +79,7 @@ Mermaid images require Chrome or Edge; renderer libraries are bundled. Choose **
 
 The [upstream tracker](.github/workflows/track-upstream.yml) checks official stable releases every six hours. When the patch applies cleanly, it prepares an update PR with refreshed pins, checksums, and a proposed Codux version. Windows regression tests, a release build, and an isolated npm installation check run against that PR. Patch conflicts require a manual port.
 
-Updates are reviewed before merging. After the repository's [npm publishing setup](docs/RELEASE.md#enable-automated-publication), merging a release version change builds and verifies it again, then publishes the native package followed by the command package. Failed checks leave the existing npm release available. Publication is disabled until that setup is complete.
+Updates are reviewed before merging. After the repository's [npm publishing setup](docs/RELEASE.md#enable-automated-publication), merging a release version change builds and verifies it again, then publishes the native package followed by the command package. Failed checks leave the existing npm release available. Automatic publication is disabled until that setup is complete.
 
 The [native build workflow](.github/workflows/native-build.yml) can also be started manually. Windows x64 is the required automated target; Linux and macOS remain experimental. See [upstream maintenance](docs/DEVELOPMENT.md#updating-the-pinned-upstream) for conflict handling and checks before merging.
 
