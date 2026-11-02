@@ -8,9 +8,10 @@ from pathlib import Path
 import shutil
 import subprocess
 import tarfile
-from urllib.error import HTTPError
+import time
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from prepare_upstream import ROOT, safe_path, version
 from release_info import read_release
@@ -27,12 +28,52 @@ def file_hash(path, algorithm="sha256"):
 
 def registry_package(name):
     try:
-        with urlopen(f"{REGISTRY}/{quote(name, safe='')}", timeout=60) as response:
+        request = Request(f"{REGISTRY}/{quote(name, safe='@')}", headers={"Cache-Control": "no-cache"})
+        with urlopen(request, timeout=30) as response:
             return json.load(response)
     except HTTPError as error:
         if error.code == 404:
             return {"versions": {}, "dist-tags": {}}
         raise
+
+
+def wait_for_published(package, tag, *, lookup=registry_package, timeout=600,
+                       clock=time.monotonic, sleep=time.sleep):
+    """Wait for npm's accepted upload to become public; never republish it."""
+    expected = "sha512-" + base64.b64encode(file_hash(package["path"], "sha512").digest()).decode()
+    deadline = clock() + timeout
+    name, release_version = package["name"], package["version"]
+    while True:
+        try:
+            data = lookup(name)
+            published = data.get("versions", {}).get(release_version)
+            actual = (published or {}).get("dist", {}).get("integrity")
+            current = data.get("dist-tags", {}).get(tag)
+            if actual and actual != expected:
+                raise ValueError(f"Published checksum mismatch for {name}@{release_version}: expected {expected}, got {actual}")
+            if actual == expected and current == release_version:
+                print(f"Verified public npm archive: {name}@{release_version}", flush=True)
+                return
+            reason = (f"version {release_version} is not public yet" if not published else
+                      "archive integrity is not visible yet" if not actual else
+                      f"{tag} is {current!r}, waiting for {release_version}")
+        except HTTPError as error:
+            if error.code != 429 and error.code < 500:
+                raise
+            reason = f"registry returned HTTP {error.code}"
+        except (URLError, TimeoutError) as error:
+            reason = f"registry lookup failed: {error}"
+        remaining = deadline - clock()
+        if remaining <= 0:
+            raise TimeoutError(f"Could not verify {name}@{release_version}: {reason}. "
+                               "The upload may still be processing. Retry with --verify-only; do not rebuild or republish.")
+        print(f"Waiting for npm: {name}: {reason}", flush=True)
+        sleep(min(10, remaining))
+
+
+def verify_published(release, packages, *, lookup=registry_package):
+    for package in packages:
+        wait_for_published(package, release.get("npm_tag", "latest"), lookup=lookup)
 
 
 def validate(artifacts, root=ROOT):
@@ -119,7 +160,7 @@ def validate(artifacts, root=ROOT):
     return release, packages
 
 
-def publish(release, packages, *, lookup=registry_package, run=subprocess.run):
+def publish(release, packages, *, lookup=registry_package, run=subprocess.run, wait=wait_for_published):
     pending = []
     tag = release.get("npm_tag", "latest")
     for package in packages:
@@ -149,18 +190,25 @@ def publish(release, packages, *, lookup=registry_package, run=subprocess.run):
     for package in pending:
         run([npm, "publish", str(package["path"].resolve()), "--access", "public", "--tag", tag,
              "--registry", REGISTRY], check=True)
+        # npm can return HTTP 202 before the archive is downloadable. Make each
+        # native dependency public before exposing its command package.
+        wait(package, tag, lookup=lookup)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifacts", type=Path, required=True)
-    parser.add_argument("--publish", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--publish", action="store_true")
+    mode.add_argument("--verify-only", action="store_true", help="Wait for public versions, tags and checksums without uploading")
     args = parser.parse_args()
     release, packages = validate(args.artifacts)
     for package in packages:
         print(f"{package['name']}@{package['version']}: {package['path']}")
     if args.publish:
         publish(release, packages)
+    elif args.verify_only:
+        verify_published(release, packages)
     else:
         print("Validated only. Nothing was published.")
 

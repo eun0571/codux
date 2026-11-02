@@ -53,6 +53,14 @@ python scripts/publish_npm.py --artifacts <artifact-directory>
 
 This only validates and lists publication order. Adding `--publish` uploads using the current npm identity, so use it only for a deliberate release.
 
+npm may accept an upload before making it publicly available. The publisher waits up to ten minutes for each archive's version, dist-tag, and checksum before publishing the next package. If processing takes longer, keep the same archives and resume verification without uploading again:
+
+```sh
+python scripts/publish_npm.py --artifacts <artifact-directory> --verify-only
+```
+
+An unavailable version is reported separately from a checksum mismatch. Do not rebuild or increment the version just to retry a pending registry check.
+
 ## Update
 
 Users install with `npm install -g @neulkeukeu/codux` and update with `codux update` or `npm install -g @neulkeukeu/codux@latest`. Startup checks use npm metadata. Accepting an update closes the native process before the launcher invokes npm. On Windows, close other Codux sessions and its background server before upgrading. Local or custom-prefix installs must use their original npm prefix.
