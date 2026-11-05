@@ -130,7 +130,7 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
 diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
 --- a/codex-rs/tui/src/keymap.rs
 +++ b/codex-rs/tui/src/keymap.rs
-@@ -1672,7 +1672,8 @@
+@@ -1710,7 +1710,8 @@
                  toggle_voice: default_bindings![plain(KeyCode::F(8))],
                  toggle_voice_mute: default_bindings![plain(KeyCode::F(9))],
                  chord_hints: Arc::default(),
@@ -140,7 +140,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
                  decrease_reasoning_effort: default_bindings![
                      alt(KeyCode::Char(',')),
                      shift(KeyCode::Down)
-@@ -2941,10 +2942,7 @@
+@@ -3026,10 +3027,7 @@
              vec![key_hint::ctrl(KeyCode::Char('l'))]
          );
          assert_eq!(runtime.app.toggle_fast_mode, Vec::new());
@@ -152,7 +152,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
          assert_eq!(
              runtime.chat.decrease_reasoning_effort,
              vec![
-@@ -3824,9 +3822,13 @@
+@@ -3909,9 +3907,13 @@
      }
  
      #[test]
@@ -170,7 +170,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
 diff --git a/codex-rs/tui/src/bottom_pane/mod.rs b/codex-rs/tui/src/bottom_pane/mod.rs
 --- a/codex-rs/tui/src/bottom_pane/mod.rs
 +++ b/codex-rs/tui/src/bottom_pane/mod.rs
-@@ -3968,7 +3968,7 @@
+@@ -4054,7 +4054,7 @@
      }
  
      #[test]
@@ -179,7 +179,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/mod.rs b/codex-rs/tui/src/bottom_pane/
          let (tx_raw, mut rx) = unbounded_channel::<AppEvent>();
          let tx = AppEventSender::new(tx_raw);
          let mut pane = BottomPane::new(BottomPaneParams {
-@@ -3988,16 +3988,16 @@
+@@ -4074,16 +4074,16 @@
          pane.handle_key_event(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
  
          assert!(
@@ -286,7 +286,7 @@ diff --git a/codex-rs/tui/src/transcript_view/follow_control_tests.rs b/codex-rs
 diff --git a/codex-rs/tui/src/chatwidget/tests/composer_submission.rs b/codex-rs/tui/src/chatwidget/tests/composer_submission.rs
 --- a/codex-rs/tui/src/chatwidget/tests/composer_submission.rs
 +++ b/codex-rs/tui/src/chatwidget/tests/composer_submission.rs
-@@ -1739,8 +1739,12 @@
+@@ -1741,8 +1741,12 @@
  }
  
  #[tokio::test]
@@ -300,7 +300,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/composer_submission.rs b/codex-rs
      let prompt = "revise this prompt";
      chat.thread_id = Some(ThreadId::new());
      chat.submit_user_message(UserMessage::from(prompt));
-@@ -1803,6 +1807,10 @@
+@@ -1805,6 +1809,10 @@
  #[tokio::test]
  async fn pending_steer_esc_does_not_steal_vim_insert_escape() {
      let (mut chat, _rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -311,7 +311,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/composer_submission.rs b/codex-rs
      let esc = KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE);
  
      chat.bottom_pane.set_task_running(/*running*/ true);
-@@ -2843,11 +2851,13 @@
+@@ -2858,11 +2866,13 @@
                      assert_eq!(chat.bottom_pane.composer_text(), "describe\nnew draft");
                  } else if scenario == "escape" || scenario == "ctrl_c" {
                      chat.on_task_started();
@@ -333,7 +333,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/composer_submission.rs b/codex-rs
 diff --git a/codex-rs/tui/src/chatwidget/tests/review_mode.rs b/codex-rs/tui/src/chatwidget/tests/review_mode.rs
 --- a/codex-rs/tui/src/chatwidget/tests/review_mode.rs
 +++ b/codex-rs/tui/src/chatwidget/tests/review_mode.rs
-@@ -290,6 +290,11 @@
+@@ -292,6 +292,11 @@
  #[tokio::test]
  async fn esc_with_review_queued_steers_shows_warning_and_does_not_interrupt() {
      let (mut chat, mut rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -345,7 +345,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/review_mode.rs b/codex-rs/tui/src
      chat.thread_id = Some(ThreadId::new());
      handle_turn_started(&mut chat, "turn-1");
      handle_entered_review_mode(&mut chat, "feature branch");
-@@ -864,6 +869,11 @@
+@@ -869,6 +874,11 @@
  #[tokio::test]
  async fn esc_interrupt_sends_all_pending_steers_immediately_and_keeps_existing_draft() {
      let (mut chat, mut rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -357,7 +357,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/review_mode.rs b/codex-rs/tui/src
      chat.thread_id = Some(ThreadId::new());
      chat.on_task_started();
      chat.on_agent_message_delta("Final answer line\n".to_string());
-@@ -944,6 +954,11 @@
+@@ -949,6 +959,11 @@
  #[tokio::test]
  async fn esc_with_pending_steers_overrides_agent_command_interrupt_behavior() {
      let (mut chat, _rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -372,7 +372,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/review_mode.rs b/codex-rs/tui/src
 diff --git a/codex-rs/tui/src/chatwidget/tests/slash_commands.rs b/codex-rs/tui/src/chatwidget/tests/slash_commands.rs
 --- a/codex-rs/tui/src/chatwidget/tests/slash_commands.rs
 +++ b/codex-rs/tui/src/chatwidget/tests/slash_commands.rs
-@@ -1226,6 +1226,11 @@
+@@ -1238,6 +1238,11 @@
  #[tokio::test]
  async fn interrupted_merged_message_history_encodes_mentions_once() {
      let (mut chat, mut rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -387,7 +387,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/slash_commands.rs b/codex-rs/tui/
 diff --git a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs b/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs
 --- a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs
 +++ b/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs
-@@ -2266,6 +2266,11 @@
+@@ -2374,6 +2374,11 @@
  #[tokio::test]
  async fn esc_interrupt_pauses_active_goal_turn() {
      let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -399,7 +399,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs b/codex-rs/t
      chat.show_welcome_banner = false;
      let thread_id = start_active_goal_turn(&mut chat);
  
-@@ -2297,6 +2302,11 @@
+@@ -2405,6 +2410,11 @@
          KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
      ] {
          let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -743,7 +743,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/shortcut_overlay.rs b/codex-rs/tui/src
 diff --git a/codex-rs/tui/src/keymap/chords.rs b/codex-rs/tui/src/keymap/chords.rs
 --- a/codex-rs/tui/src/keymap/chords.rs
 +++ b/codex-rs/tui/src/keymap/chords.rs
-@@ -58,10 +58,9 @@
+@@ -61,10 +61,9 @@
          Self(context_bit(context))
      }
  
@@ -756,22 +756,23 @@ diff --git a/codex-rs/tui/src/keymap/chords.rs b/codex-rs/tui/src/keymap/chords.
      }
  
      /// Add only the detail-close action to an owned composer path.
-@@ -147,7 +146,10 @@
-         self.contains(action.context)
-             && (self.0 & ACTIVITY_FOCUS == 0
+@@ -166,7 +165,11 @@
                  || action.context != KeymapContext::Global
--                || matches!(action.action, "focus_activity" | "find_transcript"))
-+                || matches!(
-+                    action.action,
-+                    "focus_activity" | "find_transcript" | "open_transcript" | "copy"
-+                ))
+                 || matches!(
+                     action.action,
+-                    "focus_activity" | "find_transcript" | "select_transcript"
++                    "focus_activity"
++                        | "find_transcript"
++                        | "select_transcript"
++                        | "open_transcript"
++                        | "copy"
+                 ))
              && (self.0 & TRANSCRIPT_CLOSE == 0
                  || action.context != KeymapContext::Pager
-                 || action.action == "close_transcript")
-@@ -486,7 +488,8 @@
-             .take(/*n*/ 6)
+@@ -519,7 +522,8 @@
          {
              let label = match binding.action.action {
+                 "open_presets" if pending.started_at.is_none() => "presets",
 -                "focus_activity" => "activity",
 +                "focus_activity" => "browse cards",
 +                "open_transcript" => "show/hide tools",
@@ -1370,12 +1371,14 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
 diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
 --- a/codex-rs/tui/src/app/input.rs
 +++ b/codex-rs/tui/src/app/input.rs
-@@ -578,9 +578,13 @@
-         }
+@@ -597,11 +597,13 @@
  
          let find_transcript = self.keymap.app.find_transcript.is_pressed(key_event);
+         let select_transcript = self.keymap.app.select_transcript.is_pressed(key_event);
 -        if app_keymap_shortcuts_available
--            && (self.keymap.app.open_transcript.is_pressed(key_event) || find_transcript)
+-            && (self.keymap.app.open_transcript.is_pressed(key_event)
+-                || find_transcript
+-                || select_transcript)
 -        {
 +        if app_keymap_shortcuts_available && self.keymap.app.open_transcript.is_pressed(key_event) {
 +            if key_event.kind != KeyEventKind::Repeat {
@@ -1383,11 +1386,11 @@ diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
 +            }
 +            return;
 +        }
-+        if app_keymap_shortcuts_available && find_transcript {
++        if app_keymap_shortcuts_available && (find_transcript || select_transcript) {
              self.scrollback_has_older_history = self
                  .chat_widget
                  .thread_id()
-@@ -767,7 +771,9 @@
+@@ -792,7 +794,9 @@
      }
  
      pub(crate) fn should_handle_backtrack_esc(&self, key_event: KeyEvent) -> bool {
@@ -1398,7 +1401,7 @@ diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
              && !self.chat_widget.side_conversation_active()
              && !self.chat_widget.shortcut_overlay_visible()
              && self.chat_widget.is_normal_backtrack_mode()
-@@ -776,7 +782,8 @@
+@@ -801,7 +805,8 @@
      }
  
      pub(super) fn should_reject_side_backtrack_esc(&self, key_event: KeyEvent) -> bool {
@@ -1411,9 +1414,9 @@ diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
 diff --git a/codex-rs/tui/src/app.rs b/codex-rs/tui/src/app.rs
 --- a/codex-rs/tui/src/app.rs
 +++ b/codex-rs/tui/src/app.rs
-@@ -216,6 +216,7 @@
- mod app_server_thread_ownership;
- mod backend_banner_fallback;
+@@ -218,6 +218,7 @@
+ mod backend_events;
+ pub(crate) mod backend_sessions;
  mod background_requests;
 +mod codux_navigation;
  mod composer_hints;
@@ -1422,7 +1425,7 @@ diff --git a/codex-rs/tui/src/app.rs b/codex-rs/tui/src/app.rs
 diff --git a/codex-rs/app-server/src/lib.rs b/codex-rs/app-server/src/lib.rs
 --- a/codex-rs/app-server/src/lib.rs
 +++ b/codex-rs/app-server/src/lib.rs
-@@ -1516,9 +1516,11 @@
+@@ -1543,9 +1543,11 @@
  }
  
  fn loader_overrides_with_test_user_config_file(
@@ -1454,7 +1457,7 @@ diff --git a/codex-rs/tui/src/terminal_palette.rs b/codex-rs/tui/src/terminal_pa
 @@ -105,6 +105,14 @@
      #[cfg(test)]
      if let Some(colors) = TEST_DEFAULT_COLORS.with(std::cell::Cell::get) {
-         return Some(colors);
+         return colors;
 +    }
 +
 +    // Unit tests render into buffers, not a terminal input loop. OSC responses
@@ -1481,7 +1484,7 @@ diff --git a/codex-rs/tui/src/markdown_copy.rs b/codex-rs/tui/src/markdown_copy.
 diff --git a/codex-rs/tui/src/markdown_render.rs b/codex-rs/tui/src/markdown_render.rs
 --- a/codex-rs/tui/src/markdown_render.rs
 +++ b/codex-rs/tui/src/markdown_render.rs
-@@ -1142,6 +1142,7 @@
+@@ -1166,6 +1166,7 @@
                  } else {
                      None
                  };
@@ -1489,7 +1492,7 @@ diff --git a/codex-rs/tui/src/markdown_render.rs b/codex-rs/tui/src/markdown_ren
                  let highlighted = match diagram {
                      Some(diagram) => diagram,
                      None => highlight_code_to_lines(&code, &lang),
-@@ -1150,6 +1151,7 @@
+@@ -1174,6 +1175,7 @@
                  for hl_line in highlighted {
                      self.push_line(Line::default());
                      self.copy_line.code_source = Some(std::sync::Arc::clone(&source));
@@ -4089,7 +4092,7 @@ diff --git a/codex-rs/tui/src/transcript_view/footer_tests.rs b/codex-rs/tui/src
 diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__activity_focus_keeps_controls_without_passive_hints.snap b/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__activity_focus_keeps_controls_without_passive_hints.snap
 --- a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__activity_focus_keeps_controls_without_passive_hints.snap
 +++ b/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__activity_focus_keeps_controls_without_passive_hints.snap
-@@ -6,14 +6,19 @@
+@@ -7,14 +7,19 @@
  Buffer {
      area: Rect { x: 0, y: 0, width: 32, height: 3 },
      content: [
@@ -4115,7 +4118,7 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
      ]
  }
  20 columns: <composer hints>
-@@ -23,35 +28,45 @@
+@@ -24,35 +29,45 @@
  Buffer {
      area: Rect { x: 0, y: 0, width: 32, height: 3 },
      content: [
@@ -4154,7 +4157,7 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
      content: [
 -        "Activity summary                ",
 -        "Hidden details                  ",
--        "    − Show less                 ",
+-        "    − Hide details              ",
 +        " [-] 1 action                   ",
 +        " Activity summary               ",
 +        " Hidden details                 ",
@@ -4164,7 +4167,7 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
 -        x: 0, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
 -        x: 0, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: DIM,
 -        x: 4, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
--        x: 15, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: DIM,
+-        x: 18, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: DIM,
 +        x: 0, y: 0, fg: Rgb(73, 73, 73), bg: Rgb(73, 73, 73), underline: Reset, modifier: NONE,
 +        x: 1, y: 0, fg: Rgb(240, 240, 240), bg: Rgb(73, 73, 73), underline: Reset, modifier: BOLD,
 +        x: 17, y: 0, fg: Rgb(73, 73, 73), bg: Rgb(73, 73, 73), underline: Reset, modifier: NONE,
@@ -4192,7 +4195,7 @@ diff --git a/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__te
 diff --git a/codex-rs/tui/src/transcript_view/footer.rs b/codex-rs/tui/src/transcript_view/footer.rs
 --- a/codex-rs/tui/src/transcript_view/footer.rs
 +++ b/codex-rs/tui/src/transcript_view/footer.rs
-@@ -84,8 +84,20 @@
+@@ -117,8 +117,20 @@
                  is_interactive: false,
              });
          }
@@ -4215,9 +4218,9 @@ diff --git a/codex-rs/tui/src/transcript_view/footer.rs b/codex-rs/tui/src/trans
          }
          // Selection can pause following without hiding the current final row.
          let can_return =
-@@ -241,6 +253,7 @@
-             " clear selection",
-             " copy+↓",
+@@ -281,6 +293,7 @@
+             " find",
+             " swap",
              " previous",
 +            " filter",
              " accept",
@@ -4290,7 +4293,7 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
 diff --git a/codex-rs/tui/src/transcript_view/search.rs b/codex-rs/tui/src/transcript_view/search.rs
 --- a/codex-rs/tui/src/transcript_view/search.rs
 +++ b/codex-rs/tui/src/transcript_view/search.rs
-@@ -19,6 +19,9 @@
+@@ -20,6 +20,9 @@
  mod footer;
  #[path = "search_presentation.rs"]
  mod presentation;
@@ -4300,7 +4303,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search.rs b/codex-rs/tui/src/trans
  
  const QUERY_BYTES: usize = 4096;
  const SCAN_BYTES: usize = 16 * 1024;
-@@ -62,6 +65,7 @@
+@@ -71,6 +74,7 @@
  
  pub(super) struct Search {
      mode: SearchMode,
@@ -4308,7 +4311,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search.rs b/codex-rs/tui/src/trans
      editor: TextArea,
      folded_query: String,
      saved_position: Position,
-@@ -80,6 +84,7 @@
+@@ -90,6 +94,7 @@
      fn default() -> Self {
          Self {
              mode: SearchMode::Closed,
@@ -4316,7 +4319,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search.rs b/codex-rs/tui/src/trans
              editor: TextArea::new(),
              folded_query: String::new(),
              saved_position: Position::default(),
-@@ -151,6 +156,14 @@
+@@ -191,6 +196,14 @@
          }
          let (code, modifiers) = crate::key_hint::normalize_key_parts(key.code, key.modifiers);
          match (code, modifiers) {
@@ -4331,7 +4334,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search.rs b/codex-rs/tui/src/trans
              (KeyCode::Esc, _) if self.search.is_reading() => self.jump_to_latest(),
              (KeyCode::Esc, _) | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
                  self.cancel_search();
-@@ -375,6 +388,10 @@
+@@ -555,6 +568,10 @@
                  return false;
              };
              cursor.anchor.index = self.resolve(cells, cursor.anchor);
@@ -4342,7 +4345,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search.rs b/codex-rs/tui/src/trans
              let Some(layout) = self.search_layout(cells, cursor.anchor) else {
                  self.advance_search_cursor(cells, cursor, 0..0, /*text_len*/ 0);
                  return false;
-@@ -411,6 +428,7 @@
+@@ -591,6 +608,7 @@
          cells: &[Arc<dyn HistoryCell>],
          inserted: Range<usize>,
      ) {
@@ -4726,7 +4729,172 @@ diff --git a/codex-rs/tui/src/transcript_view/search_footer.rs b/codex-rs/tui/sr
 diff --git a/codex-rs/tui/src/transcript_view/search_tests.rs b/codex-rs/tui/src/transcript_view/search_tests.rs
 --- a/codex-rs/tui/src/transcript_view/search_tests.rs
 +++ b/codex-rs/tui/src/transcript_view/search_tests.rs
-@@ -623,7 +623,7 @@
+@@ -31,84 +31,90 @@
+ }
+ 
+ #[test]
+-fn search_match_separates_user_prompts_only_while_visible() {
++fn search_match_reveals_hidden_reasoning_without_joining_question_cards() {
+     use crate::history_cell::ReasoningSummaryCell;
+     use crate::history_cell::new_user_prompt;
+     use std::path::Path;
+ 
+-    crate::terminal_palette::with_test_default_colors(
+-        crate::terminal_probe::DefaultColors {
+-            fg: (235, 235, 235),
+-            bg: (18, 20, 30),
+-        },
+-        || {
+-            let prompt = |text| {
+-                Arc::new(new_user_prompt(text, Vec::new(), Vec::new(), Vec::new()))
+-                    as Arc<dyn HistoryCell>
+-            };
+-            let cells: Vec<Arc<dyn HistoryCell>> = vec![
+-                prompt("first".into()),
+-                Arc::new(ReasoningSummaryCell::new(
+-                    "Reasoning".into(),
+-                    "needle detail".into(),
+-                    Path::new("."),
+-                    /*transcript_only*/ true,
+-                )),
+-                prompt("needle second".into()),
+-            ];
+-            let area = Rect::new(
+-                /*x*/ 0, /*y*/ 0, /*width*/ 30, /*height*/ 12,
+-            );
+-            let mut view = TranscriptView::default();
+-            view.render(area, &mut Buffer::empty(area), &cells);
+-            view.begin_search();
+-            view.paste_search("needle");
+-            finish_scan(&mut view, &cells);
+-            assert_eq!(view.search.current.as_ref().unwrap().anchor.index, 2);
+-
+-            view.handle_key(
+-                KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL),
+-                &cells,
+-            );
+-            finish_scan(&mut view, &cells);
+-            assert_eq!(view.search.current.as_ref().unwrap().anchor.index, 1);
+-            assert!(view.current_layout(&cells, /*index*/ 2).unwrap().separated);
+-
+-            view.handle_key(
+-                KeyEvent::new(KeyCode::Char('n'), KeyModifiers::CONTROL),
+-                &cells,
+-            );
+-            finish_scan(&mut view, &cells);
+-            assert_eq!(view.search.current.as_ref().unwrap().anchor.index, 2);
+-            let mut buffer = Buffer::empty(area);
+-            view.render(area, &mut buffer, &cells);
+-            let rendered = crate::transcript_view::tests::text(&buffer);
+-            let rows = rendered.lines().collect::<Vec<_>>();
+-            let first = rows.iter().position(|row| row.contains("› first")).unwrap();
+-            let second = rows
+-                .iter()
+-                .position(|row| row.contains("› needle second"))
+-                .unwrap();
+-            let background = buffer[(area.width - 1, first as u16)].bg;
+-            assert_ne!(background, ratatui::style::Color::Reset);
+-            let joined = (first..=second)
+-                .map(|row| {
+-                    let marker = if buffer[(area.width - 1, row as u16)].bg == background {
+-                        '#'
+-                    } else {
+-                        '.'
+-                    };
+-                    format!("{marker}|{}|", rows[row])
+-                })
+-                .collect::<Vec<_>>()
+-                .join("\n");
+-            insta::assert_snapshot!(joined, @r"
+-            #|› first|
+-            #||
+-            #|› needle second|
+-            ");
+-        },
+-    );
++    crate::mycodx_ui::with_settings(crate::mycodx_ui::Settings::web(), || {
++        crate::terminal_palette::with_test_default_colors(
++            crate::terminal_probe::DefaultColors {
++                fg: (235, 235, 235),
++                bg: (18, 20, 30),
++            },
++            || {
++                let prompt = |text| {
++                    Arc::new(new_user_prompt(text, Vec::new(), Vec::new(), Vec::new()))
++                        as Arc<dyn HistoryCell>
++                };
++                let cells: Vec<Arc<dyn HistoryCell>> = vec![
++                    prompt("first".into()),
++                    Arc::new(ReasoningSummaryCell::new(
++                        "Reasoning".into(),
++                        "needle detail".into(),
++                        Path::new("."),
++                        /*transcript_only*/ true,
++                    )),
++                    prompt("needle second".into()),
++                ];
++                let area = Rect::new(
++                    /*x*/ 0, /*y*/ 0, /*width*/ 30, /*height*/ 12,
++                );
++                let mut view = TranscriptView::default();
++                view.render(area, &mut Buffer::empty(area), &cells);
++                assert_eq!(view.current_layout(&cells, 1).unwrap().row_count(), 0);
++                view.begin_search();
++                view.paste_search("needle");
++                finish_scan(&mut view, &cells);
++                assert_eq!(view.search.current.as_ref().unwrap().anchor.index, 2);
++
++                view.handle_key(
++                    KeyEvent::new(KeyCode::Char('p'), KeyModifiers::CONTROL),
++                    &cells,
++                );
++                finish_scan(&mut view, &cells);
++                assert_eq!(view.search.current.as_ref().unwrap().anchor.index, 1);
++                let mut revealed = Buffer::empty(area);
++                view.render(area, &mut revealed, &cells);
++                assert!(crate::transcript_view::tests::text(&revealed).contains("needle detail"));
++                assert!(view.current_layout(&cells, /*index*/ 2).unwrap().separated);
++
++                view.handle_key(
++                    KeyEvent::new(KeyCode::Char('n'), KeyModifiers::CONTROL),
++                    &cells,
++                );
++                finish_scan(&mut view, &cells);
++                assert_eq!(view.search.current.as_ref().unwrap().anchor.index, 2);
++                let mut buffer = Buffer::empty(area);
++                view.render(area, &mut buffer, &cells);
++                assert_eq!(view.current_layout(&cells, 1).unwrap().row_count(), 0);
++                let rendered = crate::transcript_view::tests::text(&buffer);
++                assert!(!rendered.contains("needle detail"));
++                let rows = rendered.lines().collect::<Vec<_>>();
++                let first = rows.iter().position(|row| row.contains("first")).unwrap();
++                let second = rows
++                    .iter()
++                    .position(|row| row.contains("needle second"))
++                    .unwrap();
++
++                // Codux questions remain separate, fitted, right-aligned cards. The
++                // native `›` marker and shared full-width background do not apply.
++                let first_column = rows[first].find("first").unwrap();
++                let second_column = rows[second].find("needle second").unwrap();
++                assert!(first_column > second_column && second_column > 0);
++                let background = buffer[(area.width - 1, first as u16)].bg;
++                assert_ne!(background, ratatui::style::Color::Reset);
++                assert_eq!(buffer[(area.width - 1, second as u16)].bg, background);
++                for row in [first, second] {
++                    assert_eq!(buffer[(0, row as u16)].bg, ratatui::style::Color::Reset);
++                }
++                assert!((first + 1..second).any(|row| {
++                    rows[row].trim().is_empty()
++                        && buffer[(area.width - 1, row as u16)].bg == ratatui::style::Color::Reset
++                }));
++            },
++        );
++    });
+ }
+ 
+ #[test]
+@@ -704,7 +710,7 @@
          ),
          (EntryKey::cell(&middle), true),
      );
@@ -4735,7 +4903,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search_tests.rs b/codex-rs/tui/src
  
      let oldest = cell("needle oldest");
      cells.insert(/*index*/ 0, Arc::clone(&oldest));
-@@ -715,7 +715,7 @@
+@@ -796,7 +802,7 @@
      view.begin_search();
      view.paste_search("LONG T0000 USER");
      view.handle_search_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), &cells);
@@ -4744,7 +4912,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search_tests.rs b/codex-rs/tui/src
      assert!(view.advance_search(&cells));
      let Progress::Scanning(before) = view.search.progress else {
          panic!("initial scan should still have unread text");
-@@ -752,7 +752,7 @@
+@@ -833,7 +839,7 @@
      ));
      finish_scan(&mut view, &cells);
      assert!(view.search.needs_history(view.history));
@@ -4753,7 +4921,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search_tests.rs b/codex-rs/tui/src
  
      for page in ["middle page without a hit", "LONG T0000 USER"] {
          view.handle_search_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), &cells);
-@@ -870,7 +870,7 @@
+@@ -962,7 +968,7 @@
              true, true, true, true, true, true, false, false, false, false
          ]
      );
@@ -4762,7 +4930,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search_tests.rs b/codex-rs/tui/src
      view.handle_search_key(KeyEvent::new(KeyCode::Left, KeyModifiers::NONE), &cells);
      assert!(matches!(view.search.progress, Progress::Found));
      view.handle_key(KeyCode::Esc.into(), &cells);
-@@ -926,131 +926,93 @@
+@@ -1018,131 +1024,93 @@
  
  #[test]
  fn find_expands_only_the_match_and_preserves_manual_disclosures() {
@@ -4978,7 +5146,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search_tests.rs b/codex-rs/tui/src
  }
  
  #[test]
-@@ -1646,7 +1608,7 @@
+@@ -1738,7 +1706,7 @@
          (view.search.editor.text(), view.search.query_truncated),
          (full.as_str(), true)
      );
@@ -5358,7 +5526,7 @@ diff --git a/codex-rs/tui/src/history_cell/notices.rs b/codex-rs/tui/src/history
 diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
 --- a/codex-rs/cli/src/main.rs
 +++ b/codex-rs/cli/src/main.rs
-@@ -111,20 +111,27 @@
+@@ -110,20 +110,27 @@
  use codex_protocol::user_input::UserInput;
  use codex_terminal_detection::TerminalName;
  
@@ -5393,7 +5561,7 @@ diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
  )]
  struct MultitoolCli {
      #[clap(flatten)]
-@@ -183,7 +190,7 @@
+@@ -182,7 +189,7 @@
      /// Generate shell completion scripts.
      Completion(CompletionCommand),
  
@@ -5402,7 +5570,7 @@ diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
      Update,
  
      /// Diagnose local Codex installation, config, auth, and runtime health.
-@@ -791,6 +798,28 @@
+@@ -799,6 +806,28 @@
      action: UpdateAction,
      cli_executable: Option<&std::path::Path>,
  ) -> anyhow::Result<()> {
@@ -5431,10 +5599,10 @@ diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
      if let UpdateAction::Daemon(source) = action {
          let executable = cli_executable
              .ok_or_else(|| anyhow::anyhow!("Cannot locate the launching Codex CLI"))?;
-@@ -1049,6 +1078,11 @@
-         mut interactive,
+@@ -1058,6 +1087,11 @@
          subcommand,
-     } = MultitoolCli::parse();
+     } = config_override_args::try_parse_from(std::env::args_os())
+         .unwrap_or_else(|error| error.exit());
 +    // Native launch gets the same card UI as the development wrappers. Later
 +    // explicit CLI flags still win, and no user config file is rewritten.
 +    root_config_overrides
@@ -6428,7 +6596,7 @@ diff --git a/codex-rs/tui/src/streaming/controller.rs b/codex-rs/tui/src/streami
 diff --git a/codex-rs/tui/src/history_cell/plans.rs b/codex-rs/tui/src/history_cell/plans.rs
 --- a/codex-rs/tui/src/history_cell/plans.rs
 +++ b/codex-rs/tui/src/history_cell/plans.rs
-@@ -70,6 +70,7 @@
+@@ -98,6 +98,7 @@
  /// cells, then consolidate to this source-backed cell when the plan is complete.
  pub(crate) fn new_proposed_plan(plan_markdown: String, cwd: &Path) -> ProposedPlanCell {
      ProposedPlanCell {
@@ -6436,7 +6604,7 @@ diff --git a/codex-rs/tui/src/history_cell/plans.rs b/codex-rs/tui/src/history_c
          plan_markdown,
          cwd: cwd.to_path_buf(),
          rendered_lines: MarkdownRenderCache::default(),
-@@ -85,6 +86,8 @@
+@@ -113,6 +114,8 @@
      is_stream_continuation: bool,
  ) -> ProposedPlanStreamCell {
      ProposedPlanStreamCell {
@@ -6445,7 +6613,7 @@ diff --git a/codex-rs/tui/src/history_cell/plans.rs b/codex-rs/tui/src/history_c
          lines: lines.into_iter().map(Into::into).collect(),
          is_stream_continuation,
      }
-@@ -96,6 +99,7 @@
+@@ -124,6 +127,7 @@
  /// session cwd needed for stable local-link rendering during later transcript reflow.
  #[derive(Debug)]
  pub(crate) struct ProposedPlanCell {
@@ -6453,7 +6621,7 @@ diff --git a/codex-rs/tui/src/history_cell/plans.rs b/codex-rs/tui/src/history_c
      plan_markdown: String,
      /// Session cwd used to keep local file-link display aligned with live streamed plan rendering.
      cwd: PathBuf,
-@@ -109,11 +113,28 @@
+@@ -137,11 +141,28 @@
  /// terminal resize.
  #[derive(Debug)]
  pub(crate) struct ProposedPlanStreamCell {
@@ -6626,7 +6794,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header.rs b/codex-rs/tui/sr
      Some((
 -        truncate_line_with_ellipsis_if_overflow(
 -            Line::from(vec![
--                if prompt.spoken {
+-                if prompt.is_spoken() {
 -                    "› ".red().bold()
 -                } else {
 -                    "› ".bold().dim()
@@ -6689,193 +6857,193 @@ diff --git a/codex-rs/tui/src/app/tests/startup_warnings_tests.rs b/codex-rs/tui
 diff --git a/codex-rs/tui/src/app/tests/recap_generation_tests.rs b/codex-rs/tui/src/app/tests/recap_generation_tests.rs
 --- a/codex-rs/tui/src/app/tests/recap_generation_tests.rs
 +++ b/codex-rs/tui/src/app/tests/recap_generation_tests.rs
-@@ -38,6 +38,8 @@
+@@ -39,6 +39,8 @@
      app.active_thread_id = Some(thread_id);
      app.transcript_cells
          .push(Arc::new(crate::history_cell::UserHistoryCell {
 +            mycodx_id: uuid::Uuid::new_v4().to_string(),
 +            mycodx_reply: false,
              message: "Finish the recap implementation".to_string(),
-             spoken: false,
+             presentation: Default::default(),
              text_elements: Vec::new(),
-@@ -128,6 +130,8 @@
+@@ -129,6 +131,8 @@
          )));
      app.transcript_cells
          .push(Arc::new(crate::history_cell::UserHistoryCell {
 +            mycodx_id: uuid::Uuid::new_v4().to_string(),
 +            mycodx_reply: false,
              message: "Keep follow-up work queued.".to_string(),
-             spoken: false,
+             presentation: Default::default(),
              text_elements: Vec::new(),
-@@ -234,6 +238,8 @@
+@@ -235,6 +239,8 @@
      app.active_thread_id = Some(thread_id);
      app.transcript_cells
          .push(Arc::new(crate::history_cell::UserHistoryCell {
 +            mycodx_id: uuid::Uuid::new_v4().to_string(),
 +            mycodx_reply: false,
              message: "Summarize this conversation".to_string(),
-             spoken: false,
+             presentation: Default::default(),
              text_elements: Vec::new(),
-@@ -414,6 +420,8 @@
+@@ -454,6 +460,8 @@
      let mut tui = crate::tui::test_support::make_test_tui()?;
      app.transcript_cells
          .push(Arc::new(crate::history_cell::UserHistoryCell {
 +            mycodx_id: uuid::Uuid::new_v4().to_string(),
 +            mycodx_reply: false,
              message: "Finish the recap implementation".to_string(),
-             spoken: false,
+             presentation: Default::default(),
              text_elements: Vec::new(),
 diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_cell/tests.rs
 --- a/codex-rs/tui/src/history_cell/tests.rs
 +++ b/codex-rs/tui/src/history_cell/tests.rs
-@@ -2311,6 +2311,8 @@
+@@ -2313,6 +2313,8 @@
  fn user_history_cell_wraps_and_prefixes_each_line_snapshot() {
      let msg = "_count_r\x1b[13;2:3uows";
      let cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: msg.to_string(),
          text_elements: Vec::new(),
-@@ -2335,6 +2337,8 @@
+@@ -2337,6 +2339,8 @@
      );
      let image_start = message.find("[Image #1]").unwrap();
      let cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message,
          text_elements: vec![TextElement::new(
-@@ -2386,6 +2390,8 @@
+@@ -2388,6 +2392,8 @@
  #[test]
  fn user_history_cell_renders_remote_image_urls() {
      let cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: "describe these".to_string(),
          text_elements: Vec::new(),
-@@ -2407,6 +2413,8 @@
+@@ -2409,6 +2415,8 @@
  
      let placeholder = "[Image #1]";
      let cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: format!("{placeholder} describe these"),
          text_elements: vec![TextElement::new(
-@@ -2443,6 +2451,8 @@
+@@ -2445,6 +2453,8 @@
  #[test]
  fn user_history_cell_summarizes_inline_data_urls() {
      let mut cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: "describe inline image".to_string(),
          text_elements: Vec::new(),
-@@ -2469,6 +2479,8 @@
+@@ -2471,6 +2481,8 @@
  #[test]
  fn user_history_cell_numbers_multiple_remote_images() {
      let cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: "describe both".to_string(),
          text_elements: Vec::new(),
-@@ -2489,6 +2501,8 @@
+@@ -2491,6 +2503,8 @@
  #[test]
  fn user_history_cell_height_matches_rendered_lines_with_remote_images() {
      let cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: "line one\nline two".to_string(),
          text_elements: Vec::new(),
-@@ -2512,6 +2526,8 @@
+@@ -2514,6 +2528,8 @@
  #[test]
  fn user_history_cell_trims_trailing_blank_message_lines() {
      let cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: "line one\n\n   \n\t \n".to_string(),
          text_elements: Vec::new(),
-@@ -2533,6 +2549,8 @@
+@@ -2535,6 +2551,8 @@
  fn user_history_cell_trims_trailing_blank_message_lines_with_text_elements() {
      let message = "tokenized\n\n\n".to_string();
      let cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message,
          text_elements: vec![TextElement::new(
-@@ -2557,6 +2575,8 @@
+@@ -2559,6 +2577,8 @@
  fn render_uses_wrapping_for_long_url_like_line() {
      let url = "https://example.test/api/v1/projects/alpha-team/releases/2026-02-17/builds/1234567890/artifacts/reports/performance/summary/detail/with/a/very/long/path/that/keeps/going/for/testing/purposes-only-and-does/not/need/to/resolve/index.html?session_id=abc123def456ghi789jkl012mno345pqr678stu901vwx234yz";
      let cell: Box<dyn HistoryCell> = Box::new(UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: url.to_string(),
          text_elements: Vec::new(),
-@@ -3049,6 +3069,8 @@
+@@ -3051,6 +3071,8 @@
  #[test]
  fn wrapped_and_prefixed_cells_handle_tiny_widths() {
      let user_cell = UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: "tiny width coverage for wrapped user history".to_string(),
          text_elements: Vec::new(),
-@@ -3156,6 +3178,8 @@
+@@ -3158,6 +3180,8 @@
  
      // Build a transcript with: [UserCell, AgentMsg(head), AgentMsg(cont), AgentMsg(cont)]
      let user = Arc::new(UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: "hello".to_string(),
          text_elements: Vec::new(),
 diff --git a/codex-rs/tui/src/app/transcript_export_tests.rs b/codex-rs/tui/src/app/transcript_export_tests.rs
 --- a/codex-rs/tui/src/app/transcript_export_tests.rs
 +++ b/codex-rs/tui/src/app/transcript_export_tests.rs
-@@ -21,6 +21,8 @@
+@@ -22,6 +22,8 @@
      assert!(render_markdown_transcript(&[]).is_err());
      let user = |message: &str, local_image_paths| {
          Arc::new(UserHistoryCell {
 +            mycodx_id: uuid::Uuid::new_v4().to_string(),
 +            mycodx_reply: false,
-             spoken: false,
+             presentation: Default::default(),
              message: message.to_string(),
              text_elements: Vec::new(),
 diff --git a/codex-rs/tui/src/app/tests.rs b/codex-rs/tui/src/app/tests.rs
 --- a/codex-rs/tui/src/app/tests.rs
 +++ b/codex-rs/tui/src/app/tests.rs
-@@ -6082,6 +6082,8 @@
+@@ -6231,6 +6231,8 @@
  
      let user_cell = |text: &str| -> Arc<dyn HistoryCell> {
          Arc::new(UserHistoryCell {
 +            mycodx_id: uuid::Uuid::new_v4().to_string(),
 +            mycodx_reply: false,
-             spoken: false,
+             presentation: Default::default(),
              message: text.to_string(),
              text_elements: Vec::new(),
-@@ -7804,6 +7806,8 @@
+@@ -7958,6 +7960,8 @@
                       remote_image_urls: Vec<String>|
       -> Arc<dyn HistoryCell> {
          Arc::new(UserHistoryCell {
 +            mycodx_id: uuid::Uuid::new_v4().to_string(),
 +            mycodx_reply: false,
-             spoken: false,
+             presentation: Default::default(),
              message: text.to_string(),
              text_elements,
-@@ -9969,6 +9973,8 @@
+@@ -10200,6 +10204,8 @@
      app.chat_widget
          .apply_external_edit("draft prompt".to_string());
      app.transcript_cells = vec![Arc::new(UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: "old message".to_string(),
          text_elements: Vec::new(),
 diff --git a/codex-rs/tui/src/app/recap_tests.rs b/codex-rs/tui/src/app/recap_tests.rs
@@ -6888,7 +7056,7 @@ diff --git a/codex-rs/tui/src/app/recap_tests.rs b/codex-rs/tui/src/app/recap_te
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
          message: message.to_string(),
-         spoken: false,
+         presentation: Default::default(),
          text_elements: Vec::new(),
 diff --git a/codex-rs/tui/src/app/owned_transcript_tests.rs b/codex-rs/tui/src/app/owned_transcript_tests.rs
 --- a/codex-rs/tui/src/app/owned_transcript_tests.rs
@@ -6899,37 +7067,37 @@ diff --git a/codex-rs/tui/src/app/owned_transcript_tests.rs b/codex-rs/tui/src/a
      Arc::new(UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: message.to_string(),
          text_elements: Vec::new(),
 diff --git a/codex-rs/tui/src/app/history_pagination_tests.rs b/codex-rs/tui/src/app/history_pagination_tests.rs
 --- a/codex-rs/tui/src/app/history_pagination_tests.rs
 +++ b/codex-rs/tui/src/app/history_pagination_tests.rs
-@@ -52,6 +52,8 @@
+@@ -55,6 +55,8 @@
  
  fn user_cell(message: &str) -> Arc<dyn HistoryCell> {
      Arc::new(UserHistoryCell {
 +        mycodx_id: uuid::Uuid::new_v4().to_string(),
 +        mycodx_reply: false,
-         spoken: false,
+         presentation: Default::default(),
          message: message.to_string(),
          text_elements: Vec::new(),
 diff --git a/codex-rs/tui/src/insert_history.rs b/codex-rs/tui/src/insert_history.rs
 --- a/codex-rs/tui/src/insert_history.rs
 +++ b/codex-rs/tui/src/insert_history.rs
-@@ -834,6 +834,8 @@
+@@ -877,6 +877,8 @@
  
          let url = "https://example.test/forwarded/threads/10930?page=1&queue=customer_support_unprocessed&forwardedScope=all";
          let cell = UserHistoryCell {
 +            mycodx_id: uuid::Uuid::new_v4().to_string(),
 +            mycodx_reply: false,
-             spoken: false,
+             presentation: Default::default(),
              message: url.to_string(),
              text_elements: Vec::new(),
 diff --git a/codex-rs/tui/src/app_backtrack.rs b/codex-rs/tui/src/app_backtrack.rs
 --- a/codex-rs/tui/src/app_backtrack.rs
 +++ b/codex-rs/tui/src/app_backtrack.rs
-@@ -462,6 +462,33 @@
+@@ -516,6 +516,33 @@
          self.transcript_view.set_highlight(/*index*/ None);
          // In case a hint is somehow still visible (e.g., race with overlay open/close).
          self.chat_widget.clear_esc_backtrack_hint();
@@ -6963,22 +7131,23 @@ diff --git a/codex-rs/tui/src/app_backtrack.rs b/codex-rs/tui/src/app_backtrack.
      }
  
      fn backtrack_selection(&self, nth_user_message: usize) -> Option<BacktrackSelection> {
-@@ -1125,6 +1152,8 @@
+@@ -1215,6 +1242,8 @@
          assert!(!has_backtrack_target(&cells));
  
          cells.push(Arc::new(UserHistoryCell {
 +            mycodx_id: uuid::Uuid::new_v4().to_string(),
 +            mycodx_reply: false,
-             spoken: false,
+             presentation: Default::default(),
              message: "hello".to_string(),
              text_elements: Vec::new(),
 diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transcript_view/input.rs
 --- a/codex-rs/tui/src/transcript_view/input.rs
 +++ b/codex-rs/tui/src/transcript_view/input.rs
-@@ -176,6 +176,34 @@
+@@ -179,6 +179,34 @@
+                     ))
                  || (modifiers == KeyModifiers::NONE
                      && matches!(code, KeyCode::PageUp | KeyCode::PageDown));
-         }
++        }
 +        if self.is_activity_focused()
 +            && self.codux_navigation_shortcuts_available()
 +            && ((modifiers.is_empty()
@@ -7006,11 +7175,10 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
 +                    )))
 +        {
 +            return true;
-+        }
+         }
          self.search.is_active()
              && (code == KeyCode::Esc
-                 || (code == KeyCode::Enter
-@@ -307,6 +335,7 @@
+@@ -344,6 +372,7 @@
          }
          match event.kind {
              MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
@@ -7018,7 +7186,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  let direction = if event.kind == MouseEventKind::ScrollUp {
                      -1.0
                  } else {
-@@ -337,6 +366,9 @@
+@@ -374,6 +403,9 @@
                  return self.pointer_down(event, cells, mode);
              }
              MouseEventKind::Drag(MouseButton::Left) if dragging => {
@@ -7028,7 +7196,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  self.extend_selection(event.column, event.row);
              }
              MouseEventKind::Up(MouseButton::Left) if dragging => {
-@@ -467,22 +499,21 @@
+@@ -504,22 +536,21 @@
              && event.modifiers.is_empty()
              && self.toggle_disclosure_at(cells, event.column, event.row)
          {
@@ -7056,7 +7224,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
              self.last_click = None;
              self.extend_selection(event.column, event.row);
              if let Some(selection) = &mut self.selection {
-@@ -493,6 +524,17 @@
+@@ -530,6 +561,17 @@
          }
          let clicks =
              crate::text_selection::click_count(&mut self.last_click, event.column, event.row);
@@ -7074,7 +7242,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
          if clicks >= 2
              && visible
                  .layout
-@@ -504,6 +546,9 @@
+@@ -541,6 +583,9 @@
          let link = (mode == MouseMode::Interactive && clicks == 1 && event.modifiers.is_empty())
              .then(|| self.link_at(event.column, event.row))
              .flatten();
@@ -7087,13 +7255,13 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
 diff --git a/codex-rs/tui/src/chatwidget/protocol.rs b/codex-rs/tui/src/chatwidget/protocol.rs
 --- a/codex-rs/tui/src/chatwidget/protocol.rs
 +++ b/codex-rs/tui/src/chatwidget/protocol.rs
-@@ -560,8 +560,20 @@
+@@ -586,8 +586,20 @@
              {
                  self.remember_realtime_delegated_reasoning_turn(&notification.turn_id);
              }
--            ThreadItem::AgentMessage { id, .. } if replay_kind.is_none() => {
+-            ThreadItemPayload::AgentMessage { id, .. } if replay_kind.is_none() => {
 -                self.is_realtime_delegated_agent_item(&notification.turn_id, &id);
-+            ThreadItem::AgentMessage {
++            ThreadItemPayload::AgentMessage {
 +                id,
 +                phase,
 +                questions,
@@ -7108,370 +7276,346 @@ diff --git a/codex-rs/tui/src/chatwidget/protocol.rs b/codex-rs/tui/src/chatwidg
 +                    self.is_realtime_delegated_agent_item(&notification.turn_id, &id);
 +                }
              }
-             ThreadItem::Reasoning { id, .. } => {
+             ThreadItemPayload::Reasoning { id, .. } => {
                  if replay_kind.is_none()
-diff --git a/codex-rs/tui/src/chatwidget/user_messages.rs b/codex-rs/tui/src/chatwidget/user_messages.rs
---- a/codex-rs/tui/src/chatwidget/user_messages.rs
-+++ b/codex-rs/tui/src/chatwidget/user_messages.rs
-@@ -574,7 +574,7 @@
- pub(crate) struct UserMessageDisplay {
-     pub(crate) message: String,
-     // Keep distinct replies distinct when their visible question and answer text match.
--    question_ids: Vec<String>,
-+    pub(super) question_ids: Vec<String>,
-     pub(crate) remote_image_urls: Vec<String>,
-     pub(crate) local_images: Vec<PathBuf>,
-     pub(crate) text_elements: Vec<TextElement>,
-@@ -706,6 +706,11 @@
-         remote_image_urls: Vec<String>,
-     ) -> UserMessageDisplay {
-         let question_ids = crate::async_question_reply::parse(&message)
-+            .or_else(|| {
-+                crate::async_question_reply::parse(
-+                    crate::ide_context::extract_prompt_request_with_offset(&message).0,
-+                )
-+            })
-             .unwrap_or_default()
-             .into_iter()
-             .map(|reply| reply.question_item_id)
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -276,7 +276,7 @@
+@@ -287,7 +287,7 @@
  
  [[package]]
  name = "app_test_support"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -1895,7 +1895,7 @@
+@@ -1888,7 +1888,7 @@
  
  [[package]]
  name = "codex-agent-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-core",
-@@ -1907,7 +1907,7 @@
+@@ -1900,7 +1900,7 @@
  
  [[package]]
  name = "codex-agent-graph-store"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-protocol",
   "codex-state",
-@@ -1922,7 +1922,7 @@
+@@ -1915,7 +1915,7 @@
  
  [[package]]
  name = "codex-agent-identity"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -1942,7 +1942,7 @@
+@@ -1935,7 +1935,7 @@
  
  [[package]]
  name = "codex-agent-message-board-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -1965,7 +1965,7 @@
+@@ -1958,7 +1958,7 @@
  
  [[package]]
  name = "codex-agent-message-board-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
-  "base64 0.22.1",
-  "caseless",
-@@ -1988,7 +1988,7 @@
+  "codex-extension-api",
+  "codex-message-board",
+@@ -1972,7 +1972,7 @@
  
  [[package]]
  name = "codex-agent-roles"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-config",
   "codex-file-system",
-@@ -2001,7 +2001,7 @@
+@@ -1985,7 +1985,7 @@
  
  [[package]]
  name = "codex-analytics"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-app-server-protocol",
   "codex-git-utils",
-@@ -2024,7 +2024,7 @@
+@@ -2008,7 +2008,7 @@
  
  [[package]]
  name = "codex-ansi-escape"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "ansi-to-tui",
   "pretty_assertions",
-@@ -2035,7 +2035,7 @@
+@@ -2019,7 +2019,7 @@
  
  [[package]]
  name = "codex-api"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "assert_matches",
-@@ -2073,7 +2073,7 @@
+@@ -2057,7 +2057,7 @@
  
  [[package]]
  name = "codex-app-server"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "app_test_support",
-@@ -2187,7 +2187,7 @@
+@@ -2174,7 +2174,7 @@
  
  [[package]]
  name = "codex-app-server-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-app-server",
   "codex-app-server-protocol",
-@@ -2214,7 +2214,7 @@
+@@ -2202,7 +2202,7 @@
  
  [[package]]
  name = "codex-app-server-daemon"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "blake3",
-@@ -2240,7 +2240,7 @@
+@@ -2232,7 +2232,7 @@
  
  [[package]]
  name = "codex-app-server-protocol"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-app-server-protocol-noop-macros",
-@@ -2274,11 +2274,11 @@
+@@ -2266,11 +2266,11 @@
  
  [[package]]
  name = "codex-app-server-protocol-noop-macros"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  
  [[package]]
  name = "codex-app-server-test-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "clap",
-@@ -2300,7 +2300,7 @@
+@@ -2292,7 +2292,7 @@
  
  [[package]]
  name = "codex-app-server-transport"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "axum",
   "base64 0.22.1",
-@@ -2342,7 +2342,7 @@
+@@ -2335,7 +2335,7 @@
  
  [[package]]
  name = "codex-apply-patch"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "assert_cmd",
-@@ -2362,7 +2362,7 @@
+@@ -2355,7 +2355,7 @@
  
  [[package]]
  name = "codex-arg0"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-apply-patch",
-@@ -2385,7 +2385,7 @@
+@@ -2378,7 +2378,7 @@
  
  [[package]]
  name = "codex-async-utils"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "pretty_assertions",
   "rand 0.9.3",
-@@ -2395,7 +2395,7 @@
+@@ -2388,7 +2388,7 @@
  
  [[package]]
  name = "codex-attachment-store"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "pretty_assertions",
   "serde",
-@@ -2405,7 +2405,7 @@
+@@ -2398,7 +2398,7 @@
  
  [[package]]
  name = "codex-aws-auth"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "aws-config",
   "aws-credential-types",
-@@ -2431,7 +2431,7 @@
+@@ -2424,7 +2424,7 @@
  
  [[package]]
  name = "codex-backend-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-api",
-@@ -2451,7 +2451,7 @@
+@@ -2444,7 +2444,7 @@
  
  [[package]]
  name = "codex-backend-openapi-models"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "serde",
   "serde_json",
-@@ -2460,7 +2460,7 @@
+@@ -2453,7 +2453,7 @@
  
  [[package]]
  name = "codex-build-info"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-install-context",
   "pretty_assertions",
-@@ -2473,7 +2473,7 @@
+@@ -2466,7 +2466,7 @@
  
  [[package]]
  name = "codex-bwrap"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "cc",
   "libc",
-@@ -2482,7 +2482,7 @@
+@@ -2475,7 +2475,7 @@
  
  [[package]]
  name = "codex-chatgpt"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "clap",
-@@ -2504,7 +2504,7 @@
+@@ -2497,7 +2497,7 @@
  
  [[package]]
  name = "codex-cli"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "app_test_support",
-@@ -2606,7 +2606,7 @@
+@@ -2601,7 +2601,7 @@
  
  [[package]]
  name = "codex-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-http-client",
   "eventsource-stream",
-@@ -2620,7 +2620,7 @@
+@@ -2615,7 +2615,7 @@
  
  [[package]]
  name = "codex-cloud-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "async-stream",
-@@ -2644,7 +2644,7 @@
+@@ -2639,7 +2639,7 @@
  
  [[package]]
  name = "codex-cloud-config"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
   "chrono",
-@@ -2670,7 +2670,7 @@
+@@ -2667,7 +2667,7 @@
  
  [[package]]
  name = "codex-cloud-tasks"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -2703,7 +2703,7 @@
+@@ -2700,7 +2700,7 @@
  
  [[package]]
  name = "codex-cloud-tasks-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -2718,7 +2718,7 @@
+@@ -2715,7 +2715,7 @@
  
  [[package]]
  name = "codex-cloud-tasks-mock-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "chrono",
   "codex-cloud-tasks-client",
-@@ -2727,7 +2727,7 @@
+@@ -2724,7 +2724,7 @@
  
  [[package]]
  name = "codex-code-mode"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-code-mode-protocol",
   "codex-http-client",
-@@ -2751,7 +2751,7 @@
+@@ -2748,7 +2748,7 @@
  
  [[package]]
  name = "codex-code-mode-host"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "axum",
-@@ -2780,7 +2780,7 @@
+@@ -2779,7 +2779,7 @@
  
  [[package]]
  name = "codex-code-mode-protocol"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-protocol",
   "glob",
-@@ -2798,7 +2798,7 @@
+@@ -2797,7 +2797,7 @@
  
  [[package]]
  name = "codex-code-mode-runtime"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
   "codex-code-mode-protocol",
@@ -7480,768 +7624,839 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-collaboration-mode-templates"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  
  [[package]]
  name = "codex-config"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -2870,7 +2870,7 @@
+@@ -2874,7 +2874,7 @@
  
  [[package]]
  name = "codex-config-schema"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "clap",
-@@ -2879,7 +2879,7 @@
+@@ -2883,7 +2883,7 @@
  
  [[package]]
  name = "codex-connectors"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "arc-swap",
-@@ -2901,7 +2901,7 @@
+@@ -2905,7 +2905,7 @@
  
  [[package]]
  name = "codex-connectors-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-connectors",
   "codex-core-plugins",
-@@ -2915,7 +2915,7 @@
+@@ -2919,7 +2919,7 @@
  
  [[package]]
  name = "codex-context-fragments"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-protocol",
-  "codex-utils-string",
-@@ -2925,7 +2925,7 @@
+  "codex-protocol-test-support",
+@@ -2930,7 +2930,7 @@
  
  [[package]]
  name = "codex-core"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "arc-swap",
-@@ -3069,7 +3069,7 @@
+@@ -3080,7 +3080,7 @@
  
  [[package]]
  name = "codex-core-api"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-analytics",
   "codex-app-server-protocol",
-@@ -3092,7 +3092,7 @@
+@@ -3103,7 +3103,7 @@
  
  [[package]]
  name = "codex-core-plugin-common"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-utils-absolute-path",
   "semver",
-@@ -3103,7 +3103,7 @@
+@@ -3114,7 +3114,7 @@
  
  [[package]]
  name = "codex-core-plugins"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -3160,7 +3160,7 @@
+@@ -3171,7 +3171,7 @@
  
  [[package]]
  name = "codex-diagnostics"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "libc",
   "pretty_assertions",
-@@ -3168,7 +3168,7 @@
+@@ -3179,7 +3179,7 @@
+ 
+ [[package]]
+ name = "codex-direct-tool-timing"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "codex-utils-critical-path",
+  "pretty_assertions",
+@@ -3190,7 +3190,7 @@
  
  [[package]]
  name = "codex-exec"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "assert_cmd",
-@@ -3221,7 +3221,7 @@
+@@ -3243,7 +3243,7 @@
  
  [[package]]
  name = "codex-exec-server"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "arc-swap",
-@@ -3293,7 +3293,7 @@
+@@ -3316,7 +3316,7 @@
+ 
+ [[package]]
+ name = "codex-exec-server-cli"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "anyhow",
+  "assert_matches",
+@@ -3356,7 +3356,7 @@
  
  [[package]]
  name = "codex-exec-server-protocol"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
   "codex-file-system",
-@@ -3310,7 +3310,7 @@
+@@ -3374,7 +3374,7 @@
  
  [[package]]
  name = "codex-exec-server-test-support"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-exec-server",
-@@ -3325,7 +3325,7 @@
+@@ -3389,7 +3389,7 @@
  
  [[package]]
  name = "codex-execpolicy"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "clap",
-@@ -3343,7 +3343,7 @@
+@@ -3407,7 +3407,7 @@
  
  [[package]]
  name = "codex-experimental-api-macros"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "proc-macro2",
   "quote",
-@@ -3352,7 +3352,7 @@
+@@ -3416,7 +3416,7 @@
  
  [[package]]
  name = "codex-extension-api"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-api",
   "codex-config",
-@@ -3374,7 +3374,7 @@
+@@ -3439,7 +3439,7 @@
  
  [[package]]
  name = "codex-extension-items"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-utils-absolute-path",
   "pretty_assertions",
-@@ -3386,7 +3386,7 @@
+@@ -3451,7 +3451,7 @@
  
  [[package]]
  name = "codex-external-agent-migration"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "chrono",
   "codex-analytics",
-@@ -3417,7 +3417,7 @@
+@@ -3482,7 +3482,7 @@
  
  [[package]]
  name = "codex-features"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-network-proxy",
   "codex-protocol",
-@@ -3431,7 +3431,7 @@
+@@ -3496,7 +3496,7 @@
  
  [[package]]
  name = "codex-feedback"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "bytes",
-@@ -3458,7 +3458,7 @@
+@@ -3524,7 +3524,7 @@
  
  [[package]]
  name = "codex-file-search"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "clap",
-@@ -3474,7 +3474,7 @@
+@@ -3540,7 +3540,7 @@
  
  [[package]]
  name = "codex-file-system"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "bytes",
   "codex-protocol",
-@@ -3486,7 +3486,7 @@
+@@ -3554,7 +3554,7 @@
  
  [[package]]
  name = "codex-file-watcher"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "notify",
   "pretty_assertions",
-@@ -3497,7 +3497,7 @@
+@@ -3565,7 +3565,7 @@
  
  [[package]]
  name = "codex-git-attribution"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-backend-client",
   "codex-extension-api",
-@@ -3510,7 +3510,7 @@
+@@ -3578,7 +3578,7 @@
  
  [[package]]
  name = "codex-git-utils"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -3538,7 +3538,7 @@
+@@ -3606,7 +3606,7 @@
  
  [[package]]
  name = "codex-goal-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -3563,7 +3563,7 @@
+@@ -3631,7 +3631,7 @@
  
  [[package]]
  name = "codex-guardian-context"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-context-fragments",
   "codex-history",
-@@ -3575,7 +3575,7 @@
+@@ -3645,7 +3645,7 @@
  
  [[package]]
  name = "codex-guardian-reviewer"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-analytics",
-@@ -3600,7 +3600,7 @@
+@@ -3681,7 +3681,7 @@
  
  [[package]]
  name = "codex-guardian-v2"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-analytics",
-@@ -3638,7 +3638,7 @@
+@@ -3720,7 +3720,7 @@
+ 
+ [[package]]
+ name = "codex-guardian-v3"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "codex-message-board",
+  "codex-protocol",
+@@ -3729,7 +3729,7 @@
  
  [[package]]
  name = "codex-history"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-protocol",
-@@ -3650,7 +3650,7 @@
+@@ -3741,7 +3741,7 @@
  
  [[package]]
  name = "codex-history-notes-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-analytics",
   "codex-client",
-@@ -3675,7 +3675,7 @@
+@@ -3767,7 +3767,7 @@
  
  [[package]]
  name = "codex-home"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-extension-api",
   "codex-utils-absolute-path",
-@@ -3687,7 +3687,7 @@
+@@ -3779,7 +3779,7 @@
  
  [[package]]
  name = "codex-hooks"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "async-channel",
-@@ -3715,7 +3715,7 @@
+@@ -3808,7 +3808,7 @@
  
  [[package]]
  name = "codex-http-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "bytes",
   "codex-utils-cargo-bin",
-@@ -3751,7 +3751,7 @@
+@@ -3848,7 +3848,7 @@
  
  [[package]]
  name = "codex-image-generation-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
   "codex-api",
-@@ -3779,7 +3779,7 @@
+@@ -3880,7 +3880,7 @@
  
  [[package]]
  name = "codex-install-context"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-utils-absolute-path",
   "codex-utils-home-dir",
-@@ -3792,7 +3792,7 @@
+@@ -3893,7 +3893,7 @@
  
  [[package]]
  name = "codex-keyring-store"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "keyring",
   "pretty_assertions",
-@@ -3803,7 +3803,7 @@
+@@ -3904,7 +3904,7 @@
  
  [[package]]
  name = "codex-linux-sandbox"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "clap",
   "codex-core",
-@@ -3832,7 +3832,7 @@
+@@ -3933,7 +3933,7 @@
  
  [[package]]
  name = "codex-lmstudio"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-core",
   "codex-http-client",
-@@ -3846,7 +3846,7 @@
+@@ -3947,7 +3947,7 @@
  
  [[package]]
  name = "codex-login"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -3892,7 +3892,7 @@
+@@ -3993,7 +3993,7 @@
  
  [[package]]
  name = "codex-mcp"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "arc-swap",
-@@ -3935,7 +3935,7 @@
+@@ -4037,7 +4037,7 @@
  
  [[package]]
  name = "codex-mcp-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "axum",
-@@ -3968,7 +3968,7 @@
+@@ -4070,7 +4070,7 @@
  
  [[package]]
  name = "codex-memories-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-core",
   "codex-extension-api",
-@@ -3990,7 +3990,7 @@
+@@ -4092,7 +4092,7 @@
  
  [[package]]
  name = "codex-memories-read"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-protocol",
   "codex-shell-command",
-@@ -4000,7 +4000,7 @@
+@@ -4102,7 +4102,7 @@
  
  [[package]]
  name = "codex-memories-write"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -4037,7 +4037,7 @@
+@@ -4139,7 +4139,7 @@
  
  [[package]]
  name = "codex-mermaid"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "insta",
   "pretty_assertions",
-@@ -4046,7 +4046,7 @@
+@@ -4148,7 +4148,7 @@
+ 
+ [[package]]
+ name = "codex-message-board"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "base64 0.22.1",
+  "caseless",
+@@ -4171,7 +4171,7 @@
  
  [[package]]
  name = "codex-message-history"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-config",
   "memchr",
-@@ -4060,7 +4060,7 @@
+@@ -4185,7 +4185,7 @@
  
  [[package]]
  name = "codex-model-provider"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
   "chrono",
-@@ -4094,7 +4094,7 @@
+@@ -4224,7 +4224,7 @@
  
  [[package]]
  name = "codex-model-provider-info"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-client",
-  "codex-protocol",
-@@ -4112,7 +4112,7 @@
+  "codex-http-client",
+@@ -4242,7 +4242,7 @@
  
  [[package]]
  name = "codex-models-manager"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "chrono",
   "codex-http-client",
-@@ -4131,7 +4131,7 @@
+@@ -4261,7 +4261,7 @@
+ 
+ [[package]]
+ name = "codex-multi-env-copy-file"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "anyhow",
+  "codex-config",
+@@ -4287,7 +4287,7 @@
  
  [[package]]
  name = "codex-mxc-sandbox"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
-  "appcontainer_common",
-@@ -4153,7 +4153,7 @@
+  "codex-network-proxy",
+@@ -4308,7 +4308,7 @@
  
  [[package]]
  name = "codex-network-proxy"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
-  "base64 0.22.1",
-@@ -4202,7 +4202,7 @@
+  "aws-credential-types",
+@@ -4359,7 +4359,7 @@
  
  [[package]]
  name = "codex-ollama"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "assert_matches",
   "async-stream",
-@@ -4222,7 +4222,7 @@
+@@ -4379,7 +4379,7 @@
  
  [[package]]
  name = "codex-otel"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "bytes",
   "chrono",
-@@ -4259,7 +4259,7 @@
+@@ -4418,7 +4418,7 @@
  
  [[package]]
  name = "codex-otel-trace-websocket"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "axum",
-@@ -4270,7 +4270,7 @@
+@@ -4429,7 +4429,7 @@
  
  [[package]]
  name = "codex-plugin"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-config",
   "codex-core-plugin-common",
-@@ -4285,7 +4285,7 @@
+@@ -4444,7 +4444,7 @@
+ 
+ [[package]]
+ name = "codex-plugin-host"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "codex-utils-cargo-bin",
+  "codex-utils-process",
+@@ -4461,7 +4461,7 @@
  
  [[package]]
  name = "codex-process-hardening"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "libc",
   "pretty_assertions",
-@@ -4293,7 +4293,7 @@
+@@ -4469,7 +4469,7 @@
  
  [[package]]
  name = "codex-prompts"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-collaboration-mode-templates",
-@@ -4310,7 +4310,7 @@
+@@ -4487,7 +4487,7 @@
  
  [[package]]
  name = "codex-protocol"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chardetng",
-@@ -4355,7 +4355,7 @@
+@@ -4533,14 +4533,14 @@
+ 
+ [[package]]
+ name = "codex-protocol-test-support"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "codex-protocol",
+ ]
  
  [[package]]
  name = "codex-queue-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-core",
-@@ -4376,7 +4376,7 @@
+@@ -4561,7 +4561,7 @@
  
  [[package]]
  name = "codex-realtime-webrtc"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-build-info",
-@@ -4395,7 +4395,7 @@
+@@ -4580,7 +4580,7 @@
  
  [[package]]
  name = "codex-response-debug-context"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
   "codex-api",
-@@ -4406,7 +4406,7 @@
+@@ -4591,7 +4591,7 @@
  
  [[package]]
  name = "codex-responses-api-proxy"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
-  "clap",
-@@ -4423,7 +4423,7 @@
+  "bytes",
+@@ -4615,7 +4615,7 @@
  
  [[package]]
  name = "codex-rmcp-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "axum",
-@@ -4474,7 +4474,7 @@
+@@ -4666,7 +4666,7 @@
  
  [[package]]
  name = "codex-rollout"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -4505,7 +4505,7 @@
+@@ -4699,7 +4699,7 @@
  
  [[package]]
  name = "codex-rollout-trace"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-code-mode",
-@@ -4521,7 +4521,7 @@
+@@ -4716,7 +4716,7 @@
+ 
+ [[package]]
+ name = "codex-runtime-agent-instance"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "base64 0.22.1",
+  "codex-agent-identity",
+@@ -4742,7 +4742,7 @@
  
  [[package]]
  name = "codex-sandboxing"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-mxc-sandbox",
-@@ -4549,7 +4549,7 @@
+@@ -4770,7 +4770,7 @@
  
  [[package]]
  name = "codex-secrets"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "age",
   "anyhow",
-@@ -4570,7 +4570,7 @@
+@@ -4791,7 +4791,7 @@
  
  [[package]]
  name = "codex-shell-command"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -4593,7 +4593,7 @@
+@@ -4814,7 +4814,7 @@
  
  [[package]]
  name = "codex-skills"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-protocol",
   "codex-shell-command",
-@@ -4610,7 +4610,7 @@
+@@ -4831,7 +4831,7 @@
  
  [[package]]
  name = "codex-skills-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "assert_matches",
   "blake3",
-@@ -4648,7 +4648,7 @@
+@@ -4871,7 +4871,7 @@
  
  [[package]]
  name = "codex-state"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -4675,7 +4675,7 @@
+@@ -4900,7 +4900,7 @@
  
  [[package]]
  name = "codex-stdio-to-uds"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-uds",
-@@ -4687,7 +4687,7 @@
+@@ -4912,7 +4912,7 @@
  
  [[package]]
  name = "codex-tcp-tunnel"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "bytes",
-@@ -4708,7 +4708,7 @@
+@@ -4933,7 +4933,7 @@
  
  [[package]]
  name = "codex-terminal-detection"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "pretty_assertions",
   "tracing",
-@@ -4716,7 +4716,7 @@
+@@ -4941,7 +4941,7 @@
  
  [[package]]
  name = "codex-test-binary-support"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-arg0",
   "tempfile",
-@@ -4724,7 +4724,7 @@
+@@ -4949,7 +4949,7 @@
  
  [[package]]
  name = "codex-thread-manager-sample"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "clap",
-@@ -4735,7 +4735,7 @@
+@@ -4960,7 +4960,7 @@
  
  [[package]]
  name = "codex-thread-store"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "chrono",
   "codex-app-server-protocol",
-@@ -4766,7 +4766,7 @@
+@@ -4991,7 +4991,7 @@
  
  [[package]]
  name = "codex-tools"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "bitflags 2.13.1",
-  "codex-code-mode",
-@@ -4790,7 +4790,7 @@
+  "codex-attachment-store",
+@@ -5017,7 +5017,7 @@
  
  [[package]]
  name = "codex-tui"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "app_test_support",
-@@ -4917,7 +4917,7 @@
+@@ -5145,7 +5145,7 @@
  
  [[package]]
  name = "codex-uds"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "async-io",
   "libc",
-@@ -4931,7 +4931,7 @@
+@@ -5159,7 +5159,7 @@
  
  [[package]]
  name = "codex-user-verification"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
-  "core-foundation 0.10.1",
-@@ -4951,7 +4951,7 @@
+  "block2",
+@@ -5180,7 +5180,7 @@
  
  [[package]]
  name = "codex-utils-absolute-path"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "dirs",
   "dunce",
-@@ -4965,14 +4965,14 @@
+@@ -5194,14 +5194,14 @@
  
  [[package]]
  name = "codex-utils-approval-presets"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-protocol",
  ]
@@ -8249,170 +8464,186 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-audio"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
   "codex-protocol",
-@@ -4986,7 +4986,7 @@
+@@ -5215,7 +5215,7 @@
  
  [[package]]
  name = "codex-utils-cache"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "lru",
   "sha1 0.10.6",
-@@ -4995,7 +4995,7 @@
+@@ -5224,7 +5224,7 @@
  
  [[package]]
  name = "codex-utils-cargo-bin"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "assert_cmd",
   "runfiles",
-@@ -5004,7 +5004,7 @@
+@@ -5233,7 +5233,7 @@
  
  [[package]]
  name = "codex-utils-cli"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "clap",
   "codex-protocol",
-@@ -5016,15 +5016,15 @@
+@@ -5245,22 +5245,22 @@
+ 
+ [[package]]
+ name = "codex-utils-critical-path"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "pretty_assertions",
+ ]
  
  [[package]]
  name = "codex-utils-elapsed"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  
  [[package]]
  name = "codex-utils-fuzzy-match"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  
  [[package]]
  name = "codex-utils-git-discovery"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-git-utils",
   "codex-utils-absolute-path",
-@@ -5037,7 +5037,7 @@
+@@ -5273,14 +5273,14 @@
+ 
+ [[package]]
+ name = "codex-utils-head-tail-buffer"
+-version = "0.0.0"
++version = "0.166.0"
+ dependencies = [
+  "pretty_assertions",
+ ]
  
  [[package]]
  name = "codex-utils-home-dir"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-utils-absolute-path",
   "dirs",
-@@ -5047,7 +5047,7 @@
+@@ -5290,7 +5290,7 @@
  
  [[package]]
  name = "codex-utils-image"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
   "codex-utils-cache",
-@@ -5061,7 +5061,7 @@
+@@ -5304,7 +5304,7 @@
  
  [[package]]
  name = "codex-utils-json-to-toml"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "pretty_assertions",
   "serde_json",
-@@ -5070,7 +5070,7 @@
+@@ -5313,7 +5313,7 @@
  
  [[package]]
  name = "codex-utils-oss"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-core",
   "codex-lmstudio",
-@@ -5080,7 +5080,7 @@
+@@ -5323,7 +5323,7 @@
  
  [[package]]
  name = "codex-utils-output-truncation"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-protocol",
   "codex-utils-string",
-@@ -5090,7 +5090,7 @@
+@@ -5333,7 +5333,7 @@
  
  [[package]]
  name = "codex-utils-path"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-utils-absolute-path",
   "dunce",
-@@ -5101,7 +5101,7 @@
+@@ -5344,7 +5344,7 @@
  
  [[package]]
  name = "codex-utils-path-uri"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "base64 0.22.1",
   "codex-utils-absolute-path",
-@@ -5117,7 +5117,7 @@
+@@ -5360,7 +5360,7 @@
  
  [[package]]
  name = "codex-utils-plugins"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-exec-server",
   "codex-exec-server-protocol",
-@@ -5131,7 +5131,7 @@
+@@ -5374,7 +5374,7 @@
  
  [[package]]
  name = "codex-utils-process"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "pretty_assertions",
   "tokio",
-@@ -5139,7 +5139,7 @@
+@@ -5382,7 +5382,7 @@
  
  [[package]]
  name = "codex-utils-pty"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-utils-cargo-bin",
-@@ -5158,7 +5158,7 @@
+@@ -5401,7 +5401,7 @@
  
  [[package]]
  name = "codex-utils-readiness"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "assert_matches",
   "thiserror 2.0.18",
-@@ -5168,7 +5168,7 @@
+@@ -5411,7 +5411,7 @@
  
  [[package]]
  name = "codex-utils-redacted-string"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "schemars 0.8.22",
   "serde",
-@@ -5176,14 +5176,14 @@
+@@ -5419,14 +5419,14 @@
  
  [[package]]
  name = "codex-utils-rustls-provider"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "rustls",
  ]
@@ -8420,25 +8651,25 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-sandbox-summary"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-protocol",
   "codex-utils-absolute-path",
-@@ -5193,7 +5193,7 @@
+@@ -5436,7 +5436,7 @@
  
  [[package]]
  name = "codex-utils-sleep-inhibitor"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "core-foundation 0.9.4",
   "libc",
-@@ -5203,14 +5203,14 @@
+@@ -5446,14 +5446,14 @@
  
  [[package]]
  name = "codex-utils-stream-parser"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "pretty_assertions",
  ]
@@ -8446,16 +8677,16 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-string"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "pretty_assertions",
   "regex-lite",
-@@ -5220,14 +5220,14 @@
+@@ -5463,14 +5463,14 @@
  
  [[package]]
  name = "codex-utils-template"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "pretty_assertions",
  ]
@@ -8463,70 +8694,70 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-v8-poc"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "pretty_assertions",
   "v8",
-@@ -5235,7 +5235,7 @@
+@@ -5478,7 +5478,7 @@
  
  [[package]]
  name = "codex-voice-host"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-install-context",
-@@ -5262,7 +5262,7 @@
+@@ -5505,7 +5505,7 @@
  
  [[package]]
  name = "codex-web-search-extension"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-api",
   "codex-core",
-@@ -5284,7 +5284,7 @@
+@@ -5527,7 +5527,7 @@
  
  [[package]]
  name = "codex-websocket-auth"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -5303,7 +5303,7 @@
+@@ -5546,7 +5546,7 @@
  
  [[package]]
  name = "codex-websocket-client"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-http-client",
   "codex-utils-rustls-provider",
-@@ -5319,7 +5319,7 @@
+@@ -5562,7 +5562,7 @@
  
  [[package]]
  name = "codex-windows-sandbox"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -5349,7 +5349,7 @@
+@@ -5592,7 +5592,7 @@
  
  [[package]]
  name = "codex-windows-sandbox-service"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-cloud-config",
-@@ -5366,14 +5366,14 @@
+@@ -5610,14 +5610,14 @@
  
  [[package]]
  name = "codex-windows-sandbox-test-support"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "dirs",
  ]
@@ -8534,25 +8765,25 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-workload-identity"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "codex-http-client",
   "pretty_assertions",
-@@ -5388,7 +5388,7 @@
+@@ -5632,7 +5632,7 @@
  
  [[package]]
  name = "codex-worktree"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "codex-git-utils",
-@@ -5629,7 +5629,7 @@
+@@ -5885,7 +5885,7 @@
  
  [[package]]
  name = "core_test_support"
 -version = "0.0.0"
-+version = "0.163.0"
++version = "0.166.0"
  dependencies = [
   "anyhow",
   "assert_cmd",
@@ -8575,7 +8806,7 @@ diff --git a/codex-rs/tui/src/lib.rs b/codex-rs/tui/src/lib.rs
  mod named_session_lookup;
  mod notifications;
  #[cfg(any(not(debug_assertions), test))]
-@@ -1979,6 +1981,12 @@
+@@ -2065,6 +2067,12 @@
          config.startup_warnings.push(w);
      }
  
@@ -12534,7 +12765,7 @@ new file mode 100644
 diff --git a/codex-rs/tui/src/slash_command.rs b/codex-rs/tui/src/slash_command.rs
 --- a/codex-rs/tui/src/slash_command.rs
 +++ b/codex-rs/tui/src/slash_command.rs
-@@ -63,6 +63,7 @@
+@@ -64,6 +64,7 @@
      Title,
      Statusline,
      Theme,
@@ -12542,7 +12773,7 @@ diff --git a/codex-rs/tui/src/slash_command.rs b/codex-rs/tui/src/slash_command.
      #[strum(to_string = "pets", serialize = "pet")]
      Pets,
      Mcp,
-@@ -125,6 +126,7 @@
+@@ -126,6 +127,7 @@
              SlashCommand::DebugConfig => "show config layers and requirement sources for debugging",
              SlashCommand::Title => "configure which items appear in the terminal title",
              SlashCommand::Statusline => "configure which items appear in the status line",
@@ -12550,7 +12781,7 @@ diff --git a/codex-rs/tui/src/slash_command.rs b/codex-rs/tui/src/slash_command.
              SlashCommand::Theme => "choose a syntax highlighting theme",
              SlashCommand::Pets => "choose or hide the terminal pet",
              SlashCommand::Ps => "list background terminals",
-@@ -302,7 +304,10 @@
+@@ -309,7 +311,10 @@
              SlashCommand::Rollout => true,
              SlashCommand::TestApproval => true,
              SlashCommand::Agents | SlashCommand::MultiAgents => true,
@@ -12606,7 +12837,7 @@ diff --git a/codex-rs/tui/src/chatwidget/settings_popups.rs b/codex-rs/tui/src/c
 diff --git a/codex-rs/tui/src/chatwidget/slash_dispatch.rs b/codex-rs/tui/src/chatwidget/slash_dispatch.rs
 --- a/codex-rs/tui/src/chatwidget/slash_dispatch.rs
 +++ b/codex-rs/tui/src/chatwidget/slash_dispatch.rs
-@@ -585,6 +585,7 @@
+@@ -582,6 +582,7 @@
              SlashCommand::Statusline => {
                  self.open_status_line_setup();
              }
@@ -12614,7 +12845,7 @@ diff --git a/codex-rs/tui/src/chatwidget/slash_dispatch.rs b/codex-rs/tui/src/ch
              SlashCommand::Config => {
                  self.open_config_panel();
              }
-@@ -1336,6 +1337,7 @@
+@@ -1359,6 +1360,7 @@
              | SlashCommand::Hooks
              | SlashCommand::Title
              | SlashCommand::Statusline
@@ -12625,7 +12856,7 @@ diff --git a/codex-rs/tui/src/chatwidget/slash_dispatch.rs b/codex-rs/tui/src/ch
 diff --git a/codex-rs/tui/src/chatwidget/input_flow.rs b/codex-rs/tui/src/chatwidget/input_flow.rs
 --- a/codex-rs/tui/src/chatwidget/input_flow.rs
 +++ b/codex-rs/tui/src/chatwidget/input_flow.rs
-@@ -33,6 +33,7 @@
+@@ -34,6 +34,7 @@
                  | SlashCommand::Config
                  | SlashCommand::Title
                  | SlashCommand::Statusline
@@ -12636,10 +12867,10 @@ diff --git a/codex-rs/tui/src/chatwidget/input_flow.rs b/codex-rs/tui/src/chatwi
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bottom_pane/chat_composer.rs
 --- a/codex-rs/tui/src/bottom_pane/chat_composer.rs
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer.rs
-@@ -527,6 +527,7 @@
+@@ -544,6 +544,7 @@
+                 | SlashCommand::Usage
+                 | SlashCommand::Ide
                  | SlashCommand::DebugConfig
-                 | SlashCommand::Title
-                 | SlashCommand::Statusline
 +                | SlashCommand::Custom
                  | SlashCommand::Theme
                  | SlashCommand::Pets
@@ -12647,7 +12878,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bo
 diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event_dispatch.rs
 --- a/codex-rs/tui/src/app/event_dispatch.rs
 +++ b/codex-rs/tui/src/app/event_dispatch.rs
-@@ -699,6 +699,12 @@
+@@ -700,6 +700,12 @@
                  if self.chat_widget.thread_id() != Some(thread_id) {
                      return Ok(AppRunControl::Continue);
                  }
@@ -12660,7 +12891,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
                  if self.app_server_target.uses_remote_workspace()
                      && (!prompt.local_images.is_empty()
                          || prompt.text.trim_start().starts_with(['/', '!']))
-@@ -914,6 +920,7 @@
+@@ -915,6 +921,7 @@
                  tui.frame_requester().schedule_frame();
              }
              AppEvent::EndInitialHistoryReplayBuffer => {
@@ -12668,7 +12899,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
                  self.scrollback_has_older_history = self
                      .chat_widget
                      .thread_id()
-@@ -924,6 +931,8 @@
+@@ -925,6 +932,8 @@
                  self.finish_initial_history_replay_buffer(tui);
              }
              AppEvent::ConsolidateAgentMessage {
@@ -12677,7 +12908,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
                  source,
                  copy_source,
                  cwd,
-@@ -933,7 +942,7 @@
+@@ -934,7 +943,7 @@
              } => {
                  self.handle_consolidate_agent_message(
                      tui,
@@ -12686,7 +12917,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
                      scrollback_reflow,
                      deferred_history_cell,
                  )?;
-@@ -945,8 +954,11 @@
+@@ -946,8 +955,11 @@
                  let start = trailing_run_start::<history_cell::ProposedPlanStreamCell>(
                      &self.transcript_cells,
                  );
@@ -12699,7 +12930,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
  
                  if start < end {
                      self.native_history.consolidate(&self.transcript_cells[start..end], &consolidated);
-@@ -3388,6 +3400,27 @@
+@@ -3502,6 +3514,27 @@
                      }
                  }
              }
@@ -12730,7 +12961,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
 diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/owned_transcript.rs
 --- a/codex-rs/tui/src/app/owned_transcript.rs
 +++ b/codex-rs/tui/src/app/owned_transcript.rs
-@@ -40,6 +40,10 @@
+@@ -77,6 +77,10 @@
      }
  
      fn sync_owned_transcript(&mut self, width: u16) -> bool {
@@ -12741,7 +12972,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          let chat_widget = &self.chat_widget;
          let transcript_width = chat_widget.history_wrap_width(width);
          let view = &mut self.transcript_view;
-@@ -52,7 +56,11 @@
+@@ -93,7 +97,11 @@
              self.local_settings.tui.copy_on_select_clear_selection;
          view.set_keymap_bindings(&self.keymap);
          view.set_presentation(view.is_detailed(), chat_widget.history_render_mode());
@@ -12753,7 +12984,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          let detailed = view.is_detailed();
          let active_ids = chat_widget.active_activity_ids();
          let expanded = view.sync_live_activity(&self.transcript_cells, active_ids)
-@@ -77,6 +85,10 @@
+@@ -118,6 +126,10 @@
          tui: &mut tui::Tui,
          screen_size: Size,
      ) -> Result<Rect> {
@@ -12764,7 +12995,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          self.chat_widget.sync_warnings(&self.transcript_cells);
          let motion = MotionMode::from_animations_enabled(
              self.local_settings.tui.animations && self.local_settings.tui.effects.shimmer,
-@@ -317,6 +329,7 @@
+@@ -362,6 +374,7 @@
                      (&bottom, bottom_area)
                  };
              rendered_cursor = foreground.cursor_pos(foreground_area);
@@ -12772,7 +13003,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
              if let Some(position) = rendered_cursor {
                  frame.set_cursor_style(foreground.cursor_style(foreground_area));
                  frame.set_cursor_position(position);
-@@ -453,11 +466,36 @@
+@@ -503,11 +516,36 @@
                  return Ok(false);
              }
          }
@@ -12809,9 +13040,9 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
              && (!self.chat_widget.is_in_paste_burst()
                  || self.transcript_view.is_search_editing()
                  || self.transcript_view.is_activity_focused()
-@@ -487,6 +525,15 @@
-         {
-             self.chat_widget.end_composer_drag();
+@@ -547,6 +585,15 @@
+             tui.frame_requester().schedule_frame();
+             return Ok(true);
          }
 +        // Only an explicitly configured interrupt key overrides transcript navigation.
 +        // Codux leaves this unbound by default, so Escape never cancels work by accident.
@@ -12825,7 +13056,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          // Read-only Escape belongs to session navigation, even when the transcript is scrolled.
          // Search and selection still consume Escape first to dismiss their interaction.
          if let TuiEvent::Key(key) = event
-@@ -518,25 +565,6 @@
+@@ -578,25 +625,6 @@
              && self.handle_owned_backtrack_event(tui, event)?
          {
              self.request_owned_history(tui, app_server);
@@ -12854,7 +13085,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
 diff --git a/codex-rs/tui/src/app/tests/user_verification_routes_tests.rs b/codex-rs/tui/src/app/tests/user_verification_routes_tests.rs
 --- a/codex-rs/tui/src/app/tests/user_verification_routes_tests.rs
 +++ b/codex-rs/tui/src/app/tests/user_verification_routes_tests.rs
-@@ -267,6 +267,8 @@
+@@ -270,6 +270,8 @@
              } => approved.push((thread_id, server_name, request_id)),
              AppEvent::InsertHistoryCell(cell) => app.insert_history_cell(&mut tui, cell),
              AppEvent::ConsolidateAgentMessage {
@@ -12863,7 +13094,7 @@ diff --git a/codex-rs/tui/src/app/tests/user_verification_routes_tests.rs b/code
                  source,
                  copy_source,
                  cwd,
-@@ -282,7 +284,9 @@
+@@ -285,7 +287,9 @@
                          &cwd,
                          inline_visualization_context,
                      )
@@ -12877,7 +13108,7 @@ diff --git a/codex-rs/tui/src/app/tests/user_verification_routes_tests.rs b/code
 diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
 --- a/codex-rs/tui/src/app_event.rs
 +++ b/codex-rs/tui/src/app_event.rs
-@@ -1201,6 +1201,8 @@
+@@ -1209,6 +1209,8 @@
      /// `deferred_history_cell` lets callers add the final stream tail to the
      /// transcript without first writing its provisional render to scrollback.
      ConsolidateAgentMessage {
@@ -12886,7 +13117,7 @@ diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
          source: String,
          copy_source: Option<String>,
          cwd: PathBuf,
-@@ -1657,6 +1659,15 @@
+@@ -1695,6 +1697,15 @@
  
      /// Runtime syntax theme preview changed; refresh theme-derived UI colors.
      SyntaxThemePreviewed,
@@ -12905,7 +13136,7 @@ diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
 diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
 --- a/codex-rs/tui/src/chatwidget.rs
 +++ b/codex-rs/tui/src/chatwidget.rs
-@@ -1229,7 +1229,20 @@
+@@ -1249,7 +1249,20 @@
          self.add_boxed_history(Box::new(cell));
      }
  
@@ -12927,24 +13158,7 @@ diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
          let Err(cell) = self.absorb_activity_detail(cell) else {
              return;
          };
-@@ -1395,12 +1408,14 @@
-             || !display.local_images.is_empty()
-             || !display.remote_image_urls.is_empty()
-         {
--            self.add_to_history(history_cell::new_user_prompt(
-+            let mut cell = history_cell::new_user_prompt(
-                 display.message,
-                 display.text_elements,
-                 display.local_images,
-                 display.remote_image_urls,
--            ));
-+            );
-+            cell.mycodx_reply = !display.question_ids.is_empty();
-+            self.add_to_history(cell);
-         }
-     }
- 
-@@ -1707,8 +1722,8 @@
+@@ -1730,8 +1743,8 @@
      pub(crate) fn on_terminal_resize(&mut self, width: u16) {
          let had_rendered_width = self.last_rendered_width.get().is_some();
          self.last_rendered_width.set(Some(width));
@@ -13101,7 +13315,7 @@ diff --git a/codex-rs/tui/src/chatwidget/activity_presentation.rs b/codex-rs/tui
 diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwidget/streaming.rs
 --- a/codex-rs/tui/src/chatwidget/streaming.rs
 +++ b/codex-rs/tui/src/chatwidget/streaming.rs
-@@ -84,6 +84,12 @@
+@@ -88,6 +88,12 @@
      }
  
      fn flush_answer_stream(&mut self, completed_message: Option<&str>) {
@@ -13114,7 +13328,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
          let had_stream_controller = self.stream_controller.is_some();
          if let Some(mut controller) = self.stream_controller.take() {
              let needs_scrollback_reflow = controller.needs_scrollback_reflow();
-@@ -133,6 +139,8 @@
+@@ -144,6 +150,8 @@
                  });
                  self.note_stream_consolidation_queued();
                  self.app_event_tx.send(AppEvent::ConsolidateAgentMessage {
@@ -13123,7 +13337,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
                      source,
                      copy_source,
                      cwd: self.config.cwd.to_path_buf(),
-@@ -217,12 +225,13 @@
+@@ -243,12 +251,13 @@
          }
          self.transcript.plan_delta_buffer.push_str(&delta);
          if self.plan_stream_controller.is_none() {
@@ -13138,7 +13352,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
                      &self.config.cwd,
                      self.history_render_mode(),
                  )
-@@ -291,12 +300,16 @@
+@@ -317,12 +326,16 @@
                      .send(AppEvent::ConsolidateProposedPlan(source));
              }
          } else if !plan_text.is_empty() {
@@ -13156,7 +13370,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
          if should_restore_after_stream {
              self.status_state.pending_status_indicator_restore = true;
              self.maybe_restore_status_indicator_after_stream_idle();
-@@ -421,6 +434,11 @@
+@@ -447,6 +460,11 @@
          if !from_replay && let Some(questions) = &item.questions {
              self.add_async_questions(&item.id, questions);
          }
@@ -13168,10 +13382,10 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
          self.transcript.last_completed_agent_message = Some((turn_id.to_string(), item.id.clone()));
          let mut message = String::new();
          for content in &item.content {
-@@ -445,11 +463,20 @@
-                     self.config.cwd.as_path(),
+@@ -477,11 +495,20 @@
                      context,
                  )
+                 .with_questions(questions)
 -                .with_copy_source(Some(message.clone())),
 +                .with_copy_source(Some(message.clone()))
 +                .with_mycodx_id(self.transcript.mycodx_stream_id.clone())
@@ -13190,7 +13404,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
              self.finalize_completed_assistant_message(Some(&message));
          }
          if !parsed.visible_markdown.is_empty() {
-@@ -590,7 +617,7 @@
+@@ -622,7 +649,7 @@
              });
              self.stream_controller = Some(
                  StreamController::new_with_inline_visualizations(
@@ -13218,7 +13432,7 @@ diff --git a/codex-rs/tui/src/chatwidget/transcript.rs b/codex-rs/tui/src/chatwi
 diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/history_cell/messages.rs
 --- a/codex-rs/tui/src/history_cell/messages.rs
 +++ b/codex-rs/tui/src/history_cell/messages.rs
-@@ -14,6 +14,8 @@
+@@ -15,6 +15,8 @@
  
  #[derive(Debug)]
  pub(crate) struct UserHistoryCell {
@@ -13227,10 +13441,21 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
      pub message: String,
      pub text_elements: Vec<TextElement>,
      pub local_image_paths: Vec<PathBuf>,
-@@ -175,6 +177,29 @@
-     }
- }
- 
+@@ -186,6 +188,7 @@
+         replies: Vec<AsyncQuestionReply>,
+         cwd: &Path,
+     ) -> Self {
++        self.mycodx_reply = !replies.is_empty();
+         if !replies.is_empty() {
+             self.presentation = UserMessagePresentation::AsyncReplies {
+                 replies,
+@@ -219,6 +222,41 @@
+                     .iter()
+                     .any(|element| element.placeholder(&self.message) == Some(label.as_str()))
+             })
++    }
++}
++
 +impl UserHistoryCell {
 +    pub(crate) fn mycodx_bubble_lines(&self, width: u16) -> Vec<HyperlinkLine> {
 +        let sanitized = sanitize_user_text((&self.message).into());
@@ -13241,23 +13466,32 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
 +        };
 +        let mut lines =
 +            plain_hyperlink_lines(self.image_labels_not_in_message().map(Line::from).collect());
-+        if let Some(body) =
-+            wrap_user_message(sanitized.as_ref(), elements, Style::default(), width.max(1))
-+        {
-+            lines.extend(body);
++        if let UserMessagePresentation::AsyncReplies { replies, cwd } = &self.presentation {
++            lines.extend(super::async_replies::render(
++                replies,
++                cwd,
++                usize::from(width.max(1)),
++            ));
++        } else {
++            lines.extend(wrap_user_message(
++                sanitized.as_ref(),
++                elements,
++                Style::default(),
++                width.max(1),
++            ));
 +        }
 +        for source in lines.iter_mut().filter_map(|line| line.source.as_mut()) {
 +            source.right_reserve = 0;
-+            source.copy_as_prose = true;
++            source.copy_as_prose |= matches!(
++                self.presentation,
++                UserMessagePresentation::Plain | UserMessagePresentation::Spoken
++            );
 +        }
 +        lines
-+    }
-+}
-+
- impl HistoryCell for UserHistoryCell {
-     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
-         visible_lines(self.display_hyperlink_lines(width))
-@@ -424,6 +449,8 @@
+     }
+ }
+ 
+@@ -492,6 +530,8 @@
  
  #[derive(Debug)]
  pub(crate) struct AgentMessageCell {
@@ -13266,7 +13500,7 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
      lines: Vec<HyperlinkLine>,
      is_first_line: bool,
  }
-@@ -432,6 +459,8 @@
+@@ -500,6 +540,8 @@
      #[cfg(test)]
      pub(crate) fn new(lines: Vec<Line<'static>>, is_first_line: bool) -> Self {
          Self {
@@ -13275,7 +13509,7 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
              lines: plain_hyperlink_lines(lines),
              is_first_line,
          }
-@@ -439,6 +468,8 @@
+@@ -507,6 +549,8 @@
  
      pub(crate) fn new_hyperlink_lines(lines: Vec<HyperlinkLine>, is_first_line: bool) -> Self {
          Self {
@@ -13284,10 +13518,10 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
              lines,
              is_first_line,
          }
-@@ -507,9 +538,31 @@
-     inline_visualization_context: Option<crate::inline_visualization::InlineVisualizationContext>,
+@@ -576,9 +620,31 @@
      rendered_lines: Option<MarkdownRenderCache>,
      spoken_artifacts: bool,
+     question_titles: Vec<std::ops::Range<usize>>,
 +    mycodx_final_answer: bool,
 +    mycodx_answer_id: String,
  }
@@ -13316,16 +13550,16 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
      pub(crate) fn with_copy_source(mut self, source: Option<String>) -> Self {
          self.copy_source = source;
          self
-@@ -546,6 +599,8 @@
-             inline_visualization_context,
+@@ -616,6 +682,8 @@
              rendered_lines,
              spoken_artifacts: false,
+             question_titles: Vec::new(),
 +            mycodx_final_answer: true,
 +            mycodx_answer_id: format!("mycodx-answer:{}", uuid::Uuid::new_v4()),
          }
      }
  
-@@ -726,6 +781,8 @@
+@@ -809,6 +877,8 @@
      remote_image_urls: Vec<String>,
  ) -> UserHistoryCell {
      UserHistoryCell {
@@ -13337,40 +13571,25 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
 diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_transcript.rs
 --- a/codex-rs/tui/src/thread_transcript.rs
 +++ b/codex-rs/tui/src/thread_transcript.rs
-@@ -259,6 +259,8 @@
-                 item.text_elements()
-             };
-             cells.push(Arc::new(UserHistoryCell {
-+                mycodx_id: uuid::Uuid::new_v4().to_string(),
-+                mycodx_reply: reply_text.is_some(),
-                 spoken: false,
-                 message: reply_text.unwrap_or(message),
-                 text_elements,
-@@ -266,14 +268,30 @@
-                 remote_image_urls: item.image_urls(),
-             }));
+@@ -269,7 +269,11 @@
+             cells.push(Arc::new(cell.with_async_replies(replies, cwd.as_path())));
          }
--        ThreadItem::AgentMessage { text, .. } => {
-+        ThreadItem::AgentMessage {
+         ThreadItemPayload::AgentMessage {
+-            text, questions, ..
 +            id,
 +            text,
 +            phase,
 +            questions,
 +            ..
-+        } => {
+         } => {
              let parsed = parse_assistant_markdown(&text, cwd.as_path());
              if !parsed.visible_markdown.trim().is_empty() {
--                cells.push(Arc::new(AgentMarkdownCell::new_with_inline_visualizations(
--                    parsed.visible_markdown,
--                    cwd.as_path(),
--                    inline_visualization_context,
--                )));
-+                cells.push(Arc::new(
-+                    AgentMarkdownCell::new_with_inline_visualizations(
-+                        parsed.visible_markdown,
-+                        cwd.as_path(),
-+                        inline_visualization_context,
-+                    )
+@@ -279,7 +283,15 @@
+                         cwd.as_path(),
+                         inline_visualization_context,
+                     )
+-                    .with_questions(questions.as_deref().unwrap_or_default()),
++                    .with_questions(questions.as_deref().unwrap_or_default())
 +                    .with_mycodx_id(Some(format!("mycodx-message:{id}")))
 +                    .with_mycodx_final_answer(
 +                        questions.as_ref().is_none_or(|q| q.is_empty())
@@ -13379,16 +13598,15 @@ diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_tra
 +                                Some(codex_protocol::models::MessagePhase::FinalAnswer) | None
 +                            ),
 +                    ),
-+                ));
+                 ));
              }
          }
-         ThreadItem::FunctionCallOutput {
-@@ -296,12 +314,12 @@
+@@ -303,12 +315,12 @@
                  )));
              }
          }
--        ThreadItem::Plan { text, .. } => {
-+        ThreadItem::Plan { id, text, .. } => {
+-        ThreadItemPayload::Plan { text, .. } => {
++        ThreadItemPayload::Plan { id, text, .. } => {
              if !text.trim().is_empty() {
 -                cells.push(Arc::new(crate::history_cell::new_proposed_plan(
 -                    text,
@@ -13400,7 +13618,7 @@ diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_tra
 +                ));
              }
          }
-         ThreadItem::Reasoning {
+         ThreadItemPayload::Reasoning {
 diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_view.rs
 --- a/codex-rs/tui/src/transcript_view.rs
 +++ b/codex-rs/tui/src/transcript_view.rs
@@ -13420,7 +13638,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
  mod prompt_header;
  mod search;
  mod select_mode;
-@@ -123,9 +125,17 @@
+@@ -105,9 +107,17 @@
      live_separated: Option<Arc<TextLayout>>,
      live_key: Option<(u16, ActiveCellTranscriptKey)>,
      live_continuation: bool,
@@ -13438,7 +13656,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      visible: Vec<VisibleRow>,
      selection: Option<Selection>,
      select_mode: Option<SelectMode>,
-@@ -162,9 +172,17 @@
+@@ -145,9 +155,17 @@
              live_separated: None,
              live_key: None,
              live_continuation: false,
@@ -13456,7 +13674,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              visible: Vec::new(),
              selection: None,
              select_mode: None,
-@@ -200,6 +218,15 @@
+@@ -183,6 +201,15 @@
      }
  
      pub(crate) fn render(&mut self, area: Rect, buf: &mut Buffer, cells: &[Arc<dyn HistoryCell>]) {
@@ -13472,7 +13690,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.composer_tip = None;
          self.prompt_header_target = None;
          self.cache.begin_frame();
-@@ -224,6 +251,9 @@
+@@ -207,6 +234,9 @@
          }
          let initial_start = self.start(cells);
          let initial_position = self.position;
@@ -13482,7 +13700,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let mut start = initial_start;
          let mut body = area;
          let header_position = prompt_header::SuppressedHeader {
-@@ -231,24 +261,47 @@
+@@ -214,24 +244,47 @@
              key: self.entry_key(cells, start.0),
              row: start.1,
          };
@@ -13538,7 +13756,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
                  self.prompt_header_target = Some((header_area, key));
              } else {
                  body = area;
-@@ -260,6 +313,7 @@
+@@ -243,6 +296,7 @@
                  self.suppressed_prompt_header = Some(header_position);
              }
          }
@@ -13546,7 +13764,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let area = body;
          let (mut index, mut row) = start;
          let mut entry_activity_ids: Option<(usize, Arc<[String]>)> = None;
-@@ -289,8 +343,12 @@
+@@ -272,8 +326,12 @@
                  }
              };
              let row_area = Rect::new(area.x, y, area.width, /*height*/ 1);
@@ -13561,12 +13779,10 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              if self.highlight == Some(index) && self.selection.is_none() && !self.search.is_active()
              {
                  layout.highlight(0..layout.text().len(), row_area, buf, row);
-@@ -333,6 +391,27 @@
-         self.sync_live_layout(width, key, |width| {
-             lines(width).map(|lines| TextLayout::new(lines, width))
+@@ -349,6 +407,27 @@
          })
-+    }
-+
+     }
+ 
 +    pub(crate) fn set_mycodx_stream_id(&mut self, id: Option<String>) {
 +        if self.mycodx_stream_id != id {
 +            self.mycodx_stream_id = id;
@@ -13586,10 +13802,12 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 +            self.mycodx_stream = streaming;
 +            self.live_key = None;
 +        }
-     }
- 
++    }
++
      pub(crate) fn sync_live_activity_tail(
-@@ -346,9 +425,51 @@
+         &mut self,
+         width: u16,
+@@ -360,9 +439,51 @@
              .disclosure
              .keymap
              .primary_hint(crate::keymap::KeymapContext::Global, "open_transcript");
@@ -13643,8 +13861,8 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 +        changed
      }
  
-     fn sync_live_layout(
-@@ -357,6 +478,15 @@
+     pub(crate) fn sync_live_layout(
+@@ -371,6 +492,15 @@
          key: Option<ActiveCellTranscriptKey>,
          layout: impl FnOnce(u16) -> Option<TextLayout>,
      ) -> bool {
@@ -13660,7 +13878,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let next = key.map(|key| (width, key));
          if key.is_some_and(|key| key.cacheable) && self.live_key == next {
              return false;
-@@ -367,6 +497,16 @@
+@@ -381,6 +511,16 @@
          self.live_separated = None;
          self.live_continuation = key.is_some_and(|key| key.is_stream_continuation);
          let live = layout(width).map(Arc::new);
@@ -13677,7 +13895,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          if self.live.as_ref().map(|layout| layout.text())
              != live.as_ref().map(|layout| layout.text())
          {
-@@ -378,6 +518,20 @@
+@@ -392,6 +532,20 @@
          let changed = self.live.is_some() || live.is_some();
          self.live = live;
          changed
@@ -13698,7 +13916,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      }
  
      pub(crate) fn set_presentation(&mut self, detailed: bool, mode: HistoryRenderMode) {
-@@ -390,6 +544,7 @@
+@@ -404,6 +558,7 @@
          self.release_live_reading();
          self.cache.clear();
          self.suppressed_prompt_header = None;
@@ -13706,7 +13924,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.live_key = None;
          // Keep search's origin independent of either presentation's saved position.
          if self.detailed != detailed && !self.search.is_active() {
-@@ -431,6 +586,7 @@
+@@ -445,6 +600,7 @@
      }
  
      pub(crate) fn jump_to_latest(&mut self) {
@@ -13714,7 +13932,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.cancel_search();
          self.cancel_beginning();
          self.position = Position::Latest;
-@@ -448,6 +604,10 @@
+@@ -462,6 +618,10 @@
              self.cancel_beginning();
          }
          if self.area.is_empty() {
@@ -13725,7 +13943,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              return;
          }
          let current_cells = cells;
-@@ -492,15 +652,19 @@
+@@ -506,15 +666,19 @@
      }
  
      pub(crate) fn jump_to_entry(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) {
@@ -13746,7 +13964,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          });
      }
  
-@@ -579,6 +743,14 @@
+@@ -593,6 +757,14 @@
      }
  
      fn bottom_start(&mut self, cells: &[Arc<dyn HistoryCell>]) -> (usize, usize) {
@@ -13761,7 +13979,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let snapshot = self.snapshot_cells();
          let cells = snapshot.as_deref().unwrap_or(cells);
          let has_live = self.snapshot().map_or(self.live.is_some(), |snapshot| {
-@@ -592,19 +764,14 @@
+@@ -606,19 +778,14 @@
              .layout(cells, last)
              .map_or(/*default*/ 0, |l| l.row_count());
          let recap_gap = usize::from(
@@ -14834,7 +15052,7 @@ new file mode 100644
 diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/transcript_view/layout.rs
 --- a/codex-rs/tui/src/transcript_view/layout.rs
 +++ b/codex-rs/tui/src/transcript_view/layout.rs
-@@ -66,7 +66,9 @@
+@@ -109,7 +109,9 @@
  
  #[derive(PartialEq, Eq)]
  struct RenderState {
@@ -14844,15 +15062,23 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
      foreground: Option<(u8, u8, u8)>,
      background: Option<(u8, u8, u8)>,
      color_level: crate::terminal_palette::StdoutColorLevel,
-@@ -88,6 +90,7 @@
-     expanded: bool,
+@@ -134,6 +136,7 @@
      disclosure: bool,
      detailed: bool,
+     image_protocol: Option<crate::pets::ImageProtocol>,
 +    mycodx_group_revision: u64,
  }
  
  impl TranscriptView {
-@@ -143,6 +146,8 @@
+@@ -151,6 +154,7 @@
+             self.disclosure.expanded.extend(ids);
+         }
+         CellPresentation {
++            mycodx_group_revision: 0,
+             separated: false,
+             shares_prompt_background: false,
+             turn_tip_space: false,
+@@ -215,6 +219,8 @@
          index: usize,
          full_content: bool,
      ) -> Option<Arc<TextLayout>> {
@@ -14861,11 +15087,11 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
          let Some(cell) = cells.get(index) else {
              if index != cells.len() {
                  return None;
-@@ -165,13 +170,41 @@
+@@ -237,12 +243,79 @@
              return Some(Arc::new(TextLayout::new(Vec::new(), width)));
          }
          let mode = self.mode;
--        let ids = cell.activity_ids();
+-        let mut presentation = self.content_presentation(cell.as_ref(), full_content, mode);
 +        let mycodx = !self.detailed && mode == HistoryRenderMode::Rich;
 +        let section = mycodx
 +            .then(|| super::mycodx::section_at(cells, index))
@@ -14887,14 +15113,13 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
 +            .then(|| super::mycodx::tool_end(cells, index))
 +            .flatten();
 +        let ids = self.activity_ids(cells, index);
-         let disclosure = !self.detailed && mode == HistoryRenderMode::Rich && !ids.is_empty();
++        let disclosure = !self.detailed && mode == HistoryRenderMode::Rich && !ids.is_empty();
 +        let action_count = ids.len();
-         let manually_expanded = self.disclosure.is_expanded(&ids);
--        let expanded = disclosure && (full_content || manually_expanded);
++        let manually_expanded = self.disclosure.is_expanded(&ids);
 +        let expanded = disclosure && (full_content || self.mycodx_expanded(cells, index));
-         if manually_expanded {
-             self.disclosure.expanded.extend(ids);
-         }
++        if manually_expanded {
++            self.disclosure.expanded.extend(ids.iter().cloned());
++        }
 +        if mycodx && !expanded && !full_content && super::mycodx::secondary_progress(cells, index) {
 +            return Some(Arc::new(TextLayout::new(Vec::new(), width)));
 +        }
@@ -14902,13 +15127,18 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
 +            .filter(|s| *s != crate::mycodx_ui::Section::Tools)
 +            .map(|_| super::mycodx::message_members(cells, index));
 +        let live_join = self.mycodx_live_join == Some(EntryKey::cell(cell));
-         let separated = index > 0 && !cell.is_stream_continuation();
-         let presentation = CellPresentation {
-             separated,
-@@ -179,12 +212,47 @@
-             expanded,
-             disclosure,
-             detailed: full_content,
++        let separated = index > 0 && !cell.is_stream_continuation();
++        let mut presentation = CellPresentation {
++            separated,
++            shares_prompt_background: false,
++            image_protocol: self.image_protocol.filter(|_| {
++                mode == HistoryRenderMode::Rich
++                    && (cell.activity_ids().is_empty() || manually_expanded || self.detailed)
++            }),
++            turn_tip_space: self.turn_tip_key == Some(EntryKey::cell(cell)),
++            expanded,
++            disclosure,
++            detailed: full_content,
 +            mycodx_group_revision: {
 +                let mut end = tool_end
 +                    .or_else(|| members.as_ref().and_then(|m| m.last().map(|i| i + 1)))
@@ -14928,11 +15158,20 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
 +                    ^ ((section.map_or(0, |s| s as u64 + 1)) << 56)
 +                    ^ (u64::from(live_join) << 55)
 +            },
-         };
++        };
          let shortcut = self
              .disclosure
              .keymap
              .primary_hint(KeymapContext::Global, "open_transcript");
+-        let shares_prompt_background = is_rich_user_prompt(cell.as_ref(), mode)
++        let shares_prompt_background = !mycodx
++            && is_rich_user_prompt(cell.as_ref(), mode)
+             && (0..index)
+                 .rev()
+                 .find(|&previous| {
+@@ -274,6 +347,22 @@
+         presentation.shares_prompt_background = shares_prompt_background;
+         presentation.turn_tip_space = self.turn_tip_key == Some(EntryKey::cell(cell));
          Some(self.cache.get(cell, width, presentation, || {
 +            if mycodx && let Some(layout) = super::mycodx::completion_layout(cell, width) {
 +                return layout;
@@ -14950,10 +15189,10 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
 +                    cells, members, section, width, expanded, live_join,
 +                );
 +            }
-             if disclosure {
-                 activity_layout(
-                     ActivityTranscriptLines {
-@@ -219,7 +287,9 @@
+             let mut layout =
+                 cell_content_layout(cell.as_ref(), width, mode, presentation, shortcut);
+             if shares_prompt_background {
+@@ -288,7 +377,9 @@
      pub(super) fn begin_frame(&mut self) {
          self.frame = self.frame.wrapping_add(/*rhs*/ 1);
          let state = RenderState {
@@ -14966,26 +15205,26 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
 diff --git a/codex-rs/tui/src/transcript_view/layout_tests.rs b/codex-rs/tui/src/transcript_view/layout_tests.rs
 --- a/codex-rs/tui/src/transcript_view/layout_tests.rs
 +++ b/codex-rs/tui/src/transcript_view/layout_tests.rs
-@@ -51,6 +51,7 @@
-                     expanded: false,
+@@ -53,6 +53,7 @@
                      disclosure: false,
                      detailed: false,
+                     image_protocol: None,
 +                    mycodx_group_revision: 0,
                  },
                  || TextLayout::new(history.transcript_hyperlink_lines(width), width),
              )
-@@ -107,6 +108,7 @@
-                 expanded: false,
+@@ -111,6 +112,7 @@
                  disclosure: false,
                  detailed: false,
+                 image_protocol: None,
 +                mycodx_group_revision: 0,
              },
              || {
                  TextLayout::new(
-@@ -127,6 +129,7 @@
-                 expanded: false,
+@@ -133,6 +135,7 @@
                  disclosure: false,
                  detailed: false,
+                 image_protocol: None,
 +                mycodx_group_revision: 0,
              },
              || {
@@ -16111,7 +16350,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx_tests.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx_tests.rs
-@@ -0,0 +1,2511 @@
+@@ -0,0 +1,2534 @@
 +use super::*;
 +use crate::history_cell::PlainHistoryCell;
 +use crate::mycodx_ui::{Background, Section, Settings};
@@ -16964,7 +17203,7 @@ new file mode 100644
 +
 +#[test]
 +fn mycodx_plan_replay_uses_final_style_and_last_candidate_rule() {
-+    use codex_app_server_protocol::ThreadItem;
++    use codex_app_server_protocol::ThreadItemPayload as ThreadItem;
 +    let settings = Settings::comparison().change_card(Section::Answers, |c| {
 +        c.title = "FINAL STYLE".into();
 +        c.title_visible = true;
@@ -17057,7 +17296,7 @@ new file mode 100644
 +
 +#[test]
 +fn mycodx_question_forms_are_intermediate_even_without_phase() {
-+    use codex_app_server_protocol::ThreadItem;
++    use codex_app_server_protocol::ThreadItemPayload as ThreadItem;
 +    let cwd = codex_utils_absolute_path::AbsolutePathBuf::from_absolute_path(
 +        std::env::current_dir().unwrap(),
 +    )
@@ -17501,7 +17740,7 @@ new file mode 100644
 +
 +#[test]
 +fn mycodx_reply_replay_uses_metadata_and_preserves_plain_prompts() {
-+    use codex_app_server_protocol::{ThreadItem, UserInput};
++    use codex_app_server_protocol::{ThreadItemPayload as ThreadItem, UserInput};
 +    let cwd = codex_utils_absolute_path::AbsolutePathBuf::from_absolute_path(
 +        std::env::current_dir().unwrap(),
 +    )
@@ -17533,6 +17772,29 @@ new file mode 100644
 +        assert_eq!(user.mycodx_reply, expected);
 +        assert!(user.message.contains("Yes"));
 +    }
++}
++
++#[test]
++fn mycodx_async_reply_card_keeps_upstream_markdown_and_reply_classification() {
++    use crate::async_question_reply::AsyncQuestionReply;
++    crate::mycodx_ui::with_settings(Settings::comparison(), || {
++        let replies = vec![AsyncQuestionReply {
++            question_item_id: "question-166".into(),
++            question: "Continue with the upgrade?".into(),
++            answer: "**Yes**, keep the cards.".into(),
++        }];
++        let cell = crate::history_cell::new_user_prompt(
++            crate::async_question_reply::display_replies(&replies),
++            vec![], vec![], vec![],
++        ).with_async_replies(replies, Path::new("."));
++        let cell: Arc<dyn HistoryCell> = Arc::new(cell);
++        assert_eq!(section(&cell), Some(Section::Replies));
++        let layout = message_layout(&cell, 80, true).unwrap();
++        assert!(layout.text().contains("Continue with the upgrade?"));
++        assert!(layout.text().contains("Yes, keep the cards."));
++        assert!(!layout.text().contains("**Yes**"));
++        assert_eq!(layout.rewrap(32).text(), layout.text());
++    });
 +}
 +
 +fn mouse(
@@ -18167,7 +18429,7 @@ new file mode 100644
 +        text_elements: Vec::new(),
 +        local_image_paths: Vec::new(),
 +        remote_image_urls: Vec::new(),
-+        spoken: false,
++        presentation: Default::default(),
 +    })
 +}
 +
@@ -18671,557 +18933,49 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_style_tests.rs b/codex-rs/t
 diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcript_view/text.rs
 --- a/codex-rs/tui/src/transcript_view/text.rs
 +++ b/codex-rs/tui/src/transcript_view/text.rs
-@@ -1,665 +1,789 @@
--//! Wrapped transcript text with source positions shared by painting and selection.
--//!
--//! Input lines with shared source provenance belong to the same logical line. Other input
--//! lines introduce hard breaks. Display wrapping and synthetic controls never enter `text`.
--//! Layout offsets use `usize`; terminal coordinates are narrowed only for visible rows.
--//! Disclosure controls follow their activity's source text without changing its indentation.
--//! Selected hard breaks on nonempty rows highlight one trailing cell when space permits.
--
--use std::borrow::Cow;
--use std::ops::Range;
--
--#[path = "text_logical.rs"]
--mod logical;
--
--#[path = "text_tabs.rs"]
--mod tabs;
--
--use ratatui::buffer::Buffer;
--use ratatui::layout::Alignment;
--use ratatui::layout::Rect;
--use ratatui::style::Modifier;
--use ratatui::style::Style;
--use ratatui::style::Stylize;
--use ratatui::widgets::Widget;
--use unicode_segmentation::UnicodeSegmentation;
--
--use crate::line_truncation::line_width;
--use crate::line_truncation::truncate_line_to_width;
--use crate::terminal_hyperlinks::HyperlinkLine;
--use crate::terminal_hyperlinks::HyperlinkParagraph;
--use crate::terminal_hyperlinks::LineWrapPolicy;
--use crate::terminal_hyperlinks::LogicalLineSource;
--use crate::terminal_hyperlinks::remap_source_wrapped_line;
--use crate::width::display_width;
--use crate::wrapping::RtOptions;
--use crate::wrapping::WrappedLine;
--use crate::wrapping::adaptive_wrap_line_to_width;
--use crate::wrapping::word_wrap_line_with_source;
--use logical::LogicalLine;
--use logical::logical_lines;
--use ratatui::text::Line;
--
--/// One cell's logical text and its width-dependent display rows.
--pub(super) struct TextLayout {
--    logical: Vec<LogicalLine>,
--    text: String,
--    rows: Vec<TextRow>,
--    width: u16,
--    pub(super) separated: bool,
--    pub(super) disclosure: bool,
--    disclosure_control: Option<DisclosureControl>,
--}
--
--struct DisclosureControl {
--    label: String,
--    source_offset: usize,
--    row: usize,
--}
--
--struct TextRow {
--    line: HyperlinkLine,
--    source: Range<usize>,
--    /// Source offset at the logical line end; absent on soft wraps and synthetic rows.
--    line_end: Option<usize>,
--    content_width: u16,
--    first_column: usize,
--    prefix_columns: usize,
--    tabs: tabs::TabStops,
--}
--
--impl TextLayout {
--    pub(super) fn copy_block_ranges(&self) -> Vec<(Range<usize>, &'static str, Option<String>)> {
--        let mut ranges = Vec::new();
--        for (label, code) in [("Code block", true), ("Blockquote", false)] {
--            let mut active: Option<(Range<usize>, Option<std::sync::Arc<str>>)> = None;
--            let mut offset = 0;
--            for line in &self.logical {
--                let end = offset + line.origin.range.len();
--                let metadata = line.origin.copy.as_deref();
--                let matches = metadata.is_some_and(|copy| {
--                    if code {
--                        copy.code || copy.code_source.is_some()
--                    } else {
--                        copy.prefix.contains('>')
--                    }
--                });
--                if matches {
--                    let source = metadata.and_then(|copy| {
--                        if code {
--                            copy.code_source.as_ref()
--                        } else {
--                            copy.quote_source.as_ref()
--                        }
--                    });
--                    // Shared source identity survives wrapping and separates adjacent blocks,
--                    // including equal payloads. A list marker can precede the first source row.
--                    if let Some(source) = source
--                        && active
--                            .as_ref()
--                            .and_then(|(_, retained)| retained.as_ref())
--                            .is_some_and(|retained| !std::sync::Arc::ptr_eq(retained, source))
--                        && let Some((range, retained)) = active.take()
--                    {
--                        ranges.push((range, label, retained.map(|source| source.to_string())));
--                    }
--                    let (range, retained) = active.get_or_insert((offset..end, None));
--                    range.end = end;
--                    if retained.is_none() {
--                        *retained = source.cloned();
--                    }
--                } else if let Some((range, source)) = active.take() {
--                    ranges.push((range, label, source.map(|source| source.to_string())));
--                }
--                offset = end + 1;
--            }
--            if let Some((range, source)) = active {
--                ranges.push((range, label, source.map(|source| source.to_string())));
--            }
--        }
--        ranges.retain(|(range, _, _)| {
--            self.text
--                .get(range.clone())
--                .is_some_and(|text| !text.trim().is_empty())
--        });
--        ranges
--    }
--
--    pub(super) fn new(lines: Vec<HyperlinkLine>, width: u16) -> Self {
--        let logical = logical_lines(&lines);
--        Self::from_logical(logical, width)
--    }
--
--    /// Reflow the same displayed content revision, retaining styles, links and disclosure label.
--    pub(super) fn rewrap(&self, width: u16) -> Self {
--        let mut layout = Self::from_logical(self.logical.clone(), width);
--        if let Some(control) = &self.disclosure_control {
--            layout =
--                layout.with_disclosure_control_at(control.label.clone(), control.source_offset);
--        }
--        if self.separated {
--            layout.with_leading_separator()
--        } else {
--            layout
--        }
--    }
--
--    /// Append a clipped interaction row outside the copied and searched source text.
--    pub(super) fn with_disclosure_control(self, label: String) -> Self {
--        let source_offset = self.text.len();
--        self.with_disclosure_control_at(label, source_offset)
--    }
--
--    /// Place a control after an activity, before any following auxiliary source text.
--    pub(super) fn with_disclosure_control_at(
--        mut self,
--        label: String,
--        source_offset: usize,
--    ) -> Self {
--        if self.text.is_empty() || label.is_empty() {
--            return self;
--        }
--        if let Some(control) = self.disclosure_control.take() {
--            self.rows.remove(control.row);
--        }
--        let source_offset = self
--            .text
--            .floor_char_boundary(source_offset.min(self.text.len()));
--        let control_row = self
--            .rows
--            .iter()
--            .rposition(|row| row.source.end <= source_offset)
--            .map_or(/*default*/ 0, |row| row + 1);
--        let indent = usize::from(self.width / 4).min(/*other*/ 4);
--        let line = truncate_line_to_width(
--            Line::from(format!("{}{label}", " ".repeat(indent))).dim(),
--            usize::from(self.width),
--        );
--        self.rows.insert(
--            control_row,
--            TextRow {
--                line: HyperlinkLine::from(line),
--                source: source_offset..source_offset,
--                line_end: None,
--                content_width: self.width,
--                first_column: indent,
--                prefix_columns: indent,
--                tabs: tabs::TabStops::default(),
--            },
--        );
--        self.disclosure = true;
--        self.disclosure_control = Some(DisclosureControl {
--            label,
--            source_offset,
--            row: control_row,
--        });
--        self
--    }
--
--    /// Add visual spacing between entries without changing any source position.
--    pub(super) fn with_leading_separator(mut self) -> Self {
--        if !self.separated {
--            self = self.with_leading_spacer();
--            self.separated = !self.rows.is_empty();
--        }
--        self
--    }
--
--    /// Reserve one presentation-only row before existing spacing and source text.
--    pub(super) fn with_leading_spacer(mut self) -> Self {
--        if !self.rows.is_empty() {
--            self.rows.insert(
--                /*index*/ 0,
--                TextRow {
--                    line: HyperlinkLine::from(""),
--                    source: 0..0,
--                    line_end: None,
--                    content_width: self.width,
--                    first_column: 0,
--                    prefix_columns: 0,
--                    tabs: tabs::TabStops::default(),
--                },
--            );
--            if let Some(control) = &mut self.disclosure_control {
--                control.row += 1;
--            }
--        }
--        self
--    }
--
--    /// Source text between adjacent retained fragments; distinct logical lines have a hard break.
--    pub(super) fn separator_after(&self, next: &Self) -> &str {
--        if let Some(previous) = self.logical.last()
--            && let Some(next) = next.logical.first()
--            && std::sync::Arc::ptr_eq(&previous.origin.text, &next.origin.text)
--            && let Some(gap) = previous
--                .origin
--                .text
--                .get(previous.origin.range.end..next.origin.range.start)
--        {
--            gap
--        } else {
--            "\n"
--        }
--    }
--
--    pub(super) fn copy_lines(
--        &self,
--        range: Range<usize>,
--        separator: &str,
--        output: &mut Vec<crate::markdown_copy::SelectedLine>,
--    ) {
--        let mut offset = 0;
--        for (index, line) in self.logical.iter().enumerate() {
--            let end = offset + line.origin.range.len();
--            if range.start <= end && range.end >= offset {
--                let selected = line.origin.range.start + range.start.saturating_sub(offset)
--                    ..line.origin.range.start + range.end.min(end) - offset;
--                crate::markdown_copy::SelectedLine::append(
--                    output,
--                    line.origin.clone(),
--                    selected,
--                    if index == 0 { separator } else { "\n" },
--                );
--            }
--            offset = end + 1;
--        }
--    }
--
--    pub(super) fn text(&self) -> &str {
--        &self.text
--    }
--
--    pub(super) fn row_count(&self) -> usize {
--        self.rows.len()
--    }
--
--    pub(super) fn disclosure_row(&self) -> Option<usize> {
--        self.disclosure_control.as_ref().map(|control| control.row)
--    }
--
--    pub(super) fn disclosure_columns(&self) -> Range<u16> {
--        let Some(row) = self.disclosure_row().and_then(|row| self.rows.get(row)) else {
--            return 0..0;
--        };
--        row.first_column as u16..line_width(&row.line.line).min(usize::from(self.width)) as u16
--    }
--
--    /// Paint visible rows, including inherited styles on empty rows and trailing columns.
--    pub(super) fn render(&self, area: Rect, buf: &mut Buffer, start_row: usize) {
--        for (screen_row, row) in self.visible_rows(area, start_row) {
--            let mut row_area =
--                Rect::new(area.x, area.y + screen_row, area.width, /*height*/ 1);
--            buf.set_style(row_area, row.line.line.style);
--            row_area.width = row.content_width;
--            HyperlinkParagraph::new(std::slice::from_ref(&row.line), row.line.line.style)
--                .render(row_area, buf);
--        }
--    }
--
--    /// Resolve a cell coordinate to a grapheme boundary, clamping padding to the row's text.
--    pub(super) fn position_at(&self, row: usize, column: u16) -> usize {
--        let Some(row) = self.rows.get(row) else {
--            return self.text.len();
--        };
--        let mut current_column = row.first_column;
--        for (offset, grapheme) in
--            self.text[row.source.clone()].grapheme_indices(/*is_extended*/ true)
--        {
--            current_column += row.tabs.grapheme_width(offset, grapheme);
--            if usize::from(column) < current_column {
--                return row.source.start + offset;
--            }
--        }
--        row.source.end
--    }
--
--    /// Resolve a keyboard caret to a grapheme start while leaving truly empty rows blank.
--    pub(super) fn cursor_position_at(&self, row: usize, column: u16) -> usize {
--        let offset = self.position_at(row, column);
--        let Some(row) = self.rows.get(row) else {
--            return offset;
--        };
--        if row.source.start == row.source.end || offset < row.source.end {
--            return offset;
--        }
--        self.text[row.source.clone()]
--            .grapheme_indices(/*is_extended*/ true)
--            .next_back()
--            .map_or(row.source.start, |(offset, _)| row.source.start + offset)
--    }
--
--    /// Return the first selectable source grapheme on a display row, excluding synthetic rows.
--    pub(super) fn first_cursor_position(&self, row: usize) -> Option<usize> {
--        let row = self.rows.get(row)?;
--        self.text[row.source.clone()]
--            .grapheme_indices(/*is_extended*/ true)
--            .next()
--            .map(|(offset, _)| row.source.start + offset)
--    }
--
--    /// Whether a source grapheme is actually painted on a display row.
--    pub(super) fn is_cursor_position(&self, offset: usize) -> bool {
--        self.rows.iter().any(|row| row.source.contains(&offset))
--    }
--
--    /// Advance one grapheme inside the caret's display row without crossing an empty row.
--    pub(super) fn after_cursor_grapheme(&self, row: usize, offset: usize) -> usize {
--        let Some(row) = self.rows.get(row) else {
--            return offset;
--        };
--        if row.source.start == row.source.end {
--            return offset;
--        }
--        let offset = self
--            .text
--            .floor_char_boundary(offset.clamp(row.source.start, row.source.end));
--        offset
--            + self.text[offset..row.source.end]
--                .graphemes(/*is_extended*/ true)
--                .next()
--                .map_or(/*default*/ 0, str::len)
--    }
--
--    /// Find the display row containing a source position, including omitted wrapping whitespace.
--    pub(super) fn row_for_offset(&self, offset: usize) -> usize {
--        let before_control = if let Some(control_row) = self.disclosure_row() {
--            let after_control = &self.rows[control_row + 1..];
--            let matching_rows = after_control.partition_point(|row| row.source.start <= offset);
--            if matching_rows > 0 {
--                return control_row + matching_rows;
--            }
--            control_row
--        } else {
--            self.rows.len()
--        };
--        self.rows[..before_control]
--            .partition_point(|row| row.source.start <= offset)
--            .saturating_sub(/*rhs*/ 1)
--    }
--
--    pub(super) fn column_for_offset(&self, offset: usize) -> u16 {
--        self.column_for_offset_on_row(self.row_for_offset(offset), offset)
--    }
--
--    /// Resolve a source position within a specific display row when offsets are shared.
--    pub(super) fn column_for_offset_on_row(&self, row: usize, offset: usize) -> u16 {
--        let Some(row) = self.rows.get(row) else {
--            return 0;
--        };
--        let offset = self
--            .text
--            .floor_char_boundary(offset.clamp(row.source.start, row.source.end));
--        let column = row.first_column
--            + row.tabs.column_for_offset(
--                display_width(&self.text[row.source.start..offset]),
--                offset - row.source.start,
--            );
--        column.min(usize::from(self.width)) as u16
--    }
--
--    /// Highlight source graphemes only, leaving alignment and viewport padding untouched.
--    pub(super) fn highlight(
--        &self,
--        range: Range<usize>,
--        area: Rect,
--        buf: &mut Buffer,
--        start_row: usize,
-+//! Wrapped transcript text with source positions shared by painting and selection.
-+//!
-+//! Input lines with shared source provenance belong to the same logical line. Other input
-+//! lines introduce hard breaks. Display wrapping and synthetic controls never enter `text`.
-+//! Layout offsets use `usize`; terminal coordinates are narrowed only for visible rows.
-+//! Disclosure controls follow their activity's source text without changing its indentation.
-+//! Selected hard breaks on nonempty rows highlight one trailing cell when space permits.
-+
-+use std::borrow::Cow;
-+use std::ops::Range;
-+
-+#[path = "text_logical.rs"]
-+mod logical;
-+
+@@ -12,8 +12,13 @@
+ #[path = "text_logical.rs"]
+ mod logical;
+ 
 +#[path = "text_mermaid.rs"]
 +mod mermaid;
 +#[path = "text_mycodx.rs"]
 +mod mycodx_cards;
-+#[path = "text_tabs.rs"]
-+mod tabs;
+ #[path = "text_tabs.rs"]
+ mod tabs;
 +use mycodx_cards::CommonCard;
-+
-+use ratatui::buffer::Buffer;
-+use ratatui::layout::Alignment;
-+use ratatui::layout::Rect;
-+use ratatui::style::Modifier;
-+use ratatui::style::Style;
-+use ratatui::style::Stylize;
-+use ratatui::widgets::Widget;
-+use unicode_segmentation::UnicodeSegmentation;
-+
-+use crate::line_truncation::line_width;
-+use crate::line_truncation::truncate_line_to_width;
-+use crate::terminal_hyperlinks::HyperlinkLine;
-+use crate::terminal_hyperlinks::HyperlinkParagraph;
-+use crate::terminal_hyperlinks::LineWrapPolicy;
-+use crate::terminal_hyperlinks::LogicalLineSource;
-+use crate::terminal_hyperlinks::remap_source_wrapped_line;
-+use crate::width::display_width;
-+use crate::wrapping::RtOptions;
-+use crate::wrapping::WrappedLine;
-+use crate::wrapping::adaptive_wrap_line_to_width;
-+use crate::wrapping::word_wrap_line_with_source;
-+use logical::LogicalLine;
-+use logical::logical_lines;
-+use ratatui::text::Line;
-+
-+/// One cell's logical text and its width-dependent display rows.
-+pub(super) struct TextLayout {
-+    logical: Vec<LogicalLine>,
-+    text: String,
-+    rows: Vec<TextRow>,
-+    width: u16,
-+    pub(super) separated: bool,
-+    pub(super) disclosure: bool,
-+    disclosure_control: Option<DisclosureControl>,
+ 
+ use ratatui::buffer::Buffer;
+ use ratatui::layout::Alignment;
+@@ -51,6 +56,7 @@
+     pub(super) disclosure: bool,
+     leading_blank_hidden: bool,
+     disclosure_control: Option<DisclosureControl>,
 +    common_card: Option<CommonCard>,
-+}
-+
-+struct DisclosureControl {
-+    label: String,
-+    source_offset: usize,
-+    row: usize,
-+}
-+
-+struct TextRow {
+ }
+ 
+ struct DisclosureControl {
+@@ -60,11 +66,14 @@
+ }
+ 
+ struct TextRow {
 +    mermaid_pending: bool,
 +    image: Option<crate::codux_mermaid::ImageRow>,
-+    line: HyperlinkLine,
-+    source: Range<usize>,
-+    /// Source offset at the logical line end; absent on soft wraps and synthetic rows.
-+    line_end: Option<usize>,
-+    content_width: u16,
+     line: HyperlinkLine,
+     source: Range<usize>,
+     /// Source offset at the logical line end; absent on soft wraps and synthetic rows.
+     line_end: Option<usize>,
+     content_width: u16,
 +    render_offset: u16,
-+    first_column: usize,
-+    prefix_columns: usize,
-+    tabs: tabs::TabStops,
-+}
-+
-+impl TextLayout {
-+    pub(super) fn copy_block_ranges(&self) -> Vec<(Range<usize>, &'static str, Option<String>)> {
-+        let mut ranges = Vec::new();
-+        for (label, code) in [("Code block", true), ("Blockquote", false)] {
-+            let mut active: Option<(Range<usize>, Option<std::sync::Arc<str>>)> = None;
-+            let mut offset = 0;
-+            for line in &self.logical {
-+                let end = offset + line.origin.range.len();
-+                let metadata = line.origin.copy.as_deref();
-+                let matches = metadata.is_some_and(|copy| {
-+                    if code {
-+                        copy.code || copy.code_source.is_some()
-+                    } else {
-+                        copy.prefix.contains('>')
-+                    }
-+                });
-+                if matches {
-+                    let source = metadata.and_then(|copy| {
-+                        if code {
-+                            copy.code_source.as_ref()
-+                        } else {
-+                            copy.quote_source.as_ref()
-+                        }
-+                    });
-+                    // Shared source identity survives wrapping and separates adjacent blocks,
-+                    // including equal payloads. A list marker can precede the first source row.
-+                    if let Some(source) = source
-+                        && active
-+                            .as_ref()
-+                            .and_then(|(_, retained)| retained.as_ref())
-+                            .is_some_and(|retained| !std::sync::Arc::ptr_eq(retained, source))
-+                        && let Some((range, retained)) = active.take()
-+                    {
-+                        ranges.push((range, label, retained.map(|source| source.to_string())));
-+                    }
-+                    let (range, retained) = active.get_or_insert((offset..end, None));
-+                    range.end = end;
-+                    if retained.is_none() {
-+                        *retained = source.cloned();
-+                    }
-+                } else if let Some((range, source)) = active.take() {
-+                    ranges.push((range, label, source.map(|source| source.to_string())));
-+                }
-+                offset = end + 1;
-+            }
-+            if let Some((range, source)) = active {
-+                ranges.push((range, label, source.map(|source| source.to_string())));
-+            }
-+        }
-+        ranges.retain(|(range, _, _)| {
-+            self.text
-+                .get(range.clone())
-+                .is_some_and(|text| !text.trim().is_empty())
-+        });
-+        ranges
-+    }
-+
-+    pub(super) fn new(lines: Vec<HyperlinkLine>, width: u16) -> Self {
-+        let logical = logical_lines(&lines);
-+        Self::from_logical(logical, width)
-+    }
-+
-+    /// Reflow the same displayed content revision, retaining styles, links and disclosure label.
-+    pub(super) fn rewrap(&self, width: u16) -> Self {
+     first_column: usize,
+     prefix_columns: usize,
+     tabs: tabs::TabStops,
+@@ -158,8 +167,14 @@
+ 
+     /// Reflow the same displayed content revision, retaining styles, links and disclosure label.
+     pub(super) fn rewrap(&self, width: u16) -> Self {
+-        let mut layout = Self::from_logical(self.logical.clone(), width);
+-        if let Some(control) = &self.disclosure_control {
 +        let mut layout = if let Some(card) = &self.common_card {
 +            self.rewrap_common(width, card)
 +        } else {
@@ -19230,13 +18984,13 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
 +        if self.common_card.is_none()
 +            && let Some(control) = &self.disclosure_control
 +        {
-+            layout =
-+                layout.with_disclosure_control_at(control.label.clone(), control.source_offset);
-+        }
-+        if self.separated {
-+            layout.with_leading_separator()
-+        } else {
-+            layout
+             layout =
+                 layout.with_disclosure_control_at(control.label.clone(), control.source_offset);
+         }
+@@ -171,6 +186,45 @@
+             layout.with_leading_separator()
+         } else {
+             layout
 +        }
 +    }
 +
@@ -19276,150 +19030,49 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
 +            first_column: 0,
 +            prefix_columns: 0,
 +            tabs: tabs::TabStops::default(),
-+        }
-+    }
-+
-+    /// Append a clipped interaction row outside the copied and searched source text.
-+    pub(super) fn with_disclosure_control(self, label: String) -> Self {
-+        let source_offset = self.text.len();
-+        self.with_disclosure_control_at(label, source_offset)
-+    }
-+
-+    /// Place a control after an activity, before any following auxiliary source text.
-+    pub(super) fn with_disclosure_control_at(
-+        mut self,
-+        label: String,
-+        source_offset: usize,
-+    ) -> Self {
-+        if self.text.is_empty() || label.is_empty() {
-+            return self;
-+        }
-+        if let Some(control) = self.disclosure_control.take() {
-+            self.rows.remove(control.row);
-+        }
-+        let source_offset = self
-+            .text
-+            .floor_char_boundary(source_offset.min(self.text.len()));
-+        let control_row = self
-+            .rows
-+            .iter()
-+            .rposition(|row| row.source.end <= source_offset)
-+            .map_or(/*default*/ 0, |row| row + 1);
-+        let indent = usize::from(self.width / 4).min(/*other*/ 4);
-+        let line = truncate_line_to_width(
-+            Line::from(format!("{}{label}", " ".repeat(indent))).dim(),
-+            usize::from(self.width),
-+        );
-+        self.rows.insert(
-+            control_row,
-+            TextRow {
+         }
+     }
+ 
+@@ -208,10 +262,13 @@
+         self.rows.insert(
+             control_row,
+             TextRow {
 +                image: None,
 +                mermaid_pending: false,
-+                line: HyperlinkLine::from(line),
-+                source: source_offset..source_offset,
-+                line_end: None,
-+                content_width: self.width,
+                 line: HyperlinkLine::from(line),
+                 source: source_offset..source_offset,
+                 line_end: None,
+                 content_width: self.width,
 +                render_offset: 0,
-+                first_column: indent,
-+                prefix_columns: indent,
-+                tabs: tabs::TabStops::default(),
-+            },
-+        );
-+        self.disclosure = true;
-+        self.disclosure_control = Some(DisclosureControl {
-+            label,
-+            source_offset,
-+            row: control_row,
-+        });
-+        self
-+    }
-+
-+    /// Add visual spacing between entries without changing any source position.
-+    pub(super) fn with_leading_separator(mut self) -> Self {
-+        if !self.separated {
-+            self = self.with_leading_spacer();
-+            self.separated = !self.rows.is_empty();
-+        }
-+        self
-+    }
-+
-+    /// Reserve one presentation-only row before existing spacing and source text.
-+    pub(super) fn with_leading_spacer(mut self) -> Self {
-+        if !self.rows.is_empty() {
-+            self.rows.insert(
-+                /*index*/ 0,
-+                TextRow {
+                 first_column: indent,
+                 prefix_columns: indent,
+                 tabs: tabs::TabStops::default(),
+@@ -257,10 +314,13 @@
+             self.rows.insert(
+                 /*index*/ 0,
+                 TextRow {
 +                    image: None,
 +                    mermaid_pending: false,
-+                    line: HyperlinkLine::from(""),
-+                    source: 0..0,
-+                    line_end: None,
-+                    content_width: self.width,
+                     line: HyperlinkLine::from(""),
+                     source: 0..0,
+                     line_end: None,
+                     content_width: self.width,
 +                    render_offset: 0,
-+                    first_column: 0,
-+                    prefix_columns: 0,
-+                    tabs: tabs::TabStops::default(),
-+                },
-+            );
-+            if let Some(control) = &mut self.disclosure_control {
-+                control.row += 1;
-+            }
+                     first_column: 0,
+                     prefix_columns: 0,
+                     tabs: tabs::TabStops::default(),
+@@ -269,6 +329,7 @@
+             if let Some(control) = &mut self.disclosure_control {
+                 control.row += 1;
+             }
 +            self.shift_common();
-+        }
-+        self
-+    }
-+
-+    /// Source text between adjacent retained fragments; distinct logical lines have a hard break.
-+    pub(super) fn separator_after(&self, next: &Self) -> &str {
-+        if let Some(previous) = self.logical.last()
-+            && let Some(next) = next.logical.first()
-+            && std::sync::Arc::ptr_eq(&previous.origin.text, &next.origin.text)
-+            && let Some(gap) = previous
-+                .origin
-+                .text
-+                .get(previous.origin.range.end..next.origin.range.start)
-+        {
-+            gap
-+        } else {
-+            "\n"
-+        }
-+    }
-+
-+    pub(super) fn copy_lines(
-+        &self,
-+        range: Range<usize>,
-+        separator: &str,
-+        output: &mut Vec<crate::markdown_copy::SelectedLine>,
-+    ) {
-+        let mut offset = 0;
-+        for (index, line) in self.logical.iter().enumerate() {
-+            let end = offset + line.origin.range.len();
-+            if range.start <= end && range.end >= offset {
-+                let selected = line.origin.range.start + range.start.saturating_sub(offset)
-+                    ..line.origin.range.start + range.end.min(end) - offset;
-+                crate::markdown_copy::SelectedLine::append(
-+                    output,
-+                    line.origin.clone(),
-+                    selected,
-+                    if index == 0 { separator } else { "\n" },
-+                );
-+            }
-+            offset = end + 1;
-+        }
-+    }
-+
-+    pub(super) fn text(&self) -> &str {
-+        &self.text
-+    }
-+
-+    pub(super) fn row_count(&self) -> usize {
-+        self.rows.len()
-+    }
-+
-+    pub(super) fn disclosure_row(&self) -> Option<usize> {
-+        self.disclosure_control.as_ref().map(|control| control.row)
-+    }
-+
+         }
+         self
+     }
+@@ -343,26 +404,72 @@
+         self.disclosure_control.as_ref().map(|control| control.row)
+     }
+ 
 +    pub(super) fn mycodx_heading_bias(&self) -> isize {
 +        if self.common_heading() {
 +            self.row_for_offset(0) as isize
@@ -19431,18 +19084,21 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
 +        }
 +    }
 +
-+    pub(super) fn disclosure_columns(&self) -> Range<u16> {
-+        let Some(row) = self.disclosure_row().and_then(|row| self.rows.get(row)) else {
-+            return 0..0;
-+        };
+     pub(super) fn disclosure_columns(&self) -> Range<u16> {
+         let Some(row) = self.disclosure_row().and_then(|row| self.rows.get(row)) else {
+             return 0..0;
+         };
+-        row.first_column as u16..line_width(&row.line.line).min(usize::from(self.width)) as u16
+-    }
+-
+-    /// Paint visible rows, including inherited styles on empty rows and trailing columns.
 +        row.first_column as u16
 +            ..(usize::from(row.render_offset) + line_width(&row.line.line))
 +                .min(usize::from(self.width)) as u16
 +    }
 +
 +    /// Paint frame geometry separately from body text, including when scrolled mid-card.
-+    #[cfg(test)]
-+    pub(super) fn render(&self, area: Rect, buf: &mut Buffer, start_row: usize) {
+     pub(crate) fn render(&self, area: Rect, buf: &mut Buffer, start_row: usize) {
 +        self.render_active(area, buf, start_row, false);
 +    }
 +    pub(super) fn render_active(
@@ -19452,7 +19108,17 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
 +        start_row: usize,
 +        active: bool,
 +    ) {
-+        for (screen_row, row) in self.visible_rows(area, start_row) {
+         for (screen_row, row) in self.visible_rows(area, start_row) {
+-            let mut row_area =
+-                Rect::new(area.x, area.y + screen_row, area.width, /*height*/ 1);
+-            buf.set_style(row_area, row.line.line.style);
+-            row_area.width = row.content_width;
+-            HyperlinkParagraph::new(std::slice::from_ref(&row.line), row.line.line.style)
+-                .render(row_area, buf);
+-        }
+-    }
+-
+-    /// Resolve a cell coordinate to a grapheme boundary, clamping padding to the row's text.
 +            self.render_common_row(
 +                area,
 +                buf,
@@ -19487,71 +19153,14 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
 +        }
 +    }
 +
-+    pub(super) fn position_at(&self, row: usize, column: u16) -> usize {
-+        let Some(row) = self.rows.get(row) else {
-+            return self.text.len();
-+        };
-+        let mut current_column = row.first_column;
-+        for (offset, grapheme) in
-+            self.text[row.source.clone()].grapheme_indices(/*is_extended*/ true)
-+        {
-+            current_column += row.tabs.grapheme_width(offset, grapheme);
-+            if usize::from(column) < current_column {
-+                return row.source.start + offset;
-+            }
+     pub(super) fn position_at(&self, row: usize, column: u16) -> usize {
+         let Some(row) = self.rows.get(row) else {
+             return self.text.len();
+@@ -430,6 +537,15 @@
+     pub(super) fn row_for_offset(&self, offset: usize) -> usize {
+         if self.visible_image().is_some() && offset >= self.text.len() {
+             return self.row_count().saturating_sub(1);
 +        }
-+        row.source.end
-+    }
-+
-+    /// Resolve a keyboard caret to a grapheme start while leaving truly empty rows blank.
-+    pub(super) fn cursor_position_at(&self, row: usize, column: u16) -> usize {
-+        let offset = self.position_at(row, column);
-+        let Some(row) = self.rows.get(row) else {
-+            return offset;
-+        };
-+        if row.source.start == row.source.end || offset < row.source.end {
-+            return offset;
-+        }
-+        self.text[row.source.clone()]
-+            .grapheme_indices(/*is_extended*/ true)
-+            .next_back()
-+            .map_or(row.source.start, |(offset, _)| row.source.start + offset)
-+    }
-+
-+    /// Return the first selectable source grapheme on a display row, excluding synthetic rows.
-+    pub(super) fn first_cursor_position(&self, row: usize) -> Option<usize> {
-+        let row = self.rows.get(row)?;
-+        self.text[row.source.clone()]
-+            .grapheme_indices(/*is_extended*/ true)
-+            .next()
-+            .map(|(offset, _)| row.source.start + offset)
-+    }
-+
-+    /// Whether a source grapheme is actually painted on a display row.
-+    pub(super) fn is_cursor_position(&self, offset: usize) -> bool {
-+        self.rows.iter().any(|row| row.source.contains(&offset))
-+    }
-+
-+    /// Advance one grapheme inside the caret's display row without crossing an empty row.
-+    pub(super) fn after_cursor_grapheme(&self, row: usize, offset: usize) -> usize {
-+        let Some(row) = self.rows.get(row) else {
-+            return offset;
-+        };
-+        if row.source.start == row.source.end {
-+            return offset;
-+        }
-+        let offset = self
-+            .text
-+            .floor_char_boundary(offset.clamp(row.source.start, row.source.end));
-+        offset
-+            + self.text[offset..row.source.end]
-+                .graphemes(/*is_extended*/ true)
-+                .next()
-+                .map_or(/*default*/ 0, str::len)
-+    }
-+
-+    /// Find the display row containing a source position, including omitted wrapping whitespace.
-+    pub(super) fn row_for_offset(&self, offset: usize) -> usize {
 +        if self.common_card.is_some() {
 +            return self
 +                .rows
@@ -19560,566 +19169,62 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
 +                    row.source.start <= offset && (row.line_end.is_some() || !row.source.is_empty())
 +                })
 +                .unwrap_or_else(|| self.disclosure_row().unwrap_or(usize::from(self.separated)));
-+        }
-+        let before_control = if let Some(control_row) = self.disclosure_row() {
-+            let after_control = &self.rows[control_row + 1..];
-+            let matching_rows = after_control.partition_point(|row| row.source.start <= offset);
-+            if matching_rows > 0 {
-+                return control_row + matching_rows;
-+            }
-+            control_row
-+        } else {
-+            self.rows.len()
-+        };
-+        self.rows[..before_control]
-+            .partition_point(|row| row.source.start <= offset)
-+            .saturating_sub(/*rhs*/ 1)
-+    }
-+
-+    pub(super) fn column_for_offset(&self, offset: usize) -> u16 {
-+        self.column_for_offset_on_row(self.row_for_offset(offset), offset)
-+    }
-+
-+    /// Resolve a source position within a specific display row when offsets are shared.
-+    pub(super) fn column_for_offset_on_row(&self, row: usize, offset: usize) -> u16 {
-+        let Some(row) = self.rows.get(row) else {
-+            return 0;
-+        };
-+        let offset = self
-+            .text
-+            .floor_char_boundary(offset.clamp(row.source.start, row.source.end));
-+        let column = row.first_column
-+            + row.tabs.column_for_offset(
-+                display_width(&self.text[row.source.start..offset]),
-+                offset - row.source.start,
-+            );
-+        column.min(usize::from(self.width)) as u16
-+    }
-+
-+    /// Highlight source graphemes only, leaving alignment and viewport padding untouched.
-+    pub(super) fn highlight(
-+        &self,
-+        range: Range<usize>,
-+        area: Rect,
-+        buf: &mut Buffer,
-+        start_row: usize,
+         }
+         let before_control = if let Some(control_row) = self.disclosure_row() {
+             let after_control = &self.rows[control_row + 1..];
+@@ -475,6 +591,9 @@
+         start_row: usize,
      ) {
          for (screen_row, row) in self.visible_rows(area, start_row) {
 +            // Columns include card alignment and padding; content_width is body-local.
 +            let right = (usize::from(row.render_offset) + usize::from(row.content_width))
 +                .min(usize::from(area.width));
              let mut column = row.first_column;
--            for (offset, grapheme) in
--                self.text[row.source.clone()].grapheme_indices(/*is_extended*/ true)
--            {
--                let start = row.source.start + offset;
--                let width = row.tabs.grapheme_width(offset, grapheme);
--                if start < range.end && start + grapheme.len() > range.start {
+             for (offset, grapheme) in
+                 self.text[row.source.clone()].grapheme_indices(/*is_extended*/ true)
+@@ -482,9 +601,7 @@
+                 let start = row.source.start + offset;
+                 let width = row.tabs.grapheme_width(offset, grapheme);
+                 if start < range.end && start + grapheme.len() > range.start {
 -                    for selected_column in
 -                        column..(column + width).min(usize::from(row.content_width))
 -                    {
--                        buf[(area.x + selected_column as u16, area.y + screen_row)]
--                            .set_style(Style::default().add_modifier(Modifier::REVERSED));
--                    }
--                }
--                column += width;
--            }
--        }
--    }
--
--    /// Mark selected hard breaks on nonempty rows, including a copied separator to `next`.
--    pub(super) fn highlight_selection(
--        &self,
--        range: Range<usize>,
--        next: Option<&Self>,
--        area: Rect,
--        buf: &mut Buffer,
--        start_row: usize,
--    ) {
--        self.highlight(range.clone(), area, buf, start_row);
--        for (screen_row, row) in self.visible_rows(area, start_row) {
--            if row.source.is_empty() {
--                continue;
--            }
--            let Some(end) = row.line_end else { continue };
--            let selected = range.contains(&end)
--                || (end == self.text.len()
--                    && next.is_some_and(|next| self.separator_after(next).contains('\n')));
--            let column = row.first_column
--                + row.tabs.column_for_offset(
--                    display_width(&self.text[row.source.clone()]),
--                    row.source.len(),
--                );
--            if selected && column < usize::from(self.width) {
--                buf[(area.x + column as u16, area.y + screen_row)]
--                    .set_style(Style::default().add_modifier(Modifier::REVERSED));
--            }
--        }
--    }
--
--    /// Resolve the displayed link using the same destination policy as terminal OSC-8 output.
--    pub(super) fn link_at(&self, row: usize, column: u16) -> Option<String> {
--        let row = self.rows.get(row)?;
--        let column = usize::from(column).checked_sub(row.first_column - row.prefix_columns)?;
--        row.line
--            .hyperlinks
--            .iter()
--            .find(|link| link.columns.contains(&column))?
--            .terminal_destination()
--    }
--
--    fn visible_rows(&self, area: Rect, start_row: usize) -> impl Iterator<Item = (u16, &TextRow)> {
--        let height = if area.width == 0 { 0 } else { area.height };
--        debug_assert!(area.width == 0 || area.width == self.width);
--        self.rows
--            .iter()
--            .skip(start_row)
--            .take(usize::from(height))
--            .enumerate()
--            .map(|(row, text)| (row as u16, text))
--    }
--
--    fn from_logical(logical: Vec<LogicalLine>, width: u16) -> Self {
--        let width = width.max(/*other*/ 1);
--        let mut text = String::new();
--        let mut rows = Vec::new();
--        for (index, line) in logical.iter().enumerate() {
--            if index > 0 {
--                text.push('\n');
--            }
--            let start = text.len();
--            text.extend(
--                line.line
--                    .line
--                    .spans
--                    .iter()
--                    .map(|span| span.content.as_ref()),
--            );
--            rows.extend(layout_line(line, start, width));
--            if let Some(row) = rows.last_mut() {
--                row.line_end = Some(text.len());
--            }
--        }
--        Self {
--            logical,
--            text,
--            rows,
--            width,
--            separated: false,
--            disclosure: false,
--            disclosure_control: None,
--        }
--    }
--}
--
--fn layout_line(logical: &LogicalLine, text_start: usize, width: u16) -> Vec<TextRow> {
--    let content_width = width.saturating_sub(logical.right_reserve).max(/*other*/ 1);
--    let mut logical = Cow::Borrowed(logical);
--    if line_width(&logical.initial_indent) >= usize::from(content_width)
--        || line_width(&logical.subsequent_indent) >= usize::from(content_width)
--    {
--        let logical = logical.to_mut();
--        logical.initial_indent = Line::default();
--        logical.subsequent_indent = Line::default();
--    }
--    let mut line = logical.line.clone();
--    line.source = Some(LogicalLineSource::new(
--        line.line
--            .spans
--            .iter()
--            .map(|span| span.content.as_ref())
--            .collect(),
--    ));
--    let options = RtOptions::new(usize::from(content_width))
--        .initial_indent(logical.initial_indent.clone())
--        .subsequent_indent(logical.subsequent_indent.clone());
--    let (wrapped, tab_stops) = if line
--        .line
--        .spans
--        .iter()
--        .any(|span| span.content.contains('\t'))
--    {
--        tabs::wrap_line(&logical, usize::from(content_width))
--    } else {
--        let wrapped = match logical.wrap_policy {
--            LineWrapPolicy::Word => word_wrap_line_with_source(&line.line, options),
--            LineWrapPolicy::UrlAware => adaptive_wrap_line_to_width(&line.line, options),
--            LineWrapPolicy::Hard => hard_wrap_line(&line.line, options),
--        };
--        let stops = (0..wrapped.len())
--            .map(|_| tabs::TabStops::default())
--            .collect();
--        (wrapped, stops)
--    };
--    // This source covers the whole logical line, so wrapping already supplies final row offsets.
--    let positions = wrapped
--        .iter()
--        .map(|row| (row.range.clone(), row.prefix_bytes))
--        .collect::<Vec<_>>();
--    remap_source_wrapped_line(&line, wrapped)
--        .into_iter()
--        .zip(positions)
--        .zip(tab_stops)
--        .map(|((mut wrapped, (source, prefix_bytes)), tabs)| {
--            wrapped.line.alignment = line.line.alignment;
--            for link in &mut wrapped.hyperlinks {
--                link.columns = tabs.project_link(link.columns.clone());
--            }
--            let displayed: String = wrapped
--                .line
--                .spans
--                .iter()
--                .map(|span| span.content.as_ref())
--                .collect();
--            let prefix_columns = display_width(&displayed[..prefix_bytes]);
--            let columns = usize::from(content_width);
--            let text_width = display_width(&displayed);
--            let first_column = match line.line.alignment.unwrap_or(Alignment::Left) {
--                Alignment::Left => 0,
--                Alignment::Center => (columns / 2).saturating_sub(text_width / 2),
--                Alignment::Right => columns.saturating_sub(text_width),
--            };
--            let range = text_start + source.start..text_start + source.end;
--            TextRow {
--                line: wrapped,
--                source: range,
--                line_end: None,
--                content_width,
--                first_column: first_column + prefix_columns,
--                prefix_columns,
--                tabs,
--            }
--        })
--        .collect()
--}
--
--/// Reuse the diff renderer's hard wrapping while preserving its distinct first/continuation gutters.
--fn hard_wrap_line(line: &Line<'static>, options: RtOptions<'static>) -> Vec<WrappedLine<'static>> {
--    let first_width = options
--        .width
--        .saturating_sub(options.initial_indent.width())
--        .max(/*other*/ 1);
--    let first = crate::diff_render::wrap_styled_spans(&line.spans, first_width)
--        .into_iter()
--        .next()
--        .unwrap_or_default();
--    let mut offset = first.iter().map(|span| span.content.len()).sum();
--    let prefix_bytes = options
--        .initial_indent
--        .spans
--        .iter()
--        .map(|span| span.content.len())
--        .sum();
--    let mut initial = options.initial_indent.clone().style(line.style);
--    initial.spans.extend(first);
--    let mut out = vec![WrappedLine {
--        line: initial,
--        range: 0..offset,
--        prefix_bytes,
--    }];
--    let total = line.spans.iter().map(|span| span.content.len()).sum();
--    let remainder = logical::slice_line(line, offset..total);
--    let continuation_width = options
--        .width
--        .saturating_sub(options.subsequent_indent.width())
--        .max(/*other*/ 1);
--    for chunk in crate::diff_render::wrap_styled_spans(&remainder.spans, continuation_width) {
--        let length: usize = chunk.iter().map(|span| span.content.len()).sum();
--        if length == 0 {
--            continue;
--        }
--        let mut continuation = options.subsequent_indent.clone().style(line.style);
--        let prefix_bytes = continuation
--            .spans
--            .iter()
--            .map(|span| span.content.len())
--            .sum();
--        continuation.spans.extend(chunk);
--        out.push(WrappedLine {
--            line: continuation,
--            range: offset..offset + length,
--            prefix_bytes,
--        });
--        offset += length;
--    }
--    out
--}
--
--#[cfg(test)]
--#[path = "text_tests.rs"]
--mod tests;
--
--#[cfg(test)]
--#[path = "diff_source_tests.rs"]
--mod diff_source_tests;
--
--#[cfg(test)]
--#[path = "source_cell_tests.rs"]
--mod source_cell_tests;
--
--#[cfg(test)]
--#[path = "prompt_style_tests.rs"]
--mod prompt_style_tests;
--
--#[cfg(test)]
--#[path = "text_tabs_tests.rs"]
--mod tab_tests;
-+            for (offset, grapheme) in
-+                self.text[row.source.clone()].grapheme_indices(/*is_extended*/ true)
-+            {
-+                let start = row.source.start + offset;
-+                let width = row.tabs.grapheme_width(offset, grapheme);
-+                if start < range.end && start + grapheme.len() > range.start {
 +                    for selected_column in column..(column + width).min(right) {
-+                        buf[(area.x + selected_column as u16, area.y + screen_row)]
-+                            .set_style(Style::default().add_modifier(Modifier::REVERSED));
-+                    }
-+                }
-+                column += width;
-+            }
-+        }
-+    }
-+
-+    /// Mark selected hard breaks on nonempty rows, including a copied separator to `next`.
-+    pub(super) fn highlight_selection(
-+        &self,
-+        range: Range<usize>,
-+        next: Option<&Self>,
-+        area: Rect,
-+        buf: &mut Buffer,
-+        start_row: usize,
-+    ) {
-+        self.highlight(range.clone(), area, buf, start_row);
-+        for (screen_row, row) in self.visible_rows(area, start_row) {
-+            if row.source.is_empty() {
-+                continue;
-+            }
-+            let Some(end) = row.line_end else { continue };
-+            let selected = range.contains(&end)
-+                || (end == self.text.len()
-+                    && next.is_some_and(|next| self.separator_after(next).contains('\n')));
-+            let column = row.first_column
-+                + row.tabs.column_for_offset(
-+                    display_width(&self.text[row.source.clone()]),
-+                    row.source.len(),
-+                );
-+            if selected && column < usize::from(self.width) {
-+                buf[(area.x + column as u16, area.y + screen_row)]
-+                    .set_style(Style::default().add_modifier(Modifier::REVERSED));
-+            }
-+        }
-+    }
-+
-+    /// Resolve the displayed link using the same destination policy as terminal OSC-8 output.
-+    pub(super) fn link_at(&self, row: usize, column: u16) -> Option<String> {
-+        let row = self.rows.get(row)?;
-+        let column = usize::from(column).checked_sub(row.first_column - row.prefix_columns)?;
-+        row.line
-+            .hyperlinks
-+            .iter()
-+            .find(|link| link.columns.contains(&column))?
-+            .terminal_destination()
-+    }
-+
-+    fn visible_rows(&self, area: Rect, start_row: usize) -> impl Iterator<Item = (u16, &TextRow)> {
-+        let height = if area.width == 0 { 0 } else { area.height };
-+        debug_assert!(area.width == 0 || area.width == self.width);
-+        self.rows
-+            .iter()
-+            .skip(start_row)
-+            .take(usize::from(height))
-+            .enumerate()
-+            .map(|(row, text)| (row as u16, text))
-+    }
-+
-+    fn from_logical(logical: Vec<LogicalLine>, width: u16) -> Self {
-+        let width = width.max(/*other*/ 1);
-+        let mut text = String::new();
-+        let mut rows = Vec::new();
-+        for (index, line) in logical.iter().enumerate() {
-+            if index > 0 {
-+                text.push('\n');
-+            }
-+            let start = text.len();
-+            text.extend(
-+                line.line
-+                    .line
-+                    .spans
-+                    .iter()
-+                    .map(|span| span.content.as_ref()),
-+            );
-+            rows.extend(layout_line(line, start, width));
-+            if let Some(row) = rows.last_mut() {
-+                row.line_end = Some(text.len());
-+            }
-+        }
+                         buf[(area.x + selected_column as u16, area.y + screen_row)]
+                             .set_style(Style::default().add_modifier(Modifier::REVERSED));
+                     }
+@@ -567,7 +684,7 @@
+                 row.line_end = Some(text.len());
+             }
+         }
+-        Self {
 +        let mut layout = Self {
-+            logical,
-+            text,
-+            rows,
-+            width,
-+            separated: false,
-+            disclosure: false,
-+            disclosure_control: None,
+             image: None,
+             logical,
+             text,
+@@ -577,7 +694,10 @@
+             disclosure: false,
+             leading_blank_hidden: false,
+             disclosure_control: None,
+-        }
 +            common_card: None,
 +        };
 +        layout.project_mermaid();
 +        layout
-+    }
-+}
-+
-+fn layout_line(logical: &LogicalLine, text_start: usize, width: u16) -> Vec<TextRow> {
-+    let content_width = width.saturating_sub(logical.right_reserve).max(/*other*/ 1);
-+    let mut logical = Cow::Borrowed(logical);
-+    if line_width(&logical.initial_indent) >= usize::from(content_width)
-+        || line_width(&logical.subsequent_indent) >= usize::from(content_width)
-+    {
-+        let logical = logical.to_mut();
-+        logical.initial_indent = Line::default();
-+        logical.subsequent_indent = Line::default();
-+    }
-+    let mut line = logical.line.clone();
-+    line.source = Some(LogicalLineSource::new(
-+        line.line
-+            .spans
-+            .iter()
-+            .map(|span| span.content.as_ref())
-+            .collect(),
-+    ));
-+    let options = RtOptions::new(usize::from(content_width))
-+        .initial_indent(logical.initial_indent.clone())
-+        .subsequent_indent(logical.subsequent_indent.clone());
-+    let (wrapped, tab_stops) = if line
-+        .line
-+        .spans
-+        .iter()
-+        .any(|span| span.content.contains('\t'))
-+    {
-+        tabs::wrap_line(&logical, usize::from(content_width))
-+    } else {
-+        let wrapped = match logical.wrap_policy {
-+            LineWrapPolicy::Word => word_wrap_line_with_source(&line.line, options),
-+            LineWrapPolicy::UrlAware => adaptive_wrap_line_to_width(&line.line, options),
-+            LineWrapPolicy::Hard => hard_wrap_line(&line.line, options),
-+        };
-+        let stops = (0..wrapped.len())
-+            .map(|_| tabs::TabStops::default())
-+            .collect();
-+        (wrapped, stops)
-+    };
-+    // This source covers the whole logical line, so wrapping already supplies final row offsets.
-+    let positions = wrapped
-+        .iter()
-+        .map(|row| (row.range.clone(), row.prefix_bytes))
-+        .collect::<Vec<_>>();
-+    remap_source_wrapped_line(&line, wrapped)
-+        .into_iter()
-+        .zip(positions)
-+        .zip(tab_stops)
-+        .map(|((mut wrapped, (source, prefix_bytes)), tabs)| {
-+            wrapped.line.alignment = line.line.alignment;
-+            for link in &mut wrapped.hyperlinks {
-+                link.columns = tabs.project_link(link.columns.clone());
-+            }
-+            let displayed: String = wrapped
-+                .line
-+                .spans
-+                .iter()
-+                .map(|span| span.content.as_ref())
-+                .collect();
-+            let prefix_columns = display_width(&displayed[..prefix_bytes]);
-+            let columns = usize::from(content_width);
-+            let text_width = display_width(&displayed);
-+            let first_column = match line.line.alignment.unwrap_or(Alignment::Left) {
-+                Alignment::Left => 0,
-+                Alignment::Center => (columns / 2).saturating_sub(text_width / 2),
-+                Alignment::Right => columns.saturating_sub(text_width),
-+            };
-+            let range = text_start + source.start..text_start + source.end;
-+            TextRow {
+     }
+ }
+ 
+@@ -650,10 +770,13 @@
+             };
+             let range = text_start + source.start..text_start + source.end;
+             TextRow {
 +                image: None,
 +                mermaid_pending: false,
-+                line: wrapped,
-+                source: range,
-+                line_end: None,
-+                content_width,
+                 line: wrapped,
+                 source: range,
+                 line_end: None,
+                 content_width,
 +                render_offset: 0,
-+                first_column: first_column + prefix_columns,
-+                prefix_columns,
-+                tabs,
-+            }
-+        })
-+        .collect()
-+}
-+
-+/// Reuse the diff renderer's hard wrapping while preserving its distinct first/continuation gutters.
-+fn hard_wrap_line(line: &Line<'static>, options: RtOptions<'static>) -> Vec<WrappedLine<'static>> {
-+    let first_width = options
-+        .width
-+        .saturating_sub(options.initial_indent.width())
-+        .max(/*other*/ 1);
-+    let first = crate::diff_render::wrap_styled_spans(&line.spans, first_width)
-+        .into_iter()
-+        .next()
-+        .unwrap_or_default();
-+    let mut offset = first.iter().map(|span| span.content.len()).sum();
-+    let prefix_bytes = options
-+        .initial_indent
-+        .spans
-+        .iter()
-+        .map(|span| span.content.len())
-+        .sum();
-+    let mut initial = options.initial_indent.clone().style(line.style);
-+    initial.spans.extend(first);
-+    let mut out = vec![WrappedLine {
-+        line: initial,
-+        range: 0..offset,
-+        prefix_bytes,
-+    }];
-+    let total = line.spans.iter().map(|span| span.content.len()).sum();
-+    let remainder = logical::slice_line(line, offset..total);
-+    let continuation_width = options
-+        .width
-+        .saturating_sub(options.subsequent_indent.width())
-+        .max(/*other*/ 1);
-+    for chunk in crate::diff_render::wrap_styled_spans(&remainder.spans, continuation_width) {
-+        let length: usize = chunk.iter().map(|span| span.content.len()).sum();
-+        if length == 0 {
-+            continue;
-+        }
-+        let mut continuation = options.subsequent_indent.clone().style(line.style);
-+        let prefix_bytes = continuation
-+            .spans
-+            .iter()
-+            .map(|span| span.content.len())
-+            .sum();
-+        continuation.spans.extend(chunk);
-+        out.push(WrappedLine {
-+            line: continuation,
-+            range: offset..offset + length,
-+            prefix_bytes,
-+        });
-+        offset += length;
-+    }
-+    out
-+}
-+
-+#[cfg(test)]
-+#[path = "text_tests.rs"]
-+mod tests;
-+
-+#[cfg(test)]
-+#[path = "diff_source_tests.rs"]
-+mod diff_source_tests;
-+
-+#[cfg(test)]
-+#[path = "source_cell_tests.rs"]
-+mod source_cell_tests;
-+
-+#[cfg(test)]
-+#[path = "prompt_style_tests.rs"]
-+mod prompt_style_tests;
-+
-+#[cfg(test)]
-+#[path = "text_tabs_tests.rs"]
-+mod tab_tests;
+                 first_column: first_column + prefix_columns,
+                 prefix_columns,
+                 tabs,

@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+import traceback
 
 import migration_inputs
 import release_info
@@ -33,6 +34,7 @@ def git_args(path: Path, *args: str) -> list[str]:
     # The agent and the interactive Windows user can have different SIDs. Trust only
     # this explicitly selected checkout, for this command; never change global Git config.
     return ["git", "-c", f"safe.directory={path.resolve().as_posix()}",
+            "-c", "core.longpaths=true",
             "-c", "core.whitespace=trailing-space,space-before-tab,cr-at-eol", *args]
 
 
@@ -247,6 +249,17 @@ def build(lock: dict, profile: str) -> None:
     env.update(MYCODEX_COMMAND=release["name"],
                MYCODEX_DISPLAY_VERSION=release_info.display_version(release, lock),
                MYCODEX_RELEASE_URL=release_info.package_url(release))
+    # Resolve upstream's required helpers before expensive compilation/tests so
+    # packaging API changes fail early when the pinned upstream is updated.
+    from codex_package.cargo import source_binaries_for_target
+    from codex_package.targets import PACKAGE_VARIANTS, TARGET_SPECS
+    spec = TARGET_SPECS[target]
+    binaries = source_binaries_for_target(
+        spec, PACKAGE_VARIANTS["codex"], build_entrypoint=True, build_code_mode_host=True,
+        build_exec_server=True, build_bwrap=spec.is_linux,
+        build_codex_command_runner=spec.is_windows,
+        build_codex_windows_sandbox_setup=spec.is_windows,
+    )
     # Syntax/type checking and behavioral tests must succeed before packaging.
     check_options = ["--locked", "--target", target, "--profile", "dev-small", "-p", "codex-tui"]
     run("cargo", "check", *check_options, cwd=rust, env=env)
@@ -281,14 +294,6 @@ def build(lock: dict, profile: str) -> None:
         raise RuntimeError(f"Output already exists; keep it or choose another profile: {package}")
     # Upstream's assembler accepts prebuilt binaries, but its own Cargo command
     # omits --locked. Build the complete upstream-defined set ourselves to keep pins enforced.
-    from codex_package.cargo import source_binaries_for_target
-    from codex_package.targets import PACKAGE_VARIANTS, TARGET_SPECS
-    spec = TARGET_SPECS[target]
-    binaries = source_binaries_for_target(
-        spec, PACKAGE_VARIANTS["codex"], build_entrypoint=True, build_code_mode_host=True,
-        build_bwrap=spec.is_linux, build_codex_command_runner=spec.is_windows,
-        build_codex_windows_sandbox_setup=spec.is_windows,
-    )
     package_env = {**env, "STABLE_GIT_COMMIT": lock["commit"]}
     cargo_command = ["cargo", "build", "--locked", "--target", target, "--profile", profile]
     for binary in binaries:
@@ -304,7 +309,8 @@ def build(lock: dict, profile: str) -> None:
                "--package-version", lock["package_version"], "--package-dir", str(package),
                "--cargo-profile", profile, "--target", target,
                "--entrypoint-bin", str(output_dir / f"codex{spec.exe_suffix}"),
-               "--code-mode-host-bin", str(output_dir / f"codex-code-mode-host{spec.exe_suffix}")]
+               "--code-mode-host-bin", str(output_dir / f"codex-code-mode-host{spec.exe_suffix}"),
+               "--exec-server-bin", str(output_dir / f"codex-exec-server{spec.exe_suffix}")]
     if spec.is_windows:
         command.extend(["--codex-command-runner-bin", str(output_dir / "codex-command-runner.exe"),
                         "--codex-windows-sandbox-setup-bin", str(output_dir / "codex-windows-sandbox-setup.exe")])
@@ -360,6 +366,11 @@ def main() -> int:
         if isinstance(exc, subprocess.CalledProcessError) and exc.stderr:
             print(exc.stderr.strip(), file=sys.stderr)
         print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    except Exception:
+        # Print unexpected failures before leaving the log redirection context.
+        # Otherwise Python writes the traceback only to the caller's terminal.
+        traceback.print_exc()
         return 1
     return 0
 

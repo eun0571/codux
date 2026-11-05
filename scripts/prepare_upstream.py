@@ -21,7 +21,7 @@ def version(value):
 
 
 def git(directory, *args):
-    result = subprocess.run(["git", "-c", "core.autocrlf=false", "-C", str(directory), *args],
+    result = subprocess.run(["git", "-c", "core.autocrlf=false", "-c", "core.longpaths=true", "-C", str(directory), *args],
                             capture_output=True)
     if result.returncode:
         raise RuntimeError(result.stderr.decode("utf-8", errors="replace").strip())
@@ -65,6 +65,17 @@ def patch_for(before, after):
     return "".join(parts).encode("utf-8")
 
 
+def release_lockfile(data, next_version):
+    """Refresh only local workspace versions; preserve all external dependency pins."""
+    version(next_version)
+    parts = data.decode("utf-8").split("[[package]]")
+    for index, part in enumerate(parts[1:], 1):
+        package = tomllib.loads(part)
+        if "source" not in package and package["version"] == "0.0.0":
+            parts[index] = part.replace('version = "0.0.0"', f'version = "{next_version}"', 1)
+    return "[[package]]".join(parts).encode("utf-8")
+
+
 def prepare(root, tag, repository=None, *, fetch_repository=UPSTREAM):
     """Only commit local inputs after a complete apply/reverse/reapply verification.
 
@@ -102,8 +113,16 @@ def prepare(root, tag, repository=None, *, fetch_repository=UPSTREAM):
     git(candidate, "checkout", "--detach", commit)
     paths = {name: safe_path(candidate, name) for name in lock["patched_sha256"]}
     before = {name: path.read_bytes() if path.exists() else None for name, path in paths.items()}
-    git(candidate, "apply", "--check", str(patch_path))
-    git(candidate, "apply", str(patch_path))
+    # Cargo.lock release versions belong to this candidate, not the previous tag.
+    # Apply the UI patch strictly and regenerate just that mechanical lock change.
+    apply_args = ["--exclude=codex-rs/Cargo.lock"] if "codex-rs/Cargo.lock" in before else []
+    git(candidate, "apply", *apply_args, "--check", str(patch_path))
+    git(candidate, "apply", *apply_args, str(patch_path))
+    if "codex-rs/Cargo.lock" in before:
+        paths["codex-rs/Cargo.lock"].write_bytes(release_lockfile(before["codex-rs/Cargo.lock"], next_version))
+    for name, path in paths.items():
+        if name.endswith(".rs"):
+            path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n"))
     after = {name: path.read_bytes() for name, path in paths.items()}
     toolchain = tomllib.loads((candidate / "codex-rs/rust-toolchain.toml").read_text(encoding="utf-8"))["toolchain"]["channel"]
     version(toolchain)

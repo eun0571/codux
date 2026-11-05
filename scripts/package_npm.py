@@ -92,7 +92,8 @@ def native(package, output, name=None, *, verify=True):
     if platform == "linux":
         metadata["libc"] = ["glibc"]
     entries = {"package.json": json_bytes(metadata), "LICENSE": ROOT / "LICENSE", "NOTICE": ROOT / "NOTICE"}
-    required = [f"bin/codux{suffix}", f"bin/codex-code-mode-host{suffix}", "codex-package.json", "codux-build.json", "migration-checksums.json"]
+    required = [f"bin/codux{suffix}", f"bin/codex-code-mode-host{suffix}", f"bin/codex-exec-server{suffix}",
+                "codex-package.json", "codux-build.json", "migration-checksums.json"]
     for relative in required:
         if not (package / relative).is_file():
             raise ValueError(f"Missing native file: {relative}")

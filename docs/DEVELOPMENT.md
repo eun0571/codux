@@ -3,10 +3,15 @@
 Windows prerequisites: Git, Python 3.12+, Node.js 22+, Rustup, MSVC C++ Build Tools, the Windows SDK, CMake, and Chrome or Edge. Dependencies require network access.
 
 ```powershell
+git config --global core.longpaths true
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows.ps1 -InstallCppBuildTools
 python scripts/setup_runtime.py
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1 -Profile release
 ```
+
+The first command enables long paths in your user-level Git configuration. Cargo's
+V8 dependency includes deeply nested submodules; a setting on the Codex source
+checkout alone does not apply to them. No administrator terminal is required.
 
 `upstream.lock.json` pins Codex, Rust, the patch, and file checksums. `release.json` defines the independent Codux version and npm package name. The build checks the patch, runs embedded Rust regression tests, assembles native helpers, and verifies database migration checksums. Only a successful package updates `.build/current.json`. Existing packages are never overwritten.
 
