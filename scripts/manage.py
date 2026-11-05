@@ -266,12 +266,16 @@ def build(lock: dict, profile: str) -> None:
     # Match upstream rust-ci-full-nextest-platform.yml: async app tests need an
     # 8 MiB thread stack. The Windows linker /STACK setting only covers main.
     # Keep any larger caller setting, and scope this to tests, not the package.
-    test_env = {**env, "RUST_MIN_STACK": str(max(8 * 1024 * 1024, int(env.get("RUST_MIN_STACK", "0"))))}
+    # Snapshot buffers include RGB styles. Headless CI reports less color support
+    # than an interactive terminal; use a fixed capability for tests only.
+    test_env = {**env, "FORCE_COLOR": "3", "INSTA_UPDATE": "no",
+                "RUST_MIN_STACK": str(max(8 * 1024 * 1024, int(env.get("RUST_MIN_STACK", "0"))))}
     print(f"Test thread stack: {test_env['RUST_MIN_STACK']} bytes (upstream CI minimum: 8 MiB)")
     run("cargo", "test", *check_options, "--lib", "transcript_view::mycodx::tests", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "app::codux_navigation::tests", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "transcript_view::follow_control::tests", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "codux_escape_does_not_interrupt", cwd=rust, env=test_env)
+    run("cargo", "test", *check_options, "--lib", "codux_working_", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "keymap::tests", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "transcript_view::search::", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "transcript_view::footer::tests", cwd=rust, env=test_env)

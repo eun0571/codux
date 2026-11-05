@@ -387,7 +387,119 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/slash_commands.rs b/codex-rs/tui/
 diff --git a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs b/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs
 --- a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs
 +++ b/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs
-@@ -2374,6 +2374,11 @@
+@@ -2250,6 +2250,111 @@
+ }
+ 
+ #[tokio::test]
++async fn codux_working_stays_visible_during_and_between_assistant_messages() {
++    for phase in [
++        Some(MessagePhase::Commentary),
++        Some(MessagePhase::PartialAnswer),
++        Some(MessagePhase::FinalAnswer),
++        None,
++    ] {
++        for streamed in [true, false] {
++            let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(None).await;
++            chat.set_mycodx_stream_cards(true);
++            chat.on_task_started();
++
++            if streamed {
++                // Exercise both a live tail without a newline and committed history.
++                chat.on_agent_message_delta("Still checking".to_string());
++                assert!(chat.bottom_pane.status_indicator_visible());
++                chat.on_agent_message_delta("\n".to_string());
++                chat.on_commit_tick();
++                drain_insert_history(&mut rx);
++                assert!(chat.bottom_pane.status_indicator_visible());
++
++                // No completion notification yet: idle commits must not remove progress.
++                chat.on_commit_tick();
++                assert!(chat.bottom_pane.status_indicator_visible());
++            }
++
++            complete_assistant_message(&mut chat, "msg-1", "Still checking", phase.clone());
++            assert!(chat.bottom_pane.is_task_running());
++            assert!(chat.bottom_pane.status_indicator_visible());
++
++            let height = chat.desired_height(80);
++            let mut terminal = Terminal::new(TestBackend::new(80, height)).unwrap();
++            terminal
++                .draw(|f| chat.render(f.area(), f.buffer_mut()))
++                .unwrap();
++            assert!(normalized_backend_snapshot(terminal.backend()).contains("Working"));
++
++            // A message (even final_answer) is not the turn-completed event.
++            chat.on_task_complete(None, None, false);
++            assert!(!chat.bottom_pane.is_task_running());
++            assert!(!chat.bottom_pane.status_indicator_visible());
++            chat.on_commit_tick();
++            assert!(!chat.bottom_pane.status_indicator_visible());
++        }
++    }
++}
++
++#[tokio::test]
++async fn codux_working_survives_plan_streaming_and_clears_at_turn_termination() {
++    for termination in ["complete", "interrupt", "error"] {
++        let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(None).await;
++        chat.set_mycodx_stream_cards(true);
++        chat.set_feature_enabled(Feature::CollaborationModes, true);
++        let plan_mask =
++            collaboration_modes::mask_for_kind(chat.model_catalog.as_ref(), ModeKind::Plan)
++                .expect("plan collaboration mask");
++        chat.set_collaboration_mask(plan_mask);
++        chat.on_task_started();
++
++        chat.on_plan_delta("- Step 1".to_string());
++        assert!(chat.bottom_pane.status_indicator_visible());
++        chat.on_plan_delta("\n".to_string());
++        chat.on_commit_tick();
++        drain_insert_history(&mut rx);
++        assert!(chat.bottom_pane.status_indicator_visible());
++        chat.on_plan_item_completed("- Step 1\n".to_string());
++        assert!(chat.bottom_pane.status_indicator_visible());
++
++        match termination {
++            "complete" => chat.on_task_complete(None, None, false),
++            "interrupt" => chat.on_interrupted_turn(TurnAbortReason::Interrupted),
++            _ => chat.on_server_overloaded_error("Server overloaded".to_string()),
++        }
++        assert!(!chat.bottom_pane.is_task_running());
++        assert!(!chat.bottom_pane.status_indicator_visible());
++        chat.on_commit_tick();
++        chat.set_mycodx_stream_cards(false);
++        chat.set_mycodx_stream_cards(true);
++        assert!(!chat.bottom_pane.status_indicator_visible());
++    }
++}
++
++#[tokio::test]
++async fn codux_working_restores_current_status_when_switching_back_to_cards() {
++    let (mut chat, _rx, _op_rx) = make_chatwidget_manual(None).await;
++    chat.on_task_started();
++    chat.bottom_pane.reset_status_timer(Duration::from_secs(42));
++    chat.on_agent_message_delta("In progress".to_string());
++    assert!(!chat.bottom_pane.status_indicator_visible());
++    chat.set_status_header("Reading files".to_string());
++
++    chat.set_mycodx_stream_cards(true);
++    assert_eq!(
++        chat.bottom_pane.status_widget().unwrap().header(),
++        "Reading files"
++    );
++    assert!(chat.bottom_pane.status_elapsed().unwrap() >= Duration::from_secs(42));
++    chat.on_commit_tick();
++    assert_eq!(
++        chat.bottom_pane.status_widget().unwrap().header(),
++        "Reading files"
++    );
++}
++
++#[tokio::test]
+ async fn streaming_final_answer_keeps_task_running_state() {
+     let (mut chat, mut rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
+     chat.thread_id = Some(ThreadId::new());
+@@ -2374,6 +2479,11 @@
  #[tokio::test]
  async fn esc_interrupt_pauses_active_goal_turn() {
      let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -399,7 +511,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs b/codex-rs/t
      chat.show_welcome_banner = false;
      let thread_id = start_active_goal_turn(&mut chat);
  
-@@ -2405,6 +2410,11 @@
+@@ -2405,6 +2515,11 @@
          KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
      ] {
          let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -13136,6 +13248,19 @@ diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
 diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
 --- a/codex-rs/tui/src/chatwidget.rs
 +++ b/codex-rs/tui/src/chatwidget.rs
+@@ -23,9 +23,9 @@
+ //! `update_task_running_state`.
+ //!
+ //! For preamble-capable models, assistant output may include commentary before
+-//! the final answer. During streaming we hide the status row to avoid duplicate
+-//! progress indicators; once commentary completes and stream queues drain, we
+-//! re-show it so users still see turn-in-progress state between output bursts.
++//! the final answer. Native transcripts hide the status row during streaming and
++//! restore it after commentary completes and stream queues drain. Codux cards keep
++//! the status row visible until the turn ends, including pauses between deltas.
+ //!
+ //! Slash-command parsing lives in the bottom-pane composer, but slash-command acceptance lives
+ //! here. That split lets the composer stage a recall entry before clearing input while this module
 @@ -1249,7 +1249,20 @@
          self.add_boxed_history(Box::new(cell));
      }
@@ -13172,13 +13297,16 @@ diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
 diff --git a/codex-rs/tui/src/chatwidget/activity_presentation.rs b/codex-rs/tui/src/chatwidget/activity_presentation.rs
 --- a/codex-rs/tui/src/chatwidget/activity_presentation.rs
 +++ b/codex-rs/tui/src/chatwidget/activity_presentation.rs
-@@ -5,11 +5,92 @@
+@@ -5,11 +5,95 @@
  use crate::transcript_view::ActivityTranscriptLines;
  
  impl ChatWidget {
 +    pub(crate) fn set_mycodx_stream_cards(&mut self, enabled: bool) {
 +        if self.transcript.mycodx_stream_cards != enabled {
 +            self.transcript.mycodx_stream_cards = enabled;
++            if enabled && self.turn_lifecycle.agent_turn_running {
++                self.sync_stream_status_indicator();
++            }
 +            if let Some(width) = self.last_rendered_width.get() {
 +                self.on_terminal_resize(width);
 +            }
@@ -13266,7 +13394,7 @@ diff --git a/codex-rs/tui/src/chatwidget/activity_presentation.rs b/codex-rs/tui
      }
  
      /// Render only the chosen activity presentation, before any auxiliary live text.
-@@ -29,15 +110,36 @@
+@@ -29,15 +113,36 @@
                  cell.compact_hyperlink_lines(width)
              }
          };
@@ -13315,7 +13443,33 @@ diff --git a/codex-rs/tui/src/chatwidget/activity_presentation.rs b/codex-rs/tui
 diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwidget/streaming.rs
 --- a/codex-rs/tui/src/chatwidget/streaming.rs
 +++ b/codex-rs/tui/src/chatwidget/streaming.rs
-@@ -88,6 +88,12 @@
+@@ -28,6 +28,25 @@
+ }
+ 
+ impl ChatWidget {
++    /// Card content can be hidden, collapsed, or paused between deltas. Keep a separate
++    /// busy indicator until the turn ends, regardless of the assistant message phase.
++    /// The native transcript retains its existing stream-replaces-status behavior.
++    pub(super) fn sync_stream_status_indicator(&mut self) {
++        if self.transcript.mycodx_stream_cards && self.turn_lifecycle.agent_turn_running {
++            if self.bottom_pane.status_widget().is_none() {
++                self.bottom_pane.ensure_status_indicator();
++                self.set_status(
++                    self.status_state.current_status.header.clone(),
++                    self.status_state.current_status.details.clone(),
++                    StatusDetailsCapitalization::Preserve,
++                    self.status_state.current_status.details_max_lines,
++                );
++            }
++        } else {
++            self.bottom_pane.hide_status_indicator();
++        }
++    }
++
+     pub(super) fn on_reasoning_item_started(&mut self, id: String) {
+         if self.status_state.reasoning_resume_turn_id.take().is_some()
+             && self.status_state.reasoning_item_id.as_ref() != Some(&id)
+@@ -88,6 +107,12 @@
      }
  
      fn flush_answer_stream(&mut self, completed_message: Option<&str>) {
@@ -13328,7 +13482,20 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
          let had_stream_controller = self.stream_controller.is_some();
          if let Some(mut controller) = self.stream_controller.take() {
              let needs_scrollback_reflow = controller.needs_scrollback_reflow();
-@@ -144,6 +150,8 @@
+@@ -108,10 +133,9 @@
+             } else {
+                 crate::app_event::ConsolidationScrollbackReflow::IfResizeReflowRan
+             };
+-            // Match newline-committed streaming behavior: once assistant output is ready to be
+-            // committed into history, hide the inline status row so transcript content replaces it.
++            // Use the same status policy for completed output and live stream tails.
+             if cell.is_some() {
+-                self.bottom_pane.hide_status_indicator();
++                self.sync_stream_status_indicator();
+             }
+             let deferred_history_cell =
+                 if scrollback_reflow == crate::app_event::ConsolidationScrollbackReflow::Required {
+@@ -144,6 +168,8 @@
                  });
                  self.note_stream_consolidation_queued();
                  self.app_event_tx.send(AppEvent::ConsolidateAgentMessage {
@@ -13337,7 +13504,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
                      source,
                      copy_source,
                      cwd: self.config.cwd.to_path_buf(),
-@@ -243,12 +251,13 @@
+@@ -243,12 +269,13 @@
          }
          self.transcript.plan_delta_buffer.push_str(&delta);
          if self.plan_stream_controller.is_none() {
@@ -13352,7 +13519,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
                      &self.config.cwd,
                      self.history_render_mode(),
                  )
-@@ -317,12 +326,16 @@
+@@ -317,12 +344,16 @@
                      .send(AppEvent::ConsolidateProposedPlan(source));
              }
          } else if !plan_text.is_empty() {
@@ -13370,7 +13537,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
          if should_restore_after_stream {
              self.status_state.pending_status_indicator_restore = true;
              self.maybe_restore_status_indicator_after_stream_idle();
-@@ -447,6 +460,11 @@
+@@ -447,6 +478,11 @@
          if !from_replay && let Some(questions) = &item.questions {
              self.add_async_questions(&item.id, questions);
          }
@@ -13382,7 +13549,16 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
          self.transcript.last_completed_agent_message = Some((turn_id.to_string(), item.id.clone()));
          let mut message = String::new();
          for content in &item.content {
-@@ -477,11 +495,20 @@
+@@ -463,7 +499,7 @@
+         {
+             self.prepare_assistant_message();
+             self.mark_safety_buffering_agent_message_started();
+-            self.bottom_pane.hide_status_indicator();
++            self.sync_stream_status_indicator();
+             let context = self.thread_id.and_then(|thread_id| {
+                 crate::inline_visualization::InlineVisualizationContext::from_config(
+                     &self.config,
+@@ -477,11 +513,20 @@
                      context,
                  )
                  .with_questions(questions)
@@ -13404,7 +13580,28 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
              self.finalize_completed_assistant_message(Some(&message));
          }
          if !parsed.visible_markdown.is_empty() {
-@@ -622,7 +649,7 @@
+@@ -538,9 +583,8 @@
+     /// Runs a commit tick for the current stream queue snapshot.
+     ///
+     /// `scope` controls whether this call may commit in smooth mode or only when catch-up
+-    /// is currently active. While lines are actively streaming we hide the status row to avoid
+-    /// duplicate "in progress" affordances. Restoration is gated separately so we only re-show
+-    /// the row after commentary completion once stream queues are idle.
++    /// is currently active. Native transcripts replace the status row with streaming text;
++    /// Codux cards retain it because visible text alone does not indicate an active turn.
+     pub(super) fn run_commit_tick_with_scope(&mut self, scope: CommitTickScope) {
+         let now = Instant::now();
+         let outcome = run_commit_tick(
+@@ -551,7 +595,7 @@
+             now,
+         );
+         for cell in outcome.cells {
+-            self.bottom_pane.hide_status_indicator();
++            self.sync_stream_status_indicator();
+             self.add_boxed_history(cell);
+         }
+         if scope == CommitTickScope::AnyMode || outcome.has_controller {
+@@ -622,7 +666,7 @@
              });
              self.stream_controller = Some(
                  StreamController::new_with_inline_visualizations(
@@ -13413,6 +13610,32 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
                      &self.config.cwd,
                      self.history_render_mode(),
                      inline_visualization_context,
+@@ -668,11 +712,11 @@
+                 return self.clear_active_stream_tail();
+             }
+ 
+-            self.bottom_pane.hide_status_indicator();
+             let cell = history_cell::StreamingAgentTailCell::new(
+                 tail_lines,
+                 controller.tail_starts_stream(),
+             );
++            self.sync_stream_status_indicator();
+             if self
+                 .transcript
+                 .active_cell
+@@ -697,11 +741,11 @@
+                 return self.clear_active_stream_tail();
+             }
+ 
+-            self.bottom_pane.hide_status_indicator();
+             let cell = history_cell::StreamingPlanTailCell::new(
+                 tail_lines,
+                 !controller.tail_starts_stream(),
+             );
++            self.sync_stream_status_indicator();
+             if self
+                 .transcript
+                 .active_cell
 diff --git a/codex-rs/tui/src/chatwidget/transcript.rs b/codex-rs/tui/src/chatwidget/transcript.rs
 --- a/codex-rs/tui/src/chatwidget/transcript.rs
 +++ b/codex-rs/tui/src/chatwidget/transcript.rs
