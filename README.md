@@ -1,23 +1,13 @@
 # Codux
 
-A patched build of Codex CLI that makes long terminal conversations easier to read.
-
-## Why I built it
-
-I work in the terminal, so a CLI is an essential part of my workflow. I wanted to keep using Codex and adjust the parts of its interface that get in the way of reading a conversation.
-
-As agents get more capable, my own attention is becoming the bottleneck. At least in my workflow, I no longer need to micromanage every step or watch every tool call. I want to see what needs my input, follow progress when it matters, and read the result. The details should be easy to open when I need them.
-
-Codux grew out of that preference: less time scanning execution logs, more attention on questions and answers.
-
-## Why a patched build?
-
-These changes affect rendering and navigation inside Codex's terminal UI. Codux pins an official Codex commit, applies a reviewable patch, and builds a separate `codux` executable. The repository contains the patch and build inputs; the full upstream source is fetched during the build.
+A patched Codex CLI with a clearer conversation layout and configurable terminal UI.
 
 - Separate presentation for questions, replies, tools, progress, and final answers.
 - Configurable colors, spacing, visibility, and folding through `/custom`.
 - Card navigation and search filtered by message type.
 - Mermaid images in supported terminals, with Codex text fallback.
+
+Codux builds a separate `codux` executable from a pinned official Codex commit. This repository contains the UI patch and build inputs; upstream source is fetched during the build.
 
 The official `codex` installation stays available. Codux shares its login, configuration, and conversation history through `CODEX_HOME`, and stores UI preferences separately in `codux-ui.json`.
 
