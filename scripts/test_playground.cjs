@@ -336,7 +336,4 @@ assert(small.items.length<=40);assert(small.characters<=32000);assert(small.shor
 assert.equal(small.items.at(-1).id,'199');assert.equal(longItems[199].text.length,10000,'Preview clipping must not mutate parsed source');
 const utf8=row('event_msg',{type:'user_message',message:'Caf\u00e9'}), afterUtf8=event({type:'agent_message',message:'Answer'});
 assert.equal(S.parse(utf8+'\r\n'+afterUtf8,'utf8',1024,50).items[1].sourceOffset,50+Buffer.byteLength(utf8+'\r\n'));
-assert.deepEqual(S.sessionLocation('Win32'),{path:'%USERPROFILE%\\.codex\\sessions',shortcut:'Ctrl+L'});
-assert.deepEqual(S.sessionLocation('macOS'),{path:'~/.codex/sessions',shortcut:'Cmd+Shift+G'});
-assert.deepEqual(S.sessionLocation('Linux'),{path:'~/.codex/sessions',shortcut:'Ctrl+L'});
 console.log(`Playground: ${palettes.length} palettes, scoped card settings, rollout parsing, duplicate handling, grouping, search, navigation and keyboard routing passed.`);

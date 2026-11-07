@@ -43,10 +43,8 @@
         <h2>Sessions <button id="refresh-library" hidden>Refresh</button></h2>
         <div class="session-import"><button id="files-button">Open sessions</button><button id="folder-button">Open folder</button></div>
         <div id="session-location" class="session-location">
-          <label for="session-path">Default session folder</label>
-          <div class="session-path-row"><input id="session-path" type="text" readonly value="%USERPROFILE%\.codex\sessions" spellcheck="false"><button id="copy-session-path" type="button">Copy</button></div>
-          <p id="session-path-help">Open folder, press Ctrl+L, paste this path, then press Enter.</p>
-          <details><summary>Other locations</summary><p>macOS / Linux: <code>~/.codex/sessions</code><br>Windows: <code>%USERPROFILE%\.codex\sessions</code><br>Custom CODEX_HOME: select its sessions folder.</p></details>
+          <p>Sessions are usually saved in <code>C:\Users\&lt;username&gt;\.codex\sessions</code> on Windows, or <code>~/.codex/sessions</code> on macOS / Linux.</p>
+          <p>Choose a dated folder or a <code>rollout-*.jsonl</code> file inside it. If you changed CODEX_HOME, look in its <code>sessions</code> folder.</p>
         </div>
         <input id="files" type="file" accept=".jsonl" multiple hidden><input id="folder" type="file" webkitdirectory multiple hidden>
         <p id="library-path" hidden></p><input id="session-filter" type="search" placeholder="Filter filenames" aria-label="Filter sessions"><div id="session-list"><p class="muted">Select files or a folder to start.</p></div><button id="reload-session" disabled>Reload latest excerpt</button>

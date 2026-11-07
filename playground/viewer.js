@@ -206,16 +206,6 @@
       if(!incoming.length){say('No .jsonl sessions found. Choose the default sessions folder shown above.');return;}
       ++libraryGeneration;$('#refresh-library').disabled=false;files=incoming;listFiles();load(0);
     }
-    if(!local){
-      const location=PlaygroundSessions.sessionLocation(navigator.userAgentData?.platform||navigator.platform||navigator.userAgent);
-      $('#session-path').value=location.path;
-      $('#session-path-help').textContent=`Open folder, press ${location.shortcut}, paste this path, then press Enter.`;
-      $('#session-path').addEventListener('click',event=>event.target.select());
-      $('#copy-session-path').addEventListener('click',async()=>{
-        try{await navigator.clipboard.writeText($('#session-path').value);say(`Path copied. Open folder, press ${location.shortcut}, paste, then press Enter.`);}
-        catch(_){$('#session-path').focus();$('#session-path').select();say('Copy the selected path, then paste it into the folder picker.');}
-      });
-    }
     async function localRequest(path,signal){
       const response=await fetch(path,{headers:{'X-Codux-Local':local.token},cache:'no-store',credentials:'omit',mode:'same-origin',signal});
       if(!response.ok){const error=await response.json().catch(()=>({}));throw Error(error.error||'Local server unavailable. Restart the playground and refresh this page.');}

@@ -128,10 +128,6 @@
     for(const item of items){if(item.role==='question')candidate=null;else if(item.role==='answer'){if(candidate)candidate.role='intermediate';candidate=item;}}
     return {meta,items,stats};
   }
-  function sessionLocation(platform=''){
-    if(/win/i.test(platform))return {path:'%USERPROFILE%\\.codex\\sessions',shortcut:'Ctrl+L'};
-    return {path:'~/.codex/sessions',shortcut:/mac/i.test(platform)?'Cmd+Shift+G':'Ctrl+L'};
-  }
-  root.PlaygroundSessions={parse,text,formReply,sessionLocation};
+  root.PlaygroundSessions={parse,text,formReply};
   if(typeof module!=='undefined')module.exports=root.PlaygroundSessions;
 })(globalThis);

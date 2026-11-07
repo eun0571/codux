@@ -41,11 +41,9 @@ your sessions folder. The default location is `%USERPROFILE%\.codex\sessions`
 on Windows and `~/.codex/sessions` on macOS or Linux. If you use `CODEX_HOME`,
 choose its `sessions` folder instead.
 
-The Sessions sidebar shows your platform's default path with a **Copy** button.
-Click Copy, then Open folder; use **Ctrl+L** in the Windows or Linux picker (or
-**Cmd+Shift+G** on macOS), paste the path, and press Enter. On Windows this opens
-`C:\Users\<your username>\.codex\sessions`. Select a dated subfolder or a rollout
-`.jsonl` file inside it. File selection uses your browser's standard picker.
+The Sessions sidebar includes a short guide to the default location. On Windows,
+look in `C:\Users\<your username>\.codex\sessions`. Select a dated subfolder or a
+rollout `.jsonl` file inside it. File selection uses your browser's standard picker.
 
 The website reads only the files you select, inside your browser. Conversation
 contents are not uploaded. A hosted website cannot discover your local sessions
