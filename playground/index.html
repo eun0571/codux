@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Try Codux card styles, folding, and navigation using short excerpts from local conversations.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Codux · UI playground</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="palettes.js"></script><script defer src="release.js"></script>
+  <script defer src="model.js"></script><script defer src="sessions.js"></script><script defer src="viewer.js"></script><script defer src="app.js"></script>
+</head>
+<body>
+  <header class="app-bar">
+    <a class="wordmark" href="index.html">c/ <strong>Codux</strong></a><span class="badge">UI PLAYGROUND</span>
+    <span id="version"></span>
+  </header>
+  <main class="workspace">
+      <article id="terminal-preview" class="terminal" aria-label="Codux terminal preview">
+      <button id="pinned-question" hidden title="Go to the current question"></button>
+      <div id="custom" class="transcript" tabindex="0" aria-label="Conversation">
+        <div id="conversation-cards"><section class="empty-state"><p>No conversation loaded.</p><p>Choose a conversation from Sessions on the right.</p></section></div>
+        <section id="working-preview" class="working-surface" hidden aria-label="Working preview" aria-live="polite"><div class="working-header"><span class="status-dot" aria-hidden="true">•</span><span id="working-label" class="working-label">Working</span><span id="working-countdown">7s remaining</span></div><p id="working-note">Preview only · no model call or answer generation</p></section>
+      </div>
+      <button id="bottom-button" class="bottom-button" hidden>↓ Back to bottom <kbd>Ctrl+End</kbd></button>
+      <section class="menu" id="menu" hidden aria-label="Custom UI settings">
+        <div class="menu-heading"><button id="back" aria-label="Back">←</button><strong id="menu-title">Custom UI</strong><button id="close" aria-label="Close settings">×</button></div><div id="menu-content"></div>
+        <div id="animation-preview" class="working-surface" hidden><div class="working-header"><span class="status-dot" aria-hidden="true">•</span><span class="working-label">Working</span></div><p>Animation preview only · no model call</p></div>
+        <div class="menu-footer"><span><kbd>↑↓</kbd> Select · <kbd>Enter</kbd> Apply</span><span><kbd>Esc</kbd> Back</span></div>
+      </section>
+      <section id="command-suggestions" class="command-suggestions" hidden aria-label="Command suggestions">
+        <div id="command-options" role="listbox" aria-label="Available commands"><div id="custom-suggestion" class="command-option" role="option" aria-selected="true"><strong>/custom</strong><span>Customize cards, colors, and display</span></div></div>
+        <p id="command-completion-help"><span>tab</span> complete · <span>enter</span> open · <span>esc</span> dismiss</p>
+      </section>
+      <form id="command" class="composer"><label for="command-input">›</label><textarea id="command-input" rows="1" spellcheck="false" placeholder="Type a message to preview Working, or /custom" aria-label="Preview prompt" aria-autocomplete="list" aria-controls="command-options" aria-haspopup="listbox"></textarea></form>
+      <section id="search-panel" class="search-panel" hidden aria-label="Search conversation">
+        <label for="search-input">Find:</label><input id="search-input" type="text" autocomplete="off" spellcheck="false" aria-label="Find in this excerpt">
+      </section>
+      <footer class="terminal-footer"><div id="shortcut-help" hidden aria-label="Keyboard shortcuts"><strong>Keyboard shortcuts</strong><div class="shortcut-columns"><dl><dt>/custom</dt><dd>Customize cards</dd><dt>enter</dt><dd>Preview Working for 7s</dd><dt>shift+enter</dt><dd>New line</dd><dt>ctrl+c</dt><dd>Stop preview / copy selection</dd></dl><dl><dt>f3</dt><dd>Find text · tab filters</dd><dt>f4</dt><dd>Browse cards</dd><dt>↑↓ / pgup / pgdn</dt><dd>Scroll while browsing</dd><dt>ctrl+arrows</dt><dd>Select a card</dd><dt>enter</dt><dd>Fold selected card</dd><dt>shift+f4</dt><dd>Cycle card display</dd><dt>ctrl+end</dt><dd>Back to bottom</dd></dl></div></div><div class="footer-line"><span id="mode-label">? for shortcuts</span><span id="footer-context">Preview</span></div></footer>
+      </article>
+    <aside id="guide" aria-label="Sessions and shortcut overview">
+      <section id="session-library" class="session-picker" aria-label="Sessions">
+        <h2>Sessions <button id="refresh-library" hidden>Refresh</button></h2>
+        <div class="session-import"><button id="files-button">Open sessions</button><button id="folder-button">Open folder</button></div>
+        <input id="files" type="file" accept=".jsonl" multiple hidden><input id="folder" type="file" webkitdirectory multiple hidden>
+        <p id="library-path" hidden></p><input id="session-filter" type="search" placeholder="Filter filenames" aria-label="Filter sessions"><div id="session-list"><p class="muted">Select files or a folder to start.</p></div><button id="reload-session" disabled>Reload latest excerpt</button>
+        <nav id="excerpt-nav" class="excerpt-nav" hidden aria-label="Conversation excerpt"><div><button id="earlier-excerpt">← Earlier</button><button id="newer-excerpt">Newer →</button><button id="latest-excerpt">Latest</button></div><span id="excerpt-note"></span></nav>
+        <p id="announcement" role="status" aria-live="polite">Read-only preview · no model calls</p>
+      </section>
+      <section class="guide-section" aria-label="Codux shortcuts">
+        <h2>In the terminal</h2><p>Click inside the preview to use its controls.</p>
+        <dl><dt><code>/custom</code></dt><dd>Customize cards</dd><dt><kbd>F3</kbd></dt><dd>Search by card type</dd><dt><kbd>F4</kbd></dt><dd>Browse and fold cards</dd><dt><kbd>Shift+F4</kbd></dt><dd>Cycle card display</dd></dl>
+      </section>
+    </aside>
+  </main>
+</body>
+</html>

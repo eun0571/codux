@@ -1,0 +1,10 @@
+{
+  "upstream_commit": "6ff1e1ca3b30fc8b914720681fcf5fe62e95f856",
+  "native_sha256": {
+    "codex-rs/tui/src/mycodx_ui.rs": "05789e8a20c0bec13be9da3945d9d52f47bc25689232315847fec0ddbd3a55ad",
+    "codex-rs/tui/src/mycodx_style.rs": "293f05b9105478b3c74539563cb00d256ff912526436d1de727373bf1f93bc67",
+    "codex-rs/tui/src/mycodx_theme.rs": "8d6a5975a6e1383b533413e1aa0c9d38ed2644a0b18ca7c1a46803ae4fd3a8f6",
+    "codex-rs/tui/src/mycodx_status.rs": "5c7045939558b7dddb9e2e9e35a24ff96549842da9d71028970a8c1255c0fda4"
+  },
+  "catalog_sha256": "0a16c3a98f36829a705baff6870a3b4f044dd2d00b6c5c6aeefdca23d89fc9c0"
+}

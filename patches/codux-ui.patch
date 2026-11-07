@@ -1,3 +1,225 @@
+diff --git a/codex-rs/tui/src/terminal_probe.rs b/codex-rs/tui/src/terminal_probe.rs
+--- a/codex-rs/tui/src/terminal_probe.rs
++++ b/codex-rs/tui/src/terminal_probe.rs
+@@ -12,6 +12,9 @@
+ //! probe completes.
+ 
+ use std::time::Duration;
++
++#[path = "terminal_probe/codux_graphics.rs"]
++pub(crate) mod codux_graphics;
+ 
+ #[cfg(unix)]
+ mod startup_replay;
+@@ -297,6 +300,7 @@
+         keyboard_probe: StartupKeyboardEnhancementProbe,
+     ) -> io::Result<StartupProbe> {
+         DA1_SUPPORTED.store(false, Ordering::Relaxed);
++        super::codux_graphics::record(&[]);
+         let mut tty = Tty::open()?;
+         let query_identity = codex_terminal_detection::terminal_info()
+             .multiplexer
+@@ -325,6 +329,7 @@
+         crossterm::event::buffer_input(&startup_replay_input(&buffer))?;
+         let saw_da1 = find_primary_device_attributes(&buffer).is_some();
+         DA1_SUPPORTED.store(saw_da1, Ordering::Relaxed);
++        super::codux_graphics::record(&buffer);
+         result
+     }
+ 
+diff --git a/codex-rs/tui/src/terminal_probe/windows.rs b/codex-rs/tui/src/terminal_probe/windows.rs
+--- a/codex-rs/tui/src/terminal_probe/windows.rs
++++ b/codex-rs/tui/src/terminal_probe/windows.rs
+@@ -35,6 +35,7 @@
+ /// Their OSC responses share the input queue with user input, so the probe preserves and restores
+ /// the original console records without changing Windows' input-record mode.
+ pub(crate) fn default_colors(timeout: Duration) -> io::Result<Option<DefaultColors>> {
++    super::codux_graphics::record(&[]);
+     let Ok(output) = std_handle(STD_OUTPUT_HANDLE) else {
+         return Ok(None);
+     };
+@@ -85,10 +86,12 @@
+     timeout: Duration,
+ ) -> io::Result<Option<DefaultColors>> {
+     let deadline = Instant::now() + timeout;
+-    write_all(output, b"\x1b]10;?\x1b\\\x1b]11;?\x1b\\")?;
++    // Share the existing deadline and input replay with a DA1 capability query.
++    write_all(output, b"\x1b]10;?\x1b\\\x1b]11;?\x1b\\\x1b[c")?;
+ 
+     let mut replay = ConsoleInputReplay::new(input);
+     let result = replay.read_until(deadline);
++    super::codux_graphics::record(&replay.input.bytes);
+     let replay_result = replay.replay();
+     replay_result?;
+     result
+@@ -130,7 +133,10 @@
+ 
+     fn preserved_records(&self) -> Vec<INPUT_RECORD> {
+         let mut omitted = vec![false; self.records.len()];
+-        for response in terminal_color_response_ranges(&self.bytes) {
++        for response in terminal_color_response_ranges(&self.bytes)
++            .into_iter()
++            .chain(super::codux_graphics::response_ranges(&self.bytes))
++        {
+             for byte_index in response {
+                 let record_index = self.byte_record_indices[byte_index];
+                 omitted[record_index] = true;
+@@ -164,16 +170,19 @@
+ 
+     fn read_until(&mut self, deadline: Instant) -> io::Result<Option<DefaultColors>> {
+         loop {
+-            if let Some(colors) = terminal_default_colors(&self.input.bytes) {
++            let colors = terminal_default_colors(&self.input.bytes);
++            if let Some(colors) = colors
++                && super::codux_graphics::advertised(&self.input.bytes).is_some()
++            {
+                 return Ok(Some(colors));
+             }
+             if self.input.records.len() >= MAX_WINDOWS_PROBE_RECORDS {
+-                return Ok(None);
++                return Ok(colors);
+             }
+ 
+             let now = Instant::now();
+             if now >= deadline {
+-                return Ok(None);
++                return Ok(colors);
+             }
+             let timeout_ms = deadline
+                 .saturating_duration_since(now)
+@@ -186,7 +195,7 @@
+                 WAIT_OBJECT_0 => {
+                     self.read_available()?;
+                 }
+-                WAIT_TIMEOUT => return Ok(None),
++                WAIT_TIMEOUT => return Ok(colors),
+                 _ => return Err(io::Error::last_os_error()),
+             }
+         }
+diff --git a/codex-rs/tui/src/terminal_probe/windows_tests.rs b/codex-rs/tui/src/terminal_probe/windows_tests.rs
+--- a/codex-rs/tui/src/terminal_probe/windows_tests.rs
++++ b/codex-rs/tui/src/terminal_probe/windows_tests.rs
+@@ -48,6 +48,21 @@
+ }
+ 
+ #[test]
++fn codux_capability_reply_does_not_consume_multiline_paste_records() {
++    let paste = b"\x1b[200~1. first\r\n2. \x1b[?62;4c\r\n3. last\x1b[201~";
++    let mut input = BufferedConsoleInput::default();
++    push_ascii(&mut input, paste);
++    push_ascii(&mut input, b"\x1b[?62;4;6;22c");
++    push_ascii(&mut input, b"after");
++    let preserved: Vec<_> = input
++        .preserved_records()
++        .iter()
++        .map(|record| unsafe { record.Event.KeyEvent.uChar.UnicodeChar as u8 })
++        .collect();
++    assert_eq!(preserved, [paste.as_slice(), b"after"].concat());
++}
++
++#[test]
+ fn preserves_typeahead_records_and_modifier_state_around_color_responses() {
+     let mut input = BufferedConsoleInput::default();
+     let before = key_record(
+diff --git a/codex-rs/tui/src/terminal_probe/codux_graphics.rs b/codex-rs/tui/src/terminal_probe/codux_graphics.rs
+new file mode 100644
+--- /dev/null
++++ b/codex-rs/tui/src/terminal_probe/codux_graphics.rs
+@@ -0,0 +1,94 @@
++//! Reuse the bounded startup probe; never query terminal input from a render pass.
++use std::ops::Range;
++use std::sync::atomic::{AtomicBool, Ordering};
++
++static SIXEL: AtomicBool = AtomicBool::new(false);
++
++pub(crate) fn supported() -> bool {
++    SIXEL.load(Ordering::Relaxed)
++}
++
++pub(super) fn record(input: &[u8]) {
++    SIXEL.store(advertised(input) == Some(true), Ordering::Relaxed);
++}
++
++/// DA1 option 4 advertises Sixel. Ignore complete and unfinished bracketed pastes.
++pub(super) fn response_ranges(input: &[u8]) -> Vec<Range<usize>> {
++    let mut ranges = Vec::new();
++    let mut cursor = 0;
++    while cursor < input.len() {
++        if input[cursor..].starts_with(b"\x1b[200~") {
++            let start = cursor + 6;
++            let Some(end) = input[start..].windows(6).position(|s| s == b"\x1b[201~") else {
++                break;
++            };
++            cursor = start + end + 6;
++            continue;
++        }
++        if input[cursor..].starts_with(b"\x1b[?") {
++            let start = cursor + 3;
++            let body = &input[start..input.len().min(start + 64)];
++            let count = body
++                .iter()
++                .take_while(|b| b.is_ascii_digit() || **b == b';')
++                .count();
++            if count > 0
++                && body.get(count) == Some(&b'c')
++                && body[..count]
++                    .split(|b| *b == b';')
++                    .all(|part| !part.is_empty())
++            {
++                let end = start + count + 1;
++                ranges.push(cursor..end);
++                cursor = end;
++                continue;
++            }
++        }
++        cursor += 1;
++    }
++    ranges
++}
++
++pub(super) fn advertised(input: &[u8]) -> Option<bool> {
++    let range = response_ranges(input).into_iter().next()?;
++    Some(
++        input[range.start + 3..range.end - 1]
++            .split(|b| *b == b';')
++            .skip(1)
++            .any(|option| option == b"4"),
++    )
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn codux_graphics_requires_an_advertised_capability() {
++        assert_eq!(advertised(b"\x1b[?62;4;6;22c"), Some(true));
++        assert_eq!(advertised(b"\x1b[?62;6;22c"), Some(false));
++        assert_eq!(advertised(b"\x1b[?4c"), Some(false));
++        for value in [b"".as_slice(), b"\x1b[?62;4", b"\x1b[?62;;4c", b"\x1b[?4u"] {
++            assert_eq!(advertised(value), None);
++        }
++    }
++
++    #[test]
++    fn codux_graphics_preserves_paste_and_interleaved_input() {
++        let paste = b"\x1b[200~first\r\n\x1b[?62;4c\r\nlast\x1b[201~";
++        assert_eq!(advertised(paste), None);
++        assert_eq!(advertised(b"\x1b[200~\x1b[?62;4c"), None);
++        let mut input = b"typed".to_vec();
++        input.extend_from_slice(paste);
++        input.extend_from_slice(b"\x1b[?62;4cnext");
++        let ranges = response_ranges(&input);
++        let remaining: Vec<_> = input
++            .iter()
++            .enumerate()
++            .filter(|(index, _)| !ranges.iter().any(|range| range.contains(index)))
++            .map(|(_, byte)| *byte)
++            .collect();
++        assert_eq!(remaining, [b"typed".as_slice(), paste, b"next"].concat());
++        assert_eq!(advertised(&input), Some(true));
++    }
++}
 diff --git a/codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__esc_interrupt_goal_paused_footer@windows.snap b/codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__esc_interrupt_goal_paused_footer@windows.snap
 --- a/codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__esc_interrupt_goal_paused_footer@windows.snap
 +++ b/codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests__esc_interrupt_goal_paused_footer@windows.snap
@@ -130,7 +352,46 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
 diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
 --- a/codex-rs/tui/src/keymap.rs
 +++ b/codex-rs/tui/src/keymap.rs
-@@ -1710,7 +1710,8 @@
+@@ -715,6 +715,20 @@
+             })
+             .collect();
+ 
++        // Codux's Shift+F4 default must not steal an existing key or chord prefix.
++        let card_display_defaults: Vec<_> = defaults
++            .app
++            .open_transcript
++            .iter()
++            .copied()
++            .filter(|binding| {
++                !configured_context_binding_is_used(keymap, *binding)
++                    && !chords.bindings.iter().any(|chord| {
++                        chord.chord.prefix.normalized_parts() == binding.normalized_parts()
++                    })
++            })
++            .collect();
++
+         let app = AppKeymap {
+             open_agents: resolve_bindings(
+                 keymap.global.open_agents.as_ref(),
+@@ -723,7 +737,7 @@
+             )?,
+             open_transcript: resolve_bindings(
+                 keymap.global.open_transcript.as_ref(),
+-                &defaults.app.open_transcript,
++                &card_display_defaults,
+                 "tui.keymap.global.open_transcript",
+             )?,
+             find_transcript: resolve_bindings(
+@@ -1691,7 +1705,7 @@
+         Self {
+             app: AppKeymap {
+                 open_agents: default_bindings![],
+-                open_transcript: default_bindings![ctrl(KeyCode::Char('t'))],
++                open_transcript: default_bindings![shift(KeyCode::F(4))],
+                 find_transcript: default_bindings![plain(KeyCode::F(3))],
+                 select_transcript: default_bindings![],
+                 focus_activity: default_bindings![plain(KeyCode::F(4))],
+@@ -1710,7 +1724,8 @@
                  toggle_voice: default_bindings![plain(KeyCode::F(8))],
                  toggle_voice_mute: default_bindings![plain(KeyCode::F(9))],
                  chord_hints: Arc::default(),
@@ -140,7 +401,37 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
                  decrease_reasoning_effort: default_bindings![
                      alt(KeyCode::Char(',')),
                      shift(KeyCode::Down)
-@@ -3026,10 +3027,7 @@
+@@ -2971,6 +2986,29 @@
+     }
+ 
+     #[test]
++    fn codux_card_display_shift_f4_preserves_warnings_and_explicit_bindings() {
++        let runtime = RuntimeKeymap::defaults();
++        assert!(runtime.app.focus_activity.is_pressed(KeyCode::F(4).into()));
++        assert!(!runtime.app.open_transcript.is_pressed(KeyCode::F(4).into()));
++        let shortcut = KeyEvent::new(KeyCode::F(4), KeyModifiers::SHIFT);
++        assert!(runtime.app.open_transcript.is_pressed(shortcut));
++        assert!(!runtime.app.open_transcript.is_pressed(KeyCode::F(6).into()));
++        assert!(!runtime.app.open_transcript.is_pressed(KeyCode::F(2).into()));
++        assert!(runtime.app.open_warnings.is_pressed(KeyCode::F(2).into()));
++        assert!(!runtime.app.open_warnings.is_pressed(shortcut));
++        assert!(!runtime.app.open_transcript.is_pressed(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::CONTROL)));
++        for text in ["[editor]\nkill_line_end = 'shift-f4'", "[global]\nleader = 'shift-f4'"] {
++            let config: TuiKeymap = toml::from_str(text).unwrap();
++            let runtime = RuntimeKeymap::from_config(&config).unwrap();
++            assert!(runtime.app.open_transcript.is_empty());
++        }
++        let config: TuiKeymap = toml::from_str("[global]\nopen_transcript = 'ctrl-t'").unwrap();
++        let runtime = RuntimeKeymap::from_config(&config).unwrap();
++        assert!(runtime.app.open_transcript.is_pressed(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::CONTROL)));
++        assert!(!runtime.app.open_transcript.is_pressed(shortcut));
++    }
++
++    #[test]
+     fn invalid_global_open_external_editor_binding_reports_global_path() {
+         let mut keymap = TuiKeymap::default();
+         keymap.global.open_external_editor = Some(one("meta-g"));
+@@ -3026,10 +3064,7 @@
              vec![key_hint::ctrl(KeyCode::Char('l'))]
          );
          assert_eq!(runtime.app.toggle_fast_mode, Vec::new());
@@ -152,7 +443,20 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
          assert_eq!(
              runtime.chat.decrease_reasoning_effort,
              vec![
-@@ -3909,9 +3907,13 @@
+@@ -3757,9 +3792,11 @@
+         expect_conflict(&keymap, "rename", "stop");
+ 
+         keymap.agents.stop = Some(one("f10"));
+-        keymap.global.open_agents = Some(one("ctrl-t"));
++        keymap.global.open_transcript = Some(one("f6"));
++        keymap.global.open_agents = Some(one("f6"));
+         expect_conflict(&keymap, "open_agents", "open_transcript");
+ 
++        keymap.global.open_transcript = None;
+         keymap.global.open_agents = Some(one("f12"));
+         keymap.agents.stop = Some(one("ctrl-c"));
+         expect_conflict(&keymap, "stop", "fixed.interrupt_or_quit");
+@@ -3909,9 +3946,13 @@
      }
  
      #[test]
@@ -167,6 +471,69 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
          assert_eq!(
              runtime.chat.interrupt_turn,
              vec![key_hint::plain(KeyCode::Esc)]
+diff --git a/codex-rs/tui/src/keymap/voice_tests.rs b/codex-rs/tui/src/keymap/voice_tests.rs
+--- a/codex-rs/tui/src/keymap/voice_tests.rs
++++ b/codex-rs/tui/src/keymap/voice_tests.rs
+@@ -123,7 +123,7 @@
+         ("ctrl-z", "ctrl-z is reserved for suspend"),
+     ] {
+         let config =
+-            toml::from_str::<TuiKeymap>(&format!("[chat]\ntoggle_voice = '{binding}'")).unwrap();
++            toml::from_str::<TuiKeymap>(&format!("[global]\nopen_transcript = 'ctrl-t'\n[chat]\ntoggle_voice = '{binding}'")).unwrap();
+         assert!(
+             RuntimeKeymap::from_config(&config)
+                 .unwrap_err()
+@@ -218,7 +218,7 @@
+         .chain(cfg!(windows).then_some("ctrl-alt-q"))
+     {
+         let config =
+-            toml::from_str::<TuiKeymap>(&format!("[chat]\ntoggle_voice = '{binding}'")).unwrap();
++            toml::from_str::<TuiKeymap>(&format!("[global]\nopen_transcript = 'ctrl-t'\n[chat]\ntoggle_voice = '{binding}'")).unwrap();
+         assert!(
+             RuntimeKeymap::from_config(&config)
+                 .expect_err("voice shortcuts must not intercept typing")
+diff --git a/codex-rs/tui/src/keymap/chords_tests.rs b/codex-rs/tui/src/keymap/chords_tests.rs
+--- a/codex-rs/tui/src/keymap/chords_tests.rs
++++ b/codex-rs/tui/src/keymap/chords_tests.rs
+@@ -508,7 +508,7 @@
+ }
+ 
+ #[test]
+-fn activity_context_preserves_list_chords_and_its_remapped_focus_toggle() {
++fn codux_browsing_keeps_global_chords_and_its_remapped_focus_toggle() {
+     let config = serde_json::from_value(serde_json::json!({
+         "global": {"copy": "ctrl-x c", "focus_activity": "f12 t"},
+         "list": {"jump_top": "ctrl-x c"},
+@@ -528,8 +528,8 @@
+             KeymapContextSet::activity(),
+             KeyEvent::new(KeyCode::Char('x'), KeyModifiers::CONTROL),
+             KeyCode::Char('c'),
++            &runtime.app.copy,
+             &runtime.list.jump_top,
+-            &runtime.app.copy,
+         ),
+         (
+             KeymapContextSet::activity(),
+@@ -563,7 +563,7 @@
+         matcher.pending_hint_items(&runtime.chords, /*width*/ 80),
+         Some(vec![
+             ("⌃x".to_string(), "then".to_string()),
+-            ("c".to_string(), "jump top".to_string()),
++            ("c".to_string(), "copy".to_string()),
+             ("esc".to_string(), "cancel".to_string()),
+         ]),
+     );
+@@ -600,8 +600,8 @@
+     assert_eq!(
+         scenes,
+         [
+-            "80: ⌃x then · ⇧⌥f11 activity · ⌃⇧⌥f12 copy · esc cancel",
+-            "32: ⇧⌥f11 inspect · ⌃⇧⌥f12 copy",
++            "80: ⌃x then · ⇧⌥f11 browse cards · ⌃⇧⌥f12 copy · esc cancel",
++            "32: ⇧⌥f11 browse cards · ⌃⇧⌥f12 copy",
+             "10: esc cancel",
+         ]
+     );
 diff --git a/codex-rs/tui/src/bottom_pane/mod.rs b/codex-rs/tui/src/bottom_pane/mod.rs
 --- a/codex-rs/tui/src/bottom_pane/mod.rs
 +++ b/codex-rs/tui/src/bottom_pane/mod.rs
@@ -597,7 +964,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shor
 -"                               ⌃home / ⌃end  Top / latest                       "
 -"                               ⇧⌥, / ⇧⌥.     Top / latest                       "
 +"                             Transcript / browsing                              "
-+"                             ⌃t            Show / hide tools                    "
++"                             ⇧f4           Cycle card display                   "
 +"                             f3            Find text                            "
 +"                             up / down     Scroll in browsing                   "
 +"                             ctrl+arrows   Select card                          "
@@ -642,7 +1009,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 +"  ⌃r      Search history     ⌃c       Quit                                      "
 +"                                                                                "
 +"                             Transcript / browsing                              "
-+"                             ⌃t            Show / hide tools                    "
++"                             ⇧f4           Cycle card display                   "
 +"                             f3            Find text                            "
 +"                             up / down     Scroll in browsing                   "
 +"                             ctrl+arrows   Select card                          "
@@ -687,7 +1054,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 +"  ⌃r  Search history     ⌃c       Interrupt                                     "
 +"                                                                                "
 +"                         Transcript / browsing                                  "
-+"                         ⌃t            Show / hide tools                        "
++"                         ⇧f4           Cycle card display                       "
 +"                         f3            Find text                                "
 +"                         up / down     Scroll in browsing                       "
 +"                         ctrl+arrows   Select card                              "
@@ -733,7 +1100,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 -"                                ⌃home / ⌃end  Top / latest                      "
 -"                                ⇧⌥, / ⇧⌥.     Top / latest                      "
 +"                         Transcript / browsing                                  "
-+"                         ⌃t            Show / hide tools                        "
++"                         ⇧f4           Cycle card display                       "
 +"                         f3            Find text                                "
 +"                         up / down     Scroll in browsing                       "
 +"                         ctrl+arrows   Select card                              "
@@ -833,7 +1200,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/shortcut_overlay.rs b/codex-rs/tui/src
          entries: Vec::new(),
      };
 -    transcript.push(hints.show_transcript, "Open transcript");
-+    transcript.push(hints.show_transcript, "Show / hide tools");
++    transcript.push(hints.show_transcript, "Cycle card display");
      transcript.push(hints.find_transcript, "Find text");
      transcript.entries.extend([
 +        Shortcut {
@@ -887,7 +1254,7 @@ diff --git a/codex-rs/tui/src/keymap/chords.rs b/codex-rs/tui/src/keymap/chords.
                  "open_presets" if pending.started_at.is_none() => "presets",
 -                "focus_activity" => "activity",
 +                "focus_activity" => "browse cards",
-+                "open_transcript" => "show/hide tools",
++                "open_transcript" => "cycle card display",
                  "find_transcript" => "find",
                  "open_warnings" => "warnings",
                  action => action,
@@ -895,19 +1262,21 @@ diff --git a/codex-rs/tui/src/app/codux_navigation.rs b/codex-rs/tui/src/app/cod
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/app/codux_navigation.rs
-@@ -0,0 +1,338 @@
+@@ -0,0 +1,354 @@
 +//! Codux keeps transcript navigation in the card view. Prompt edits are explicit rewinds.
 +use super::*;
 +use crate::bottom_pane::{SelectionItem, SelectionViewParams};
 +
 +impl App {
-+    pub(super) fn toggle_codux_tools(&mut self, tui: &mut tui::Tui) {
++    pub(super) fn cycle_codux_card_mode(&mut self, tui: &mut tui::Tui) {
 +        if let Err(error) = self
 +            .transcript_view
-+            .toggle_codux_tools(&self.transcript_cells, &self.local_settings.codex_home)
++            .cycle_codux_card_mode(&self.transcript_cells, &self.local_settings.codex_home)
 +        {
 +            self.chat_widget
-+                .add_error_message(format!("Could not save tool visibility: {error}"));
++                .add_error_message(format!("Could not save card display mode: {error}"));
++        } else {
++            self.chat_widget.show_codux_card_mode();
 +        }
 +        tui.frame_requester().schedule_frame();
 +    }
@@ -1070,6 +1439,19 @@ new file mode 100644
 +            None,
 +        );
 +        while operations.try_recv().is_ok() {}
++        let mut mode = crate::mycodx_ui::current().card_mode();
++        for _ in 0..3 {
++            mode = mode.next();
++            app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(KeyEvent::new(KeyCode::F(4), KeyModifiers::SHIFT))).await?;
++            assert_eq!(crate::mycodx_ui::current().card_mode(), mode);
++            let mut repeat = KeyEvent::new(KeyCode::F(4), KeyModifiers::SHIFT);
++            repeat.kind = KeyEventKind::Repeat;
++            app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(repeat)).await?;
++            assert_eq!(crate::mycodx_ui::current().card_mode(), mode);
++        }
++        app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::CONTROL))).await?;
++        assert_eq!(crate::mycodx_ui::current().card_mode(), mode);
++        assert!(!app.transcript_view.is_detailed());
 +        app.transcript_cells
 +            .push(Arc::new(crate::history_cell::PlainHistoryCell::new(
 +                (0..60)
@@ -1172,8 +1554,9 @@ new file mode 100644
 +                    action: "open_transcript",
 +                })
 +        );
-+        let shown = crate::mycodx_ui::tools_visible();
-+        for expected in [!shown, shown] {
++        let mut expected = crate::mycodx_ui::current().card_mode();
++        for _ in 0..3 {
++            expected = expected.next();
 +            app.handle_tui_event(
 +                &mut tui,
 +                &mut app_server,
@@ -1186,7 +1569,7 @@ new file mode 100644
 +                TuiEvent::Key(KeyCode::Char('t').into()),
 +            )
 +            .await?;
-+            assert_eq!(crate::mycodx_ui::tools_visible(), expected);
++            assert_eq!(crate::mycodx_ui::current().card_mode(), expected);
 +            assert!(app.transcript_view.is_activity_focused());
 +            assert!(!app.transcript_view.is_detailed());
 +        }
@@ -1246,6 +1629,15 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
      pub(crate) is_task_running: bool,
      pub(crate) queue_submissions: bool,
      pub(crate) collaboration_modes_enabled: bool,
+@@ -136,7 +136,7 @@
+             insert_newline: Some(key_hint::ctrl(KeyCode::Char('j')).into()),
+             external_editor: Some(key_hint::ctrl(KeyCode::Char('g')).into()),
+             edit_previous: Some(key_hint::plain(KeyCode::Esc).into()),
+-            show_transcript: Some(key_hint::ctrl(KeyCode::Char('t')).into()),
++            show_transcript: Some(key_hint::shift(KeyCode::F(4)).into()),
+             find_transcript: Some(key_hint::plain(KeyCode::F(3)).into()),
+             focus_activity: Some(key_hint::plain(KeyCode::F(4)).into()),
+             history_search: Some(key_hint::ctrl(KeyCode::Char('r')).into()),
 @@ -800,7 +800,7 @@
              )]
          }
@@ -1494,7 +1886,7 @@ diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
 -        {
 +        if app_keymap_shortcuts_available && self.keymap.app.open_transcript.is_pressed(key_event) {
 +            if key_event.kind != KeyEventKind::Repeat {
-+                self.toggle_codux_tools(tui);
++                self.cycle_codux_card_mode(tui);
 +            }
 +            return;
 +        }
@@ -1581,6 +1973,32 @@ diff --git a/codex-rs/tui/src/terminal_palette.rs b/codex-rs/tui/src/terminal_pa
      }
  
      imp::default_colors()
+@@ -130,6 +138,25 @@
+ 
+ pub fn default_fg() -> Option<(u8, u8, u8)> {
+     default_colors().map(|c| c.fg)
++}
++
++/// Card fixtures have a known dark palette unless a test explicitly selects another
++/// palette (including no palette). Interactive workbench runs use the real terminal.
++#[cfg(test)]
++pub(crate) fn with_card_fixture_palette<T>(render: impl FnOnce() -> T) -> T {
++    if TEST_DEFAULT_COLORS.with(|colors| colors.get().is_none())
++        && std::env::var_os("MYCODX_UI_FIXTURE").is_none()
++    {
++        with_test_default_colors(
++            crate::terminal_probe::DefaultColors {
++                fg: (230, 230, 230),
++                bg: (24, 24, 24),
++            },
++            render,
++        )
++    } else {
++        render()
++    }
+ }
+ 
+ pub fn default_bg() -> Option<(u8, u8, u8)> {
 diff --git a/codex-rs/tui/src/markdown_copy.rs b/codex-rs/tui/src/markdown_copy.rs
 --- a/codex-rs/tui/src/markdown_copy.rs
 +++ b/codex-rs/tui/src/markdown_copy.rs
@@ -1628,7 +2046,7 @@ diff --git a/codex-rs/tui/src/codux_mermaid.rs b/codex-rs/tui/src/codux_mermaid.
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/codux_mermaid.rs
-@@ -0,0 +1,580 @@
+@@ -0,0 +1,615 @@
 +//! Optional local Mermaid worker. History owns source; cached images are disposable presentation.
 +#[path = "codux_mermaid_graphics.rs"]
 +mod graphics;
@@ -1774,9 +2192,22 @@ new file mode 100644
 +    if let Some(manifest) = std::env::var_os("CODUX_MERMAID_PREVIEW_IMAGE") {
 +        return Some(preview_artifact(source, width, Path::new(&manifest)));
 +    }
++    request_with_geometry(source, width, graphics::Geometry::detect(width))
++}
++
++fn request_with_geometry(
++    source: &str,
++    width: u16,
++    geometry: graphics::Geometry,
++) -> Option<Preview> {
 +    let settings = crate::mycodx_ui::current();
 +    let mode = settings.mermaid;
-+    if mode == Mode::Text {
++    let image = matches!(mode, Mode::Auto | Mode::Image);
++    if mode == Mode::Text
++        || (image && (!geometry.supported() || crate::terminal_palette::default_bg().is_none()))
++    {
++        // Retain the native diagram immediately. Unsupported terminals need no
++        // worker, browser, cache files, placeholder, or reflow after a timeout.
 +        return None;
 +    }
 +    if source.len() > 64 * 1024 {
@@ -1791,8 +2222,6 @@ new file mode 100644
 +    let image_style = settings.mermaid_style;
 +    let (theme, _) = image_style.resolved(bg);
 +    let background = format!("#{:02x}{:02x}{:02x}", bg.0, bg.1, bg.2);
-+    let geometry = graphics::Geometry::detect(width);
-+    let image = matches!(mode, Mode::Auto | Mode::Image);
 +    let width = width.clamp(1, 240);
 +    let presentation = if image {
 +        format!("{background}\0{theme}\0{image_style:?}\0{geometry:?}")
@@ -1904,12 +2333,7 @@ new file mode 100644
 +        .or(packaged)
 +        .filter(|p| runtime_available(p, image))
 +        .ok_or_else(|| {
-+            let script = if image {
-+                "setup-mermaid.ps1"
-+            } else {
-+                "setup-mermaid-text.ps1"
-+            };
-+            anyhow::anyhow!("Mermaid renderer is not installed; run scripts/{script}, then restart")
++            anyhow::anyhow!("Bundled Mermaid renderer is unavailable; reinstall Codux or choose Codex text in /custom")
 +        })
 +}
 +
@@ -1937,7 +2361,12 @@ new file mode 100644
 +            .unwrap_or_else(|| std::env::temp_dir().join("codux-mermaid-cache"));
 +        std::fs::create_dir_all(&cache)?;
 +        let cache = cache.canonicalize()?;
-+        let node = runtime.join(if cfg!(windows) { "node.exe" } else { "node" });
++        // npm supplies the exact Node executable that launched Codux, including
++        // installations outside PATH or paths containing spaces.
++        let node = std::env::var_os("CODUX_NODE")
++            .map(PathBuf::from)
++            .filter(|path| path.is_absolute() && path.is_file())
++            .unwrap_or_else(|| runtime.join(if cfg!(windows) { "node.exe" } else { "node" }));
 +        let mut command = Command::new(if node.is_file() {
 +            node.into_os_string()
 +        } else {
@@ -2134,6 +2563,30 @@ new file mode 100644
 +mod tests {
 +    use super::*;
 +    #[test]
++    fn codux_no_graphics_keeps_native_text_without_starting_a_worker() {
++        let mut settings = crate::mycodx_ui::Settings::default();
++        for mode in [Mode::Auto, Mode::Image, Mode::Text] {
++            settings.mermaid = mode;
++            crate::mycodx_ui::with_settings(settings.clone(), || {
++                let state = STATE.lock().unwrap_or_else(|e| e.into_inner());
++                let entries = state.entries.len();
++                let worker_started = state.sender.is_some();
++                drop(state);
++                assert!(
++                    request_with_geometry(
++                        "flowchart LR\n A --> B",
++                        80,
++                        graphics::Geometry::without_images()
++                    )
++                    .is_none()
++                );
++                let state = STATE.lock().unwrap_or_else(|e| e.into_inner());
++                assert_eq!(state.entries.len(), entries);
++                assert_eq!(state.sender.is_some(), worker_started);
++            });
++        }
++    }
++    #[test]
 +    fn text_reply_rejects_controls_overflow_and_preserves_unicode() {
 +        assert!(matches!(
 +            validated_text("┌────┐\n│\u{d55c}\u{ae00}│\n└────┘", 6).unwrap(),
@@ -2213,13 +2666,14 @@ diff --git a/codex-rs/tui/src/codux_mermaid_graphics.rs b/codex-rs/tui/src/codux
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/codux_mermaid_graphics.rs
-@@ -0,0 +1,386 @@
+@@ -0,0 +1,433 @@
 +//! Row-sized images participate in normal terminal diffing, clipping, and card disclosure.
 +use base64::Engine;
 +use image::{GenericImageView, ImageFormat};
 +use ratatui::buffer::{Buffer, CellDiffOption};
 +use ratatui::layout::Rect;
 +use std::io::Cursor;
++use std::io::IsTerminal;
 +use std::num::NonZeroU16;
 +use std::path::Path;
 +use std::sync::Arc;
@@ -2229,7 +2683,7 @@ new file mode 100644
 +#[path = "codux_mermaid_sixel.rs"]
 +mod sixel;
 +
-+#[derive(Clone, Copy, Debug)]
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 +enum Protocol {
 +    Sixel,
 +    Iterm,
@@ -2243,25 +2697,13 @@ new file mode 100644
 +}
 +impl Geometry {
 +    pub(super) fn detect(columns: u16) -> Self {
-+        let program = std::env::var("TERM_PROGRAM")
-+            .unwrap_or_default()
-+            .to_ascii_lowercase();
 +        let requested = std::env::var("CODUX_MERMAID_PROTOCOL").unwrap_or_default();
-+        let protocol = match requested.as_str() {
-+            "off" => None,
-+            "sixel" => Some(Protocol::Sixel),
-+            "iterm" => Some(Protocol::Iterm),
-+            _ if std::env::var_os("TMUX").is_some() || std::env::var_os("ZELLIJ").is_some() => None,
-+            _ if program.contains("vscode")
-+                || program.contains("mintty")
-+                || program.contains("iterm")
-+                || program.contains("wezterm") =>
-+            {
-+                Some(Protocol::Iterm)
-+            }
-+            _ if std::env::var_os("WT_SESSION").is_some() => Some(Protocol::Sixel),
-+            _ => None,
-+        };
++        let protocol = select_protocol(
++            &requested,
++            std::io::stdout().is_terminal(),
++            std::env::var_os("TMUX").is_some() || std::env::var_os("ZELLIJ").is_some(),
++            crate::terminal_probe::codux_graphics::supported(),
++        );
 +        let pixels = std::env::var("CODUX_MERMAID_CELL_PIXELS")
 +            .ok()
 +            .and_then(|v| {
@@ -2296,6 +2738,39 @@ new file mode 100644
 +            cell_height,
 +            protocol,
 +        }
++    }
++
++    pub(super) fn supported(self) -> bool {
++        self.protocol.is_some()
++    }
++
++    #[cfg(test)]
++    pub(super) fn without_images() -> Self {
++        Self {
++            columns: 80,
++            cell_width: 10,
++            cell_height: 20,
++            protocol: None,
++        }
++    }
++}
++
++fn select_protocol(
++    requested: &str,
++    tty: bool,
++    multiplexed: bool,
++    advertised: bool,
++) -> Option<Protocol> {
++    // No passthrough encoder is implemented. Never emit graphics into a pipe or multiplexer.
++    if !tty || multiplexed {
++        return None;
++    }
++    match requested.trim().to_ascii_lowercase().as_str() {
++        "sixel" => Some(Protocol::Sixel),
++        "iterm" => Some(Protocol::Iterm),
++        "" | "auto" if advertised => Some(Protocol::Sixel),
++        // Disabled, unknown overrides, and missing capability replies all keep native text.
++        _ => None,
 +    }
 +}
 +
@@ -2475,6 +2950,31 @@ new file mode 100644
 +
 +#[cfg(test)]
 +mod tests {
++    #[test]
++    fn codux_graphics_uses_capabilities_and_never_emits_to_pipes_or_multiplexers() {
++        use super::{Protocol, select_protocol};
++        assert_eq!(
++            select_protocol("auto", true, false, true),
++            Some(Protocol::Sixel)
++        );
++        for requested in ["", "auto", "off", "unknown"] {
++            assert_eq!(select_protocol(requested, true, false, false), None);
++        }
++        for requested in ["sixel", "iterm", "auto"] {
++            assert_eq!(select_protocol(requested, false, false, true), None);
++            assert_eq!(select_protocol(requested, true, true, true), None);
++        }
++        assert_eq!(
++            select_protocol("iterm", true, false, false),
++            Some(Protocol::Iterm)
++        );
++        assert_eq!(
++            select_protocol("SIXEL", true, false, false),
++            Some(Protocol::Sixel)
++        );
++        assert_eq!(select_protocol("typo", true, false, true), None);
++    }
++
 +    use super::*;
 +    use ratatui::buffer::CellWidth;
 +    #[test]
@@ -3198,7 +3698,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text_mermaid.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/text_mermaid.rs
-@@ -0,0 +1,409 @@
+@@ -0,0 +1,411 @@
 +//! Image rows replace only presentation; logical lines/copy metadata remain canonical.
 +use super::*;
 +use crate::codux_mermaid::Preview;
@@ -3555,57 +4055,59 @@ new file mode 100644
 +    }
 +    #[test]
 +    fn mermaid_projection_keeps_source_and_neighboring_prose() {
-+        let source =
-+            "Before\n\n```mermaid\nflowchart LR\n A[Hello] --> B[(Database)]\n```\n\nAfter";
-+        let lines = render_markdown_lines_with_width_and_cwd(source, Some(80), None);
-+        let mut layout = TextLayout::new(lines, 80);
-+        let original = layout.text.clone();
-+        let (range, _, retained) = layout
-+            .copy_block_ranges()
-+            .into_iter()
-+            .find(|(_, name, _)| *name == "Code block")
-+            .unwrap();
-+        layout.replace_mermaid_rows(range.clone(), Preview::Pending);
-+        assert_eq!(
-+            layout.rows.iter().filter(|row| row.mermaid_pending).count(),
-+            1
-+        );
-+        let pending_row = layout
-+            .rows
-+            .iter()
-+            .position(|row| row.mermaid_pending)
-+            .unwrap();
-+        let mut buffer = Buffer::empty(Rect::new(0, 0, 80, 1));
-+        layout.render(buffer.area, &mut buffer, pending_row);
-+        assert_ne!(buffer[(0, 0)].bg, ratatui::style::Color::Reset);
-+        assert!(
-+            buffer
-+                .content
-+                .iter()
-+                .map(|cell| cell.symbol())
-+                .collect::<String>()
-+                .contains("rendering")
-+        );
-+        assert_eq!(layout.text, original);
-+        assert!(retained.unwrap().contains("B[(Database)]"));
-+        assert!(
-+            layout
++        crate::mycodx_ui::with_settings(crate::mycodx_ui::Settings::web(), || {
++            let source =
++                "Before\n\n```mermaid\nflowchart LR\n A[Hello] --> B[(Database)]\n```\n\nAfter";
++            let lines = render_markdown_lines_with_width_and_cwd(source, Some(80), None);
++            let mut layout = TextLayout::new(lines, 80);
++            let original = layout.text.clone();
++            let (range, _, retained) = layout
++                .copy_block_ranges()
++                .into_iter()
++                .find(|(_, name, _)| *name == "Code block")
++                .unwrap();
++            layout.replace_mermaid_rows(range.clone(), Preview::Pending);
++            assert_eq!(
++                layout.rows.iter().filter(|row| row.mermaid_pending).count(),
++                1
++            );
++            let pending_row = layout
 +                .rows
 +                .iter()
-+                .any(|row| row.line.line.to_string().contains("Before"))
-+        );
-+        assert!(
-+            layout
-+                .rows
-+                .iter()
-+                .any(|row| row.line.line.to_string().contains("After"))
-+        );
-+        assert!(
-+            layout
-+                .rows
-+                .iter()
-+                .any(|row| row.line.line.to_string().contains("rendering"))
-+        );
++                .position(|row| row.mermaid_pending)
++                .unwrap();
++            let mut buffer = Buffer::empty(Rect::new(0, 0, 80, 1));
++            layout.render(buffer.area, &mut buffer, pending_row);
++            assert_ne!(buffer[(0, 0)].bg, ratatui::style::Color::Reset);
++            assert!(
++                buffer
++                    .content
++                    .iter()
++                    .map(|cell| cell.symbol())
++                    .collect::<String>()
++                    .contains("rendering")
++            );
++            assert_eq!(layout.text, original);
++            assert!(retained.unwrap().contains("B[(Database)]"));
++            assert!(
++                layout
++                    .rows
++                    .iter()
++                    .any(|row| row.line.line.to_string().contains("Before"))
++            );
++            assert!(
++                layout
++                    .rows
++                    .iter()
++                    .any(|row| row.line.line.to_string().contains("After"))
++            );
++            assert!(
++                layout
++                    .rows
++                    .iter()
++                    .any(|row| row.line.line.to_string().contains("rendering"))
++            );
++        });
 +    }
 +}
 diff --git a/codex-rs/tui/src/transcript_view/prompt_header_tests.rs b/codex-rs/tui/src/transcript_view/prompt_header_tests.rs
@@ -4204,7 +4706,13 @@ diff --git a/codex-rs/tui/src/transcript_view/footer_tests.rs b/codex-rs/tui/src
 diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__activity_focus_keeps_controls_without_passive_hints.snap b/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__activity_focus_keeps_controls_without_passive_hints.snap
 --- a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__activity_focus_keeps_controls_without_passive_hints.snap
 +++ b/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__activity_focus_keeps_controls_without_passive_hints.snap
-@@ -7,14 +7,19 @@
+@@ -1,20 +1,24 @@
+ ---
+ source: tui/src/transcript_view/footer_tests.rs
+-assertion_line: 515
+ expression: "hints.join(\"\\n\")"
+ ---
+ collapsed
  Buffer {
      area: Rect { x: 0, y: 0, width: 32, height: 3 },
      content: [
@@ -4230,7 +4738,7 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
      ]
  }
  20 columns: <composer hints>
-@@ -24,35 +29,45 @@
+@@ -24,35 +28,45 @@
  Buffer {
      area: Rect { x: 0, y: 0, width: 32, height: 3 },
      content: [
@@ -4262,7 +4770,7 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
 -focused, 80 columns: ↑ previous · ↓ next · enter details · esc back
 +focused, 20 columns: Browsing · esc back
 +focused, 32 columns: Browsing · enter fold · esc back
-+focused, 80 columns: Browsing · ↑↓ scroll · ctrl+arrows cards · enter fold · esc back
++focused, 80 columns: Browsing · ctrl+arrows cards · enter fold · ⇧f4 2: All cards · esc back
  expanded
  Buffer {
      area: Rect { x: 0, y: 0, width: 32, height: 3 },
@@ -6146,66 +6654,68 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
      use crate::app_event::AppEvent;
      use crate::app_event_sender::AppEventSender;
      use ratatui::Terminal;
-@@ -330,6 +412,179 @@
+@@ -330,6 +412,181 @@
      use tokio::sync::mpsc::unbounded_channel;
  
      use pretty_assertions::assert_eq;
 +
 +    #[test]
 +    fn mycodx_working_padding_matches_card_units_and_preserves_controls() {
-+        let (tx, _rx) = unbounded_channel();
-+        let mut row = StatusIndicatorWidget::new(
-+            AppEventSender::new(tx),
-+            FrameRequester::test_dummy(),
-+            false,
-+            Default::default(),
-+        );
-+        row.update_header("Working 日本語".into());
-+        row.set_interrupt_binding(Some(key_hint::plain(KeyCode::F(12)).into()));
-+        row.update_details(
-+            Some("details".into()),
-+            StatusDetailsCapitalization::Preserve,
-+            1,
-+        );
-+        let mut timer = StatusTimer::default();
-+        timer.pause_at(timer.last_resume_at);
-+        for width in [1, 2, 3, 12, 80] {
-+            let status = row.with_timer(&timer);
-+            let inner_width = crate::mycodx_ui::status::content_width(width);
-+            let bare = StatusIndicator {
-+                row: &row,
-+                timer: &timer,
-+            };
-+            let height = status.desired_height(width);
-+            assert_eq!(height, bare.desired_height(inner_width) + 2);
-+            let area = Rect::new(2, 1, width, height);
-+            let outer = Rect::new(0, 0, 84, height + 2);
-+            let mut buf = Buffer::empty(outer);
-+            status.render(area, &mut buf);
-+            let inset = u16::from(width >= 3);
-+            let inner = Rect::new(area.x + inset, area.y + 1, inner_width, height - 2);
-+            let mut expected = Buffer::empty(outer);
-+            bare.render(inner, &mut expected);
-+            for y in inner.y..inner.bottom() {
-+                for x in inner.x..inner.right() {
-+                    assert_eq!(buf[(x, y)].symbol(), expected[(x, y)].symbol());
++        crate::mycodx_ui::with_settings(crate::mycodx_ui::Settings::web(), || {
++            let (tx, _rx) = unbounded_channel();
++            let mut row = StatusIndicatorWidget::new(
++                AppEventSender::new(tx),
++                FrameRequester::test_dummy(),
++                false,
++                Default::default(),
++            );
++            row.update_header("Working 日本語".into());
++            row.set_interrupt_binding(Some(key_hint::plain(KeyCode::F(12)).into()));
++            row.update_details(
++                Some("details".into()),
++                StatusDetailsCapitalization::Preserve,
++                1,
++            );
++            let mut timer = StatusTimer::default();
++            timer.pause_at(timer.last_resume_at);
++            for width in [1, 2, 3, 12, 80] {
++                let status = row.with_timer(&timer);
++                let inner_width = crate::mycodx_ui::status::content_width(width);
++                let bare = StatusIndicator {
++                    row: &row,
++                    timer: &timer,
++                };
++                let height = status.desired_height(width);
++                assert_eq!(height, bare.desired_height(inner_width) + 2);
++                let area = Rect::new(2, 1, width, height);
++                let outer = Rect::new(0, 0, 84, height + 2);
++                let mut buf = Buffer::empty(outer);
++                status.render(area, &mut buf);
++                let inset = u16::from(width >= 3);
++                let inner = Rect::new(area.x + inset, area.y + 1, inner_width, height - 2);
++                let mut expected = Buffer::empty(outer);
++                bare.render(inner, &mut expected);
++                for y in inner.y..inner.bottom() {
++                    for x in inner.x..inner.right() {
++                        assert_eq!(buf[(x, y)].symbol(), expected[(x, y)].symbol());
++                    }
++                }
++                assert_eq!(buf[(area.x, area.y)].symbol(), "▄");
++                assert_eq!(buf[(area.x, area.bottom() - 1)].symbol(), "▀");
++                if width >= 3 {
++                    assert_eq!(buf[(area.x, inner.y)].symbol(), " ");
++                    assert_eq!(buf[(area.right() - 1, inner.y)].symbol(), " ");
++                }
++                assert_eq!(buf[(area.x - 1, inner.y)], ratatui::buffer::Cell::default());
++                assert_eq!(
++                    buf[(area.right(), inner.y)],
++                    ratatui::buffer::Cell::default()
++                );
++                for clipped_height in [0, 1, 2] {
++                    status.render(Rect::new(area.x, area.y, width, clipped_height), &mut buf);
 +                }
 +            }
-+            assert_eq!(buf[(area.x, area.y)].symbol(), "▄");
-+            assert_eq!(buf[(area.x, area.bottom() - 1)].symbol(), "▀");
-+            if width >= 3 {
-+                assert_eq!(buf[(area.x, inner.y)].symbol(), " ");
-+                assert_eq!(buf[(area.right() - 1, inner.y)].symbol(), " ");
-+            }
-+            assert_eq!(buf[(area.x - 1, inner.y)], ratatui::buffer::Cell::default());
-+            assert_eq!(
-+                buf[(area.right(), inner.y)],
-+                ratatui::buffer::Cell::default()
-+            );
-+            for clipped_height in [0, 1, 2] {
-+                status.render(Rect::new(area.x, area.y, width, clipped_height), &mut buf);
-+            }
-+        }
++        });
 +    }
 +
 +    // Upstream snapshots below exercise the unpadded text renderer. The public
@@ -6326,7 +6836,7 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
  
      #[test]
      fn changed_summary_restarts_shimmer_but_repeated_summary_keeps_phase() {
-@@ -377,27 +632,46 @@
+@@ -377,27 +634,46 @@
          // Render into a fixed-size test terminal and snapshot the backend.
          let mut terminal = Terminal::new(TestBackend::new(80, 2)).expect("terminal");
          terminal
@@ -6381,7 +6891,7 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
              .expect("draw");
          insta::assert_snapshot!(terminal.backend());
      }
-@@ -427,7 +701,13 @@
+@@ -427,7 +703,13 @@
          // short of fitting the whole phrase (27 cols), forcing exactly one wrap without ellipsis.
          let mut terminal = Terminal::new(TestBackend::new(30, 3)).expect("terminal");
          terminal
@@ -6396,7 +6906,7 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
              .expect("draw");
          insta::assert_snapshot!(terminal.backend());
      }
-@@ -447,14 +727,20 @@
+@@ -447,14 +729,20 @@
  
          let mut terminal = Terminal::new(TestBackend::new(80, 1)).expect("terminal");
          terminal
@@ -6419,7 +6929,7 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
      }
  
      #[test]
-@@ -473,7 +759,13 @@
+@@ -473,7 +761,13 @@
  
          let mut terminal = Terminal::new(TestBackend::new(80, 1)).expect("terminal");
          terminal
@@ -6434,7 +6944,7 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
              .expect("draw");
          insta::assert_snapshot!(terminal.backend());
      }
-@@ -504,7 +796,7 @@
+@@ -504,7 +798,7 @@
              ),
          ] {
              w.update_inline_message(background.map(str::to_string));
@@ -6443,7 +6953,7 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
              if let Some(background) = background {
                  expected.push_str(&format!(" · {background}"));
              }
-@@ -512,12 +804,26 @@
+@@ -512,12 +806,26 @@
              let fit_width = display_width(&expected) as u16;
              let mut frames = Vec::new();
              for width in [fit_width, fit_width - 1, 24, fit_width] {
@@ -6473,7 +6983,7 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
                      .expect("draw");
                  frames.push(format!("{width} columns:\n{}", terminal.backend()));
              }
-@@ -526,7 +832,7 @@
+@@ -526,7 +834,7 @@
      }
  
      #[test]
@@ -6482,7 +6992,7 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
          let (tx_raw, _rx) = unbounded_channel::<AppEvent>();
          let tx = AppEventSender::new(tx_raw);
          let mut w = StatusIndicatorWidget::new(
-@@ -542,16 +848,13 @@
+@@ -542,16 +850,13 @@
          );
  
          let lines = w.wrapped_details_lines(/*width*/ 6);
@@ -6506,7 +7016,7 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
          let (tx_raw, _rx) = unbounded_channel::<AppEvent>();
          let tx = AppEventSender::new(tx_raw);
          let mut w = StatusIndicatorWidget::new(
-@@ -572,14 +875,126 @@
+@@ -572,14 +877,128 @@
          );
  
          let lines = w.wrapped_details_lines(/*width*/ 24);
@@ -6532,64 +7042,66 @@ diff --git a/codex-rs/tui/src/status_indicator_widget.rs b/codex-rs/tui/src/stat
 +
 +    #[test]
 +    fn mycodx_working_always_expands_all_content_after_resize() {
-+        let (tx, _rx) = unbounded_channel();
-+        let mut row = StatusIndicatorWidget::new(
-+            AppEventSender::new(tx),
-+            FrameRequester::test_dummy(),
-+            false,
-+            Default::default(),
-+        );
-+        let header = "Working \u{c778}\u{c99d} \u{d750}\u{b984}\u{acfc} \u{ae34} \u{c0c1}\u{d0dc} \u{bb38}\u{ad6c}\u{b97c} \u{d655}\u{c778}\u{d569}\u{b2c8}\u{b2e4} abcdefghijklmnopqrstuvwxyz";
-+        let inline = "2 background terminals running · /ps to view · /stop to close";
-+        let hook = "checking 日本語 ｶﾞﾊﾟ policy and remaining checks";
-+        let details =
-+            "first detail\nsecond detail\nthird detail\nfourth detail\nfifth detail \u{b05d}";
-+        row.update_header(header.into());
-+        row.update_inline_message(Some(inline.into()));
-+        row.update_hook_status_message(Some(hook.into()));
-+        row.update_details(
-+            Some(details.into()),
-+            StatusDetailsCapitalization::Preserve,
-+            1,
-+        );
-+        let mut timer = StatusTimer::default();
-+        timer.pause_at(timer.last_resume_at);
-+
-+        let mut heights = Vec::new();
-+        for width in [18, 44, 100, 18] {
-+            let status = row.with_timer(&timer);
-+            let height = status.desired_height(width);
-+            heights.push(height);
-+            let area = Rect::new(0, 0, width, height);
-+            let mut buf = Buffer::empty(area);
-+            status.render(area, &mut buf);
-+            let text = compact(
-+                &buf.content()
-+                    .iter()
-+                    .map(|cell| cell.symbol())
-+                    .collect::<String>(),
++        crate::mycodx_ui::with_settings(crate::mycodx_ui::Settings::web(), || {
++            let (tx, _rx) = unbounded_channel();
++            let mut row = StatusIndicatorWidget::new(
++                AppEventSender::new(tx),
++                FrameRequester::test_dummy(),
++                false,
++                Default::default(),
 +            );
-+            for expected in [header, "(0s)", inline, hook, details] {
-+                assert!(
-+                    text.contains(&compact(expected)),
-+                    "missing {expected:?} at {width}: {text}"
++            let header = "Working \u{c778}\u{c99d} \u{d750}\u{b984}\u{acfc} \u{ae34} \u{c0c1}\u{d0dc} \u{bb38}\u{ad6c}\u{b97c} \u{d655}\u{c778}\u{d569}\u{b2c8}\u{b2e4} abcdefghijklmnopqrstuvwxyz";
++            let inline = "2 background terminals running · /ps to view · /stop to close";
++            let hook = "checking 日本語 ｶﾞﾊﾟ policy and remaining checks";
++            let details =
++                "first detail\nsecond detail\nthird detail\nfourth detail\nfifth detail \u{b05d}";
++            row.update_header(header.into());
++            row.update_inline_message(Some(inline.into()));
++            row.update_hook_status_message(Some(hook.into()));
++            row.update_details(
++                Some(details.into()),
++                StatusDetailsCapitalization::Preserve,
++                1,
++            );
++            let mut timer = StatusTimer::default();
++            timer.pause_at(timer.last_resume_at);
++
++            let mut heights = Vec::new();
++            for width in [18, 44, 100, 18] {
++                let status = row.with_timer(&timer);
++                let height = status.desired_height(width);
++                heights.push(height);
++                let area = Rect::new(0, 0, width, height);
++                let mut buf = Buffer::empty(area);
++                status.render(area, &mut buf);
++                let text = compact(
++                    &buf.content()
++                        .iter()
++                        .map(|cell| cell.symbol())
++                        .collect::<String>(),
 +                );
++                for expected in [header, "(0s)", inline, hook, details] {
++                    assert!(
++                        text.contains(&compact(expected)),
++                        "missing {expected:?} at {width}: {text}"
++                    );
++                }
++                assert!(!text.contains('…'));
++                assert_eq!(buf[(0, height - 1)].symbol(), "▀");
++                let inner_width = crate::mycodx_ui::status::content_width(width);
++                for line in (StatusIndicator {
++                    row: &row,
++                    timer: &timer,
++                })
++                .lines(inner_width)
++                {
++                    assert!(line_width(&line) <= usize::from(inner_width), "{line:?}");
++                }
 +            }
-+            assert!(!text.contains('…'));
-+            assert_eq!(buf[(0, height - 1)].symbol(), "▀");
-+            let inner_width = crate::mycodx_ui::status::content_width(width);
-+            for line in (StatusIndicator {
-+                row: &row,
-+                timer: &timer,
-+            })
-+            .lines(inner_width)
-+            {
-+                assert!(line_width(&line) <= usize::from(inner_width), "{line:?}");
-+            }
-+        }
-+        assert!(heights[0] > heights[2]);
-+        assert_eq!(heights[0], heights[3]);
-+        assert_eq!(row.with_timer(&timer).desired_height(0), 0);
++            assert!(heights[0] > heights[2]);
++            assert_eq!(heights[0], heights[3]);
++            assert_eq!(row.with_timer(&timer).desired_height(0), 0);
++        });
 +    }
 +
 +    #[test]
@@ -8935,7 +9447,7 @@ diff --git a/codex-rs/tui/src/mycodx_ui.rs b/codex-rs/tui/src/mycodx_ui.rs
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/mycodx_ui.rs
-@@ -0,0 +1,481 @@
+@@ -0,0 +1,577 @@
 +//! Runtime transcript settings, independent of syntax highlighting themes.
 +#[path = "mycodx_input.rs"]
 +mod input;
@@ -8955,6 +9467,45 @@ new file mode 100644
 +pub(crate) use style::{Align, Background, CardStyle};
 +
 +use serde::{Deserialize, Serialize};
++
++/// Presentation only: questions, replies, final answers and notices remain visible.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(crate) enum CardMode {
++    Progress,
++    Answers,
++    All,
++    Custom,
++}
++
++impl CardMode {
++    pub(crate) const ALL: [Self; 3] = [Self::Progress, Self::Answers, Self::All];
++
++    pub(crate) fn label(self) -> &'static str {
++        match self {
++            Self::Progress => "0: Progress",
++            Self::Answers => "1: Answers only",
++            Self::All => "2: All cards",
++            Self::Custom => "Custom",
++        }
++    }
++
++    pub(crate) fn description(self) -> &'static str {
++        match self {
++            Self::Progress => "Hide tools; show intermediate and final answers",
++            Self::Answers => "Hide tools and intermediate answers",
++            Self::All => "Show tools, intermediate and final answers",
++            Self::Custom => "Show tools; hide intermediate answers",
++        }
++    }
++
++    pub(crate) fn next(self) -> Self {
++        match self {
++            Self::Progress => Self::Answers,
++            Self::Answers => Self::All,
++            Self::All | Self::Custom => Self::Progress,
++        }
++    }
++}
 +
 +#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 +#[serde(default = "Settings::legacy_defaults", deny_unknown_fields)]
@@ -9001,6 +9552,30 @@ new file mode 100644
 +}
 +
 +impl Settings {
++    pub(crate) fn card_mode(&self) -> CardMode {
++        match (self.show_tools, self.show_intermediate) {
++            (false, true) => CardMode::Progress,
++            (false, false) => CardMode::Answers,
++            (true, true) => CardMode::All,
++            (true, false) => CardMode::Custom,
++        }
++    }
++
++    pub(crate) fn with_card_mode(&self, mode: CardMode) -> Self {
++        let mut next = self.clone();
++        next.show_tools = matches!(mode, CardMode::All | CardMode::Custom);
++        next.show_intermediate = matches!(mode, CardMode::Progress | CardMode::All);
++        next
++    }
++
++    pub(crate) fn is_shipped_default(&self) -> bool {
++        let defaults = Self::default().normalized();
++        let mut actual = self.normalized();
++        // The resolved card styles supersede this non-persisted legacy switch.
++        actual.answer_card = defaults.answer_card;
++        actual == defaults
++    }
++
 +    fn legacy_defaults() -> Self {
 +        Self {
 +            working_animation: status::WorkingAnimation::default(),
@@ -9044,29 +9619,20 @@ new file mode 100644
 +        settings
 +    }
 +
-+    /// First-install defaults, independent of the active syntax theme.
++    /// First-install colors use Ocean Dark with a transparent final-answer surface.
 +    fn shipped_defaults() -> Self {
 +        let mut settings = Self::web();
 +        settings.working_animation = status::WorkingAnimation::OneSecond;
-+        for (section, width, padding_y, expanded, background) in [
-+            (
-+                Section::Questions,
-+                60,
-+                1,
-+                true,
-+                Background::Rgb(71, 87, 124),
-+            ),
-+            (Section::Replies, 70, 1, true, Background::Rgb(55, 68, 97)),
-+            (Section::Tools, 100, 1, false, Background::Rgb(63, 77, 74)),
-+            (
-+                Section::Intermediate,
-+                100,
-+                1,
-+                false,
-+                Background::Rgb(54, 49, 74),
-+            ),
-+            (Section::Answers, 100, 1, true, Background::None),
-+        ] {
++        for ((section, width, padding_y, expanded), background) in [
++            (Section::Questions, 60, 1, true),
++            (Section::Replies, 70, 1, true),
++            (Section::Tools, 100, 1, false),
++            (Section::Intermediate, 100, 1, false),
++            (Section::Answers, 100, 1, true),
++        ]
++        .into_iter()
++        .zip(theme::default_colors())
++        {
 +            settings = settings.change_card(section, |card| {
 +                card.max_width = width;
 +                card.padding_y = padding_y;
@@ -9201,7 +9767,7 @@ new file mode 100644
 +        }
 +    }
 +    let _restore = Restore(TEST_SETTINGS.with(|value| value.replace(Some(settings.normalized()))));
-+    run()
++    crate::terminal_palette::with_card_fixture_palette(run)
 +}
 +
 +#[derive(Default, Serialize, Deserialize)]
@@ -9314,6 +9880,44 @@ new file mode 100644
 +    use super::*;
 +
 +    #[test]
++    fn codux_fresh_home_keeps_ocean_colors_when_reopened_in_another_terminal() {
++        with_settings(Settings::web(), || {
++            let directory = tempfile::tempdir().unwrap();
++            let home = directory.path().join("fresh user \u{2603} space");
++            let mut surfaces = Vec::new();
++            let mut saved = None;
++            for bg in [(12, 12, 12), (245, 245, 245)] {
++                crate::terminal_palette::with_test_default_colors(
++                    crate::terminal_probe::DefaultColors {
++                        bg,
++                        fg: (127, 127, 127),
++                    },
++                    || {
++                        load(&home).unwrap();
++                        let card = current().card(Section::Questions);
++                        assert_eq!(
++                            card.background,
++                            Settings::default().card(Section::Questions).background
++                        );
++                        surfaces.push(card.colors().bg);
++                        let bytes = std::fs::read(home.join("codux-ui.json")).unwrap();
++                        if let Some(previous) = &saved {
++                            assert_eq!(previous, &bytes);
++                        }
++                        saved = Some(bytes);
++                        assert_eq!(
++                            current().card(Section::Answers).background,
++                            Background::None
++                        );
++                    },
++                );
++            }
++            assert_eq!(surfaces[0], surfaces[1]);
++            assert!(!home.join("config.toml").exists());
++        });
++    }
++
++    #[test]
 +    fn codux_first_start_sets_defaults_once_then_reloads_user_settings() {
 +        with_settings(Settings::web(), || {
 +            let home = tempfile::tempdir().unwrap();
@@ -9331,6 +9935,10 @@ new file mode 100644
 +                assert_eq!(card.padding_x, 1);
 +                assert_eq!(card.padding_y, 1);
 +                assert!(!card.title_visible);
++                assert_eq!(
++                    card.background,
++                    expected.card(section).background
++                );
 +            }
 +            assert_eq!(current().card(Section::Questions).max_width, 60);
 +            assert_eq!(current().card(Section::Replies).max_width, 70);
@@ -9421,7 +10029,7 @@ diff --git a/codex-rs/tui/src/mycodx_theme.rs b/codex-rs/tui/src/mycodx_theme.rs
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/mycodx_theme.rs
-@@ -0,0 +1,541 @@
+@@ -0,0 +1,585 @@
 +//! Coordinated card colors from the actual bundled syntax palettes.
 +//! Only background settings are saved; syntax themes and presets stay intact.
 +use super::{Background, Section, Settings};
@@ -9575,6 +10183,29 @@ new file mode 100644
 +    pub settings: Settings,
 +}
 +
++/// Fixed first-install palette, shared with the Default choice and web export.
++/// Resolve the bundled Ocean Dark colors without consulting the current /theme.
++pub(super) fn default_colors() -> [Background; 5] {
++    static COLORS: std::sync::LazyLock<[Background; 5]> = std::sync::LazyLock::new(|| {
++        let syntax = highlight::resolve_theme_by_name("base16-ocean-dark", None)
++            .expect("bundled Base16 Ocean Dark theme");
++        let palette = Palette::from_theme(&syntax, (24, 24, 24));
++        let settings = palette.apply(
++            &Settings::web(),
++            &palette,
++            [FUNCTION, STRING, KEYWORD, NUMBER],
++        );
++        SECTIONS.map(|section| {
++            if section == Section::Answers {
++                Background::None
++            } else {
++                settings.card(section).background
++            }
++        })
++    });
++    *COLORS
++}
++
 +pub(super) fn choices(original: &Settings) -> Vec<Choice> {
 +    choices_for(
 +        original,
@@ -9624,11 +10255,15 @@ new file mode 100644
 +            card.background = defaults.card(section).background;
 +        });
 +    }
-+    choices.insert(1, Choice {
-+        name: "Default".into(),
-+        description: "Blue prompts, muted green tools, violet progress, no final-answer background. Colors only.".into(),
-+        settings,
-+    });
++    choices.insert(
++        1,
++        Choice {
++            name: "Default".into(),
++            description: "Base16 Ocean Dark card colors; no final-answer background. Colors only."
++                .into(),
++            settings,
++        },
++    );
 +    choices
 +}
 +
@@ -9792,6 +10427,23 @@ new file mode 100644
 +#[cfg(test)]
 +mod tests {
 +    use super::*;
++
++    #[test]
++    fn codux_default_matches_ocean_dark_except_transparent_final_answer() {
++        let syntax = highlight::resolve_theme_by_name("base16-ocean-dark", None).unwrap();
++        let choices = choices_for(&Settings::web(), &syntax, (24, 24, 24));
++        let defaults = Settings::default();
++        for section in SECTIONS {
++            assert_eq!(
++                defaults.card(section).background,
++                if section == Section::Answers {
++                    Background::None
++                } else {
++                    choices[0].settings.card(section).background
++                }
++            );
++        }
++    }
 +
 +    /// Static playground consumes the same computed colors as the native UI.
 +    #[test]
@@ -9967,7 +10619,7 @@ diff --git a/codex-rs/tui/src/mycodx_status.rs b/codex-rs/tui/src/mycodx_status.
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/mycodx_status.rs
-@@ -0,0 +1,482 @@
+@@ -0,0 +1,506 @@
 +//! A background pulse for live work, and a static completion surface.
 +//!
 +//! The existing status widget owns frame scheduling; these pure presentation
@@ -9975,7 +10627,7 @@ new file mode 100644
 +//! previews also affect status surfaces, without changing stored settings.
 +use super::{Align, Background, CardStyle, Section, current, theme};
 +use crate::color::blend;
-+use crate::terminal_palette::rgb_color;
++use crate::terminal_palette::best_color;
 +use ratatui::buffer::Buffer;
 +use ratatui::layout::Rect;
 +use ratatui::style::{Color, Modifier, Style};
@@ -10037,8 +10689,7 @@ new file mode 100644
 +}
 +
 +pub(crate) fn working_style(elapsed: Duration, animated: bool) -> Style {
-+    // Use the same RGB background path as the existing cards. In particular,
-+    // Windows shell capability detection must not silently hide this preview.
++    // Share the cards' palette and color capability fallback.
 +    let phase = if animated {
 +        current().working_animation.phase(elapsed)
 +    } else {
@@ -10089,15 +10740,18 @@ new file mode 100644
 +    );
 +    buf.set_style(body, style);
 +    if vertical != 0 {
++        let filled = style.bg.is_some_and(|bg| bg != Color::Reset);
 +        let edge_style = Style::default()
 +            .fg(style.bg.unwrap_or(Color::Reset))
 +            .bg(Color::Reset);
 +        for x in area.x..area.right() {
 +            if let Some(cell) = buf.cell_mut((x, area.y)) {
-+                cell.set_symbol("▄").set_style(edge_style);
++                cell.set_symbol(if filled { "▄" } else { " " })
++                    .set_style(edge_style);
 +            }
 +            if let Some(cell) = buf.cell_mut((x, area.bottom() - 1)) {
-+                cell.set_symbol("▀").set_style(edge_style);
++                cell.set_symbol(if filled { "▀" } else { " " })
++                    .set_style(edge_style);
 +            }
 +        }
 +    }
@@ -10110,12 +10764,18 @@ new file mode 100644
 +}
 +
 +fn surface(section: Section, phase: f32) -> Style {
-+    let paint = current().card(section).colors();
++    let card = current().card(section);
++    let paint = card.colors();
++    if !paint.filled
++        && (card.background != Background::None || crate::terminal_palette::default_bg().is_none())
++    {
++        return paint.body().remove_modifier(Modifier::DIM);
++    }
 +    let fg = paint.fg;
 +    let mut base = paint.bg;
 +    // Keep a steady foreground throughout the pulse. For unusually bright/dark
 +    // custom fills, move the surface away from the text before raising it.
-+    let extreme = if fg == (20, 20, 20) {
++    let extreme = if theme::contrast(fg, (255, 255, 255)) > theme::contrast(fg, (0, 0, 0)) {
 +        (255, 255, 255)
 +    } else {
 +        (0, 0, 0)
@@ -10128,8 +10788,8 @@ new file mode 100644
 +    }
 +    let bg = blend(fg, base, 0.06 + 0.12 * phase);
 +    Style::default()
-+        .bg(rgb_color(bg))
-+        .fg(rgb_color(fg))
++        .bg(best_color(bg))
++        .fg(best_color(fg))
 +        .remove_modifier(Modifier::DIM)
 +}
 +
@@ -10212,6 +10872,22 @@ new file mode 100644
 +#[cfg(test)]
 +mod tests {
 +    use super::*;
++    #[test]
++    fn codux_adaptive_unknown_palette_has_no_solid_half_block_status_edges() {
++        crate::terminal_palette::with_test_default_colors(None, || {
++            let settings = Settings::default()
++                .change_card(Section::Intermediate, |card| card.background = Background::Auto);
++            crate::mycodx_ui::with_settings(settings, || {
++                let style = working_style(Duration::from_millis(500), true);
++                assert_eq!(style.bg, Some(Color::Reset));
++                let area = Rect::new(0, 0, 24, 4);
++                let mut buffer = Buffer::empty(area);
++                padded_surface(area, &mut buffer, style);
++                assert!(buffer.content.iter().all(|cell| cell.symbol() == " "));
++            });
++        });
++    }
++
 +    use crate::mycodx_ui::{Background, Settings, with_settings};
 +    use ratatui::style::Color;
 +
@@ -10417,14 +11093,14 @@ new file mode 100644
 +                fg: (240, 240, 240),
 +            },
 +            || {
-+                for bg in [
++                for bg in (0..=255).map(|v| (v, v, v)).chain([
 +                    (0, 0, 0),
 +                    (255, 255, 255),
 +                    (140, 140, 140),
 +                    (150, 150, 150),
 +                    (99, 48, 65),
 +                    (35, 63, 105),
-+                ] {
++                ]) {
 +                    let settings = Settings::web().change_card(Section::Intermediate, |card| {
 +                        card.background = Background::Rgb(bg.0, bg.1, bg.2);
 +                    });
@@ -10454,9 +11130,9 @@ diff --git a/codex-rs/tui/src/mycodx_style.rs b/codex-rs/tui/src/mycodx_style.rs
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/mycodx_style.rs
-@@ -0,0 +1,234 @@
+@@ -0,0 +1,300 @@
 +//! Shared presentation settings. Legacy fields remain readable during the preview rollout.
-+use ratatui::style::{Color, Style};
++use ratatui::style::{Color, Modifier, Style};
 +use serde::{Deserialize, Serialize};
 +
 +#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -10577,7 +11253,16 @@ new file mode 100644
 +        self.colors_for(false)
 +    }
 +    pub(crate) fn colors_for(&self, active: bool) -> Paint {
-+        let outer = crate::terminal_palette::default_bg().unwrap_or((24, 24, 24));
++        let detected = crate::terminal_palette::default_bg();
++        let outer = detected.unwrap_or((24, 24, 24));
++        // Unknown palettes must keep the terminal's own colors. A guessed dark
++        // surface can erase text in a light theme or a restricted color terminal.
++        let adaptive = matches!(self.background, Background::None | Background::Auto);
++        let supported = !matches!(
++            crate::terminal_palette::effective_stdout_color_level(),
++            crate::terminal_palette::StdoutColorLevel::Ansi16
++                | crate::terminal_palette::StdoutColorLevel::Unknown
++        );
 +        let bg = match self.background {
 +            Background::None => outer,
 +            Background::Auto => {
@@ -10595,12 +11280,24 @@ new file mode 100644
 +        };
 +        let bg = if active { brighten(bg) } else { bg };
 +        let light = u32::from(bg.0) * 299 + u32::from(bg.1) * 587 + u32::from(bg.2) * 114 > 140_000;
-+        let fg = if light { (20, 20, 20) } else { (240, 240, 240) };
++        let mut fg = if light { (20, 20, 20) } else { (240, 240, 240) };
++        if super::theme::contrast(fg, bg) < 4.5 {
++            fg = if super::theme::contrast((0, 0, 0), bg)
++                > super::theme::contrast((255, 255, 255), bg)
++            {
++                (0, 0, 0)
++            } else {
++                (255, 255, 255)
++            };
++        }
 +        Paint {
 +            outer,
 +            bg,
 +            fg,
-+            filled: active || self.background != Background::None,
++            active,
++            filled: supported
++                && (!adaptive || detected.is_some())
++                && (active || self.background != Background::None),
 +        }
 +    }
 +}
@@ -10617,17 +11314,23 @@ new file mode 100644
 +    pub outer: (u8, u8, u8),
 +    pub bg: (u8, u8, u8),
 +    pub fg: (u8, u8, u8),
++    pub active: bool,
 +    pub filled: bool,
 +}
 +pub(crate) fn color(rgb: (u8, u8, u8)) -> Color {
-+    Color::Rgb(rgb.0, rgb.1, rgb.2)
++    crate::terminal_palette::best_color(rgb)
 +}
 +impl Paint {
 +    pub(crate) fn body(self) -> Style {
 +        if self.filled {
 +            Style::default().bg(color(self.bg)).fg(color(self.fg))
 +        } else {
-+            Style::default().fg(Color::Reset).bg(Color::Reset)
++            let style = Style::default().fg(Color::Reset).bg(Color::Reset);
++            if self.active {
++                style.add_modifier(Modifier::BOLD)
++            } else {
++                style
++            }
 +        }
 +    }
 +}
@@ -10657,6 +11360,45 @@ new file mode 100644
 +#[cfg(test)]
 +mod tests {
 +    use super::*;
++    #[test]
++    fn codux_adaptive_surfaces_follow_light_dark_and_unknown_palettes() {
++        for outer in [
++            (12, 12, 12),
++            (248, 248, 248),
++            (90, 110, 160),
++            (120, 120, 120),
++        ] {
++            crate::terminal_palette::with_test_default_colors(
++                crate::terminal_probe::DefaultColors {
++                    bg: outer,
++                    fg: (127, 127, 127),
++                },
++                || {
++                    let card = CardStyle::preview(0);
++                    assert_eq!(card.background, Background::Auto);
++                    assert_ne!(card.colors().bg, outer);
++                    for active in [false, true] {
++                        let paint = card.colors_for(active);
++                        assert!(paint.filled);
++                        assert!(super::super::theme::contrast(paint.fg, paint.bg) >= 4.5);
++                    }
++                },
++            );
++        }
++        crate::terminal_palette::with_test_default_colors(None, || {
++            for background in [Background::Auto, Background::None] {
++                let mut card = CardStyle::preview(0);
++                card.background = background;
++                for active in [false, true] {
++                    let paint = card.colors_for(active);
++                    assert!(!paint.filled);
++                    assert_eq!(paint.body().bg, Some(Color::Reset));
++                    assert_eq!(paint.body().fg, Some(Color::Reset));
++                }
++            }
++        });
++    }
++
 +    #[test]
 +    fn focus_brightens_the_resting_background_on_light_and_dark_terminals() {
 +        for outer in [(20, 20, 20), (240, 240, 240)] {
@@ -10693,7 +11435,7 @@ diff --git a/codex-rs/tui/src/mycodx_menu.rs b/codex-rs/tui/src/mycodx_menu.rs
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/mycodx_menu.rs
-@@ -0,0 +1,1454 @@
+@@ -0,0 +1,1734 @@
 +use super::*;
 +use crate::app_event::AppEvent;
 +use crate::bottom_pane::{SelectionItem, SelectionViewParams};
@@ -10707,6 +11449,8 @@ new file mode 100644
 +    Intermediate,
 +}
 +impl Section {
++    const ALL: [Self; 5] = [Self::Questions, Self::Replies, Self::Tools, Self::Intermediate, Self::Answers];
++    fn bit(self) -> u8 { 1 << Self::ALL.iter().position(|s| *s == self).unwrap() }
 +    pub(crate) fn index(self) -> usize {
 +        match self {
 +            Self::Questions => 0,
@@ -10742,6 +11486,7 @@ new file mode 100644
 +    Text,
 +}
 +impl Element {
++    fn shareable(self) -> bool { self != Self::Display }
 +    fn label(self) -> &'static str {
 +        match self {
 +            Self::Display => "Display",
@@ -10764,11 +11509,16 @@ new file mode 100644
 +pub(crate) enum Page {
 +    Root,
 +    Theme,
++    CardMode,
++    Reset,
 +    WorkingAnimation,
 +    Mermaid,
 +    Group(Section),
 +    Card(Section),
 +    Values(Section, Element),
++    Scoped(Section, Element, u8),
++    Scope(Section, Element, u8),
++    Targets(Section, Element, u8, u8),
 +}
 +
 +// Navigation belongs to one /custom invocation, independently of persisted card styles.
@@ -10780,6 +11530,7 @@ new file mode 100644
 +    static CURSORS: std::cell::RefCell<std::collections::HashMap<Page, usize>> = std::cell::RefCell::new(std::collections::HashMap::new());
 +}
 +fn remembered_cursor(page: Page) -> Option<usize> {
++    let page = page.base();
 +    #[cfg(test)]
 +    {
 +        CURSORS.with(|c| c.borrow().get(&page).copied())
@@ -10794,6 +11545,7 @@ new file mode 100644
 +    }
 +}
 +fn remember_cursor(page: Page, index: usize) {
++    let page = page.base();
 +    #[cfg(test)]
 +    CURSORS.with(|c| {
 +        c.borrow_mut().insert(page, index);
@@ -10805,10 +11557,28 @@ new file mode 100644
 +        .insert(page, index);
 +}
 +impl Page {
++    pub(super) fn editor(self) -> Option<(Section, Element, u8)> {
++        match self {
++            Self::Values(s, e) => Some((s, e, s.bit())),
++            Self::Scoped(s, e, mask) => Some((s, e, mask)),
++            _ => None,
++        }
++    }
++    fn scoped(s: Section, e: Element, mask: u8) -> Self {
++        if mask == s.bit() { Self::Values(s, e) } else { Self::Scoped(s, e, mask) }
++    }
++    fn base(self) -> Self {
++        if let Self::Scoped(s, e, _) = self { Self::Values(s, e) } else { self }
++    }
 +    pub(crate) fn parent(self) -> Option<Self> {
 +        match self {
++            Self::Scoped(s, e, mask) => Self::Values(s, e).parent().map(|parent| {
++                if let Self::Values(s, e) = parent { Self::scoped(s, e, mask) } else { parent }
++            }),
++            Self::Scope(s, e, mask) => Some(Self::scoped(s, e, mask)),
++            Self::Targets(s, e, previous, _) => Some(Self::Scope(s, e, previous)),
 +            Self::Root => None,
-+            Self::Theme => Some(Self::Root),
++            Self::Theme | Self::CardMode | Self::Reset => Some(Self::Root),
 +            Self::WorkingAnimation | Self::Mermaid => Some(Self::Group(Section::Answers)),
 +            Self::Group(_) | Self::Card(Section::Tools) => Some(Self::Root),
 +            Self::Card(Section::Questions | Section::Replies) => {
@@ -10831,16 +11601,21 @@ new file mode 100644
 +        }
 +    }
 +    pub(crate) fn is_input(self) -> bool {
-+        matches!(self, Self::Values(_, Element::Text | Element::CustomColor))
++        matches!(self.base(), Self::Values(_, Element::Text | Element::CustomColor))
 +    }
 +    fn has_values(self) -> bool {
-+        matches!(self, Self::Theme | Self::WorkingAnimation | Self::Mermaid)
-+            || matches!(self,Self::Values(_,e) if !matches!(e,Element::Padding|Element::Title|Element::Expandable))
++        matches!(self, Self::Theme | Self::CardMode | Self::Reset | Self::WorkingAnimation | Self::Mermaid)
++            || matches!(self.base(),Self::Values(_,e) if !matches!(e,Element::Padding|Element::Title|Element::Expandable))
 +    }
 +    pub(crate) fn title(self) -> String {
 +        match self {
++            Self::Scoped(s, e, _) => Self::Values(s, e).title(),
++            Self::Scope(s, e, _) => format!("{} / Apply to", Self::Values(s, e).title()),
++            Self::Targets(_, _, _, _) => "Custom UI / Select cards".into(),
 +            Self::Root => "Custom UI".into(),
 +            Self::Theme => "Custom UI / Theme".into(),
++            Self::CardMode => "Custom UI / Card display".into(),
++            Self::Reset => "Custom UI / Reset to defaults".into(),
 +            Self::WorkingAnimation => "Custom UI / Answer / Working animation".into(),
 +            Self::Mermaid => "Custom UI / Answer / Mermaid".into(),
 +            Self::Group(s) => format!("Custom UI / {}", s.label()),
@@ -10961,6 +11736,37 @@ new file mode 100644
 +    }
 +}
 +
++pub(super) fn scope_label(section: Section, mask: u8) -> String {
++    if mask == section.bit() { "Current card".into() }
++    else if mask == 31 { "All cards".into() }
++    else { format!("{} selected cards", mask.count_ones()) }
++}
++
++pub(super) fn apply_scoped(original: &Settings, changed: &Settings, page: Page) -> Settings {
++    let Some((source, element, mask)) = page.editor() else { return changed.clone(); };
++    if !element.shareable() { return changed.clone(); }
++    let source = changed.card(source);
++    // Materialize inherited styles before changing a parent, so unselected replies/progress
++    // retain their own appearance even when loading an old settings file.
++    let mut next = original.clone();
++    next.reply = Some(original.card(Section::Replies));
++    next.intermediate = Some(original.card(Section::Intermediate));
++    for section in Section::ALL.into_iter().filter(|s| mask & s.bit() != 0) {
++        next = next.change_card(section, |c| match element {
++            Element::Enabled => c.expandable = source.expandable,
++            Element::InitialState => c.default_expanded = source.default_expanded,
++            Element::Width => c.max_width = source.max_width,
++            Element::Horizontal => c.padding_x = source.padding_x,
++            Element::Vertical => c.padding_y = source.padding_y,
++            Element::Background | Element::CustomColor => c.background = source.background,
++            Element::Visibility => c.title_visible = source.title_visible,
++            Element::Text => c.title = source.title.clone(),
++            _ => {},
++        });
++    }
++    next
++}
++
 +fn value(section: Section, element: Element, settings: &Settings) -> String {
 +    let c = settings.card(section);
 +    match element {
@@ -11004,6 +11810,21 @@ new file mode 100644
 +    page: Page,
 +    original: &Settings,
 +) -> anyhow::Result<Vec<(String, Settings)>> {
++    if page == Page::Reset {
++        return Ok(vec![
++            ("Keep current settings".into(), original.clone()),
++            ("Restore shipped defaults".into(), Settings::default()),
++        ]);
++    }
++    if page == Page::CardMode {
++        let mut modes = CardMode::ALL.to_vec();
++        if original.card_mode() == CardMode::Custom {
++            modes.push(CardMode::Custom);
++        }
++        return Ok(modes.into_iter().map(|mode| {
++            (mode.label().into(), original.with_card_mode(mode))
++        }).collect());
++    }
 +    if page == Page::Mermaid {
 +        return Ok([
 +            crate::codux_mermaid::Mode::Auto,
@@ -11033,7 +11854,7 @@ new file mode 100644
 +            .map(|c| (c.name, c.settings))
 +            .collect());
 +    }
-+    let Page::Values(section, element) = page else {
++    let Some((section, element, _)) = page.editor() else {
 +        anyhow::bail!("Expected a value menu");
 +    };
 +    let mut list = Vec::new();
@@ -11107,7 +11928,7 @@ new file mode 100644
 +        }
 +        _ => anyhow::bail!("This setting has a submenu or text input"),
 +    }
-+    Ok(list)
++    Ok(list.into_iter().map(|(label, changed)| (label, apply_scoped(original, &changed, page))).collect())
 +}
 +
 +fn navigation(name: String, description: Option<String>, page: Page) -> SelectionItem {
@@ -11132,6 +11953,10 @@ new file mode 100644
 +        "Use the single-line editor for this setting"
 +    );
 +    let original = current();
++    let base_page = page.base();
++    if let Some((_, _, mask)) = page.editor() {
++        anyhow::ensure!(mask != 0 && mask & !31 == 0, "Choose at least one card");
++    }
 +    let cancelled = original.clone();
 +    let mut params = SelectionViewParams {
 +        title: Some(page.title()),
@@ -11153,7 +11978,26 @@ new file mode 100644
 +        })),
 +        ..SelectionViewParams::picker()
 +    };
-+    if page.has_values() {
++    if let Page::Scope(s, e, mask) = page {
++        params.items = vec![
++            navigation("Current card".into(), Some(s.label().into()), Page::Values(s, e)),
++            navigation("Selected cards...".into(), Some(scope_label(s, mask)), Page::Targets(s, e, mask, mask)),
++            navigation("All cards".into(), Some("All five card types".into()), Page::scoped(s, e, 31)),
++        ];
++        params.subtitle = Some("Choose the target cards, then choose a value to preview and save.".into());
++    } else if let Page::Targets(s, e, previous, mask) = page {
++        let mut done = navigation("Use selected cards".into(), Some(format!("{} selected", mask.count_ones())), Page::scoped(s, e, mask));
++        done.is_disabled = mask == 0;
++        params.items.push(done);
++        for (index, target) in Section::ALL.into_iter().enumerate() {
++            let destination = Page::Targets(s, e, previous, mask ^ target.bit());
++            let mut item = navigation(format!("[{}] {}", if mask & target.bit() != 0 { "x" } else { " " }, target.label()), None, destination);
++            item.actions.insert(0, Box::new(move |_| remember_cursor(destination, index + 1)));
++            params.items.push(item);
++        }
++        params.subtitle = Some("Select the cards that should receive this element's value.".into());
++        params.footer_hint = Some("Up/Down navigate | Enter toggle/use | Esc back".into());
++    } else if page.has_values() {
 +        let themes = (page == Page::Theme).then(|| theme::choices(&original));
 +        let values = if let Some(themes) = &themes {
 +            themes
@@ -11163,7 +12007,7 @@ new file mode 100644
 +        } else {
 +            choices(home, page, &original)?
 +        };
-+        let selected = if let Page::Values(s, e) = page {
++        let selected = if let Some((s, e, _)) = page.editor() {
 +            Some(value(s, e, &original))
 +        } else {
 +            None
@@ -11200,11 +12044,14 @@ new file mode 100644
 +                "Up/Down preview | Enter apply | Esc back",
 +            ));
 +        }
-+        if let Page::Values(s, e @ Element::Background) = page {
++        if let Some((s, e, mask)) = page.editor().filter(|(_, e, _)| e.shareable()) {
++            params.items.push(navigation(format!("Apply to: {}", scope_label(s, mask)), Some("Choose current, selected, or all cards".into()), Page::Scope(s, e, mask)));
++        }
++        if let Some((s, e @ Element::Background, mask)) = page.editor() {
 +            params.items.push(navigation(
 +                "Custom HEX...".into(),
 +                Some(value(s, e, &original)),
-+                Page::Values(s, Element::CustomColor),
++                Page::scoped(s, Element::CustomColor, mask),
 +            ));
 +        }
 +        let restore = original.clone();
@@ -11218,6 +12065,21 @@ new file mode 100644
 +        }));
 +        params.subtitle =
 +            Some("Changes appear in the conversation. Enter saves; Esc restores.".into());
++        if let Some((s, _, mask)) = page.editor().filter(|(_, e, _)| e.shareable()) {
++            let targets = Section::ALL.into_iter().filter(|s| mask & s.bit() != 0).map(Section::label).collect::<Vec<_>>().join(", ");
++            params.subtitle = Some(format!("Apply to: {} ({targets}). Enter saves; Esc restores.", scope_label(s, mask)));
++        }
++        if page == Page::Reset {
++            params.subtitle = Some("Preview this version's first-install settings. Enter saves; Esc restores your settings.".into());
++            params.footer_note = Some("Resets Codux card styles, display mode, animation and Mermaid settings. Codex configuration, /theme and conversations are unchanged.".into());
++        }
++        if page == Page::CardMode {
++            params.subtitle = Some("Questions, replies and final answers are always shown. Folding and styles are unchanged.".into());
++            for (index, item) in params.items.iter_mut().enumerate() {
++                let mode = CardMode::ALL.get(index).copied().unwrap_or(CardMode::Custom);
++                item.description = Some(mode.description().into());
++            }
++        }
 +        if page == Page::WorkingAnimation {
 +            params.subtitle = Some(
 +                "Choose an animation. Preview it beside the list; Enter saves, Esc restores."
@@ -11246,7 +12108,7 @@ new file mode 100644
 +                item.description = Some(choice.description.clone());
 +            }
 +        }
-+        if matches!(page, Page::Values(_, Element::Vertical)) {
++        if matches!(base_page, Page::Values(_, Element::Vertical)) {
 +            params.footer_note = Some(
 +                "Half rows change the visible background edge; terminal rows remain full height."
 +                    .into(),
@@ -11262,6 +12124,17 @@ new file mode 100644
 +        .into_iter()
 +        .map(|(name, page)| navigation(name.into(), None, page))
 +        .collect();
++        params.items.push(navigation(
++            "Card display".into(), Some(original.card_mode().label().into()), Page::CardMode,
++        ));
++        params.items.push(navigation(
++            "Reset to defaults".into(), Some("Preview and restore first-install settings".into()), Page::Reset,
++        ));
++        params.subtitle = Some(if original.is_shipped_default() {
++            "Default: using this version's first-install settings."
++        } else {
++            "Customized: your settings differ from this version's first-install defaults."
++        }.into());
 +    } else if let Page::Group(section) = page {
 +        let entries = match section {
 +            Section::Questions => [
@@ -11299,7 +12172,7 @@ new file mode 100644
 +            .into(),
 +        );
 +    } else {
-+        let (section, elements) = match page {
++        let (section, elements) = match base_page {
 +            Page::Card(s) => (
 +                s,
 +                vec![
@@ -11327,7 +12200,7 @@ new file mode 100644
 +            elements.insert(0, Element::Display);
 +        }
 +        if page == Page::Card(Section::Tools) {
-+            params.footer_note = Some("F4 focuses cards. Up/Down: same side. Left/Right: switch sides. Enter: toggle. Double-click blank background: toggle.".into());
++            params.footer_note = Some("F4 browses cards. Up/Down: scroll. Ctrl+arrows: select a card. Enter: fold. Double-click blank background: fold.".into());
 +        }
 +        params.items = elements
 +            .into_iter()
@@ -11335,14 +12208,17 @@ new file mode 100644
 +                navigation(
 +                    e.label().into(),
 +                    Some(value(section, e, &original)),
-+                    Page::Values(section, e),
++                    Page::scoped(section, e, page.editor().map_or(section.bit(), |(_, _, mask)| mask)),
 +                )
 +            })
 +            .collect();
++        if let Some((s, e, mask)) = page.editor().filter(|(_, e, _)| e.shareable()) {
++            params.items.push(navigation(format!("Apply to: {}", scope_label(s, mask)), Some("Only the element you edit is applied".into()), Page::Scope(s, e, mask)));
++        }
 +    }
 +    // Value lists open at the saved setting; navigation lists reopen at the last route.
 +    // Background also contains the Custom HEX editor, so it participates in the hierarchy.
-+    if !page.has_values() || matches!(page, Page::Values(_, Element::Background)) {
++    if !page.has_values() || matches!(base_page, Page::Values(_, Element::Background)) {
 +        if let Some(index) = remembered_cursor(page).filter(|i| *i < params.items.len()) {
 +            params.initial_selected_idx = Some(index);
 +        }
@@ -11363,6 +12239,152 @@ new file mode 100644
 +    use crate::app_event_sender::AppEventSender;
 +    use crate::bottom_pane::{BottomPaneView, ListSelectionView};
 +    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
++    #[test]
++    fn codux_scoped_pages_keep_the_parent_cursor_without_persisting_targets() {
++        begin_session();
++        let padding = Page::Values(Section::Questions, Element::Padding);
++        remember_cursor(padding, 1);
++        let vertical = Page::Scoped(Section::Questions, Element::Vertical, 31);
++        assert_eq!(remembered_cursor(vertical.parent().unwrap()), Some(1));
++        remember_cursor(vertical.parent().unwrap(), 0);
++        assert_eq!(remembered_cursor(padding), Some(0));
++        assert_eq!(padding.parent(), Some(Page::Card(Section::Questions)));
++        begin_session();
++        assert_eq!(remembered_cursor(padding), None);
++    }
++
++    #[test]
++    fn codux_bulk_style_changes_only_the_selected_element_and_cards() {
++        let original = Settings::default();
++        let mask = Section::Questions.bit() | Section::Replies.bit() | Section::Answers.bit();
++        let page = Page::Scoped(Section::Questions, Element::Horizontal, mask);
++        let changed = original.change_card(Section::Questions, |c| { c.padding_x = 4; c.background = Background::None; });
++        let next = apply_scoped(&original, &changed, page);
++        for section in Section::ALL {
++            let mut expected = original.card(section);
++            if mask & section.bit() != 0 { expected.padding_x = 4; }
++            assert_eq!(next.card(section), expected);
++        }
++        assert_eq!(next.show_tools, original.show_tools);
++        assert_eq!(next.working_animation, original.working_animation);
++        let mut legacy = Settings::legacy_defaults();
++        legacy.reply = None; legacy.intermediate = None;
++        let changed = legacy.change_card(Section::Questions, |c| c.padding_x = 6);
++        let next = apply_scoped(&legacy, &changed, Page::Values(Section::Questions, Element::Horizontal));
++        assert_eq!(next.card(Section::Replies), legacy.card(Section::Replies));
++    }
++
++    #[test]
++    fn codux_bulk_preview_cancel_save_and_empty_target_selection() {
++        with_settings(Settings::default(), || {
++            begin_session();
++            let home = tempfile::tempdir().unwrap();
++            let original = current();save(home.path(), original.clone()).unwrap();
++            let bytes = std::fs::read(home.path().join("codux-ui.json")).unwrap();
++            let page = Page::Scoped(Section::Answers, Element::Horizontal, 31);
++            let (raw, mut rx) = tokio::sync::mpsc::unbounded_channel();
++            let tx = AppEventSender::new(raw);
++            let mut picker = view(home.path(), page, &tx);
++            press(&mut picker, KeyCode::Down);
++            for s in Section::ALL { assert_eq!(current().card(s).padding_x, 2); }
++            assert_eq!(std::fs::read(home.path().join("codux-ui.json")).unwrap(), bytes);
++            press(&mut picker, KeyCode::Esc);assert_eq!(current(), original);
++            while rx.try_recv().is_ok() {}
++            let mut picker = view(home.path(), page, &tx);
++            press(&mut picker, KeyCode::Down);press(&mut picker, KeyCode::Enter);
++            let settings = std::iter::from_fn(|| rx.try_recv().ok()).find_map(|event| match event {
++                AppEvent::MycodxUiSelected { settings, previous, return_to } => {
++                    assert_eq!(previous, original);
++                    assert_eq!(return_to, Page::Scoped(Section::Answers, Element::Padding, 31));
++                    Some(settings)
++                }, _ => None,
++            }).unwrap();
++            save(home.path(), settings.clone()).unwrap();set(original);load(home.path()).unwrap();assert_eq!(current(), settings);
++            let empty = Page::Targets(Section::Answers, Element::Horizontal, 31, 0);
++            assert!(page_picker(home.path(), empty).unwrap().items[0].is_disabled);
++            assert_eq!(empty.parent(), Some(Page::Scope(Section::Answers, Element::Horizontal, 31)));
++            begin_session();
++            let fresh = page_picker(home.path(), Page::Values(Section::Answers, Element::Horizontal)).unwrap();
++            assert!(fresh.subtitle.unwrap().contains("Current card"));
++        });
++    }
++    #[test]
++    fn codux_reset_previews_cancels_and_restores_first_install_settings() {
++        with_settings(Settings::default(), || {
++            begin_session();
++            let home = tempfile::tempdir().unwrap();
++            let original = current()
++                .change_card(Section::Answers, |c| c.padding_x = 5)
++                .with_card_mode(CardMode::All);
++            save(home.path(), original.clone()).unwrap();
++            std::fs::write(home.path().join("config.toml"), "# keep Codex config").unwrap();
++            let bytes = std::fs::read(home.path().join("codux-ui.json")).unwrap();
++            assert!(page_picker(home.path(), Page::Root).unwrap().subtitle.unwrap().starts_with("Customized:"));
++            let (raw, mut rx) = tokio::sync::mpsc::unbounded_channel();
++            let tx = AppEventSender::new(raw);
++            let mut picker = view(home.path(), Page::Reset, &tx);
++            assert_eq!(current(), original);
++            press(&mut picker, KeyCode::Down);
++            assert!(current().is_shipped_default());
++            assert_eq!(std::fs::read(home.path().join("codux-ui.json")).unwrap(), bytes);
++            press(&mut picker, KeyCode::Esc);
++            assert_eq!(current(), original);
++            assert_eq!(std::fs::read(home.path().join("codux-ui.json")).unwrap(), bytes);
++            while rx.try_recv().is_ok() {}
++            let mut picker = view(home.path(), Page::Reset, &tx);
++            press(&mut picker, KeyCode::Down);
++            press(&mut picker, KeyCode::Enter);
++            let (settings, previous, return_to) = std::iter::from_fn(|| rx.try_recv().ok())
++                .find_map(|event| match event {
++                    AppEvent::MycodxUiSelected { settings, previous, return_to } => Some((settings, previous, return_to)),
++                    _ => None,
++                }).unwrap();
++            assert_eq!(previous, original);
++            assert_eq!(return_to, Page::Root);
++            save(home.path(), settings).unwrap();
++            set(original);
++            load(home.path()).unwrap();
++            assert!(current().is_shipped_default());
++            assert!(page_picker(home.path(), Page::Root).unwrap().subtitle.unwrap().starts_with("Default:"));
++            assert_eq!(current().card_mode(), CardMode::Progress);
++            assert_eq!(std::fs::read_to_string(home.path().join("config.toml")).unwrap(), "# keep Codex config");
++        });
++    }
++
++    #[test]
++    fn codux_card_modes_preview_cancel_and_preserve_custom_card_styles() {
++        with_settings(Settings::default(), || {
++            let home = tempfile::tempdir().unwrap();
++            let original = current().change_card(Section::Replies, |c| c.padding_x = 4);
++            set(original.clone());
++            let (raw, mut rx) = tokio::sync::mpsc::unbounded_channel();
++            let tx = AppEventSender::new(raw);
++            let mut picker = view(home.path(), Page::CardMode, &tx);
++            assert_eq!(page_picker(home.path(), Page::CardMode).unwrap().initial_selected_idx, Some(0));
++            press(&mut picker, KeyCode::Down);
++            assert_eq!(current().card_mode(), CardMode::Answers);
++            assert_eq!(current().card(Section::Replies), original.card(Section::Replies));
++            press(&mut picker, KeyCode::Esc);
++            assert_eq!(current(), original);
++            while rx.try_recv().is_ok() {}
++            let mut next = original.clone();
++            for expected in [CardMode::Answers, CardMode::All, CardMode::Progress] {
++                next = next.with_card_mode(next.card_mode().next());
++                assert_eq!(next.card_mode(), expected);
++                assert!(next.visible(Section::Questions) && next.visible(Section::Replies) && next.visible(Section::Answers));
++                assert_eq!(next.with_card_mode(CardMode::Progress), original);
++                save(home.path(), next.clone()).unwrap();
++                load(home.path()).unwrap();
++                assert_eq!(current(), next);
++            }
++            set(original.with_card_mode(CardMode::Custom));
++            let custom = page_picker(home.path(), Page::CardMode).unwrap();
++            assert_eq!(custom.initial_selected_idx, Some(3));
++            assert_eq!(current().card_mode(), CardMode::Custom);
++            assert_eq!(current().card_mode().next(), CardMode::Progress);
++        });
++    }
++
 +    #[test]
 +    fn codux_working_animation_preview_cancel_save_and_restart() {
 +        with_settings(Settings::web(), || {
@@ -11450,7 +12472,7 @@ new file mode 100644
 +                    .map(|i| i.name)
 +                    .collect::<Vec<_>>()
 +            };
-+            assert_eq!(labels(Page::Root), ["Theme", "Question", "Tools", "Answer"]);
++            assert_eq!(labels(Page::Root), ["Theme", "Question", "Tools", "Answer", "Card display", "Reset to defaults"]);
 +            assert_eq!(
 +                labels(Page::Group(Section::Questions)),
 +                ["Prompt style", "Reply style"]
@@ -11679,14 +12701,14 @@ new file mode 100644
 +                        .iter()
 +                        .map(|i| i.name.as_str())
 +                        .collect::<Vec<_>>(),
-+                    ["Enabled", "Initial state"]
++                    ["Enabled", "Initial state", "Apply to: Current card"]
 +                );
 +                let next = current().change_card(section, |c| {
 +                    c.default_expanded = Some(false);
 +                    c.expandable = false;
 +                });
 +                save(home.path(), next).unwrap();
-+                assert_eq!(page_picker(home.path(), parent).unwrap().items.len(), 1);
++                assert_eq!(page_picker(home.path(), parent).unwrap().items.len(), 2);
 +                let next = current().change_card(section, |c| c.expandable = true);
 +                save(home.path(), next).unwrap();
 +                load(home.path()).unwrap();
@@ -12152,7 +13174,7 @@ diff --git a/codex-rs/tui/src/mycodx_input.rs b/codex-rs/tui/src/mycodx_input.rs
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/mycodx_input.rs
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,211 @@
 +use super::*;
 +use crate::app_event::AppEvent;
 +use crate::app_event_sender::AppEventSender;
@@ -12179,7 +13201,7 @@ new file mode 100644
 +    pub(crate) fn new(page: Page, tx: AppEventSender) -> Self {
 +        let original = current();
 +        let mut input = TextArea::new_single_line();
-+        if let Page::Values(s, e) = page {
++        if let Some((s, e, _)) = page.editor() {
 +            let card = original.card(s);
 +            input.set_text_clearing_elements(&if e == Element::Text {
 +                card.title
@@ -12201,20 +13223,19 @@ new file mode 100644
 +        }
 +    }
 +    fn edited(&self) -> anyhow::Result<Settings> {
-+        let Page::Values(section, element) = self.page else {
++        let Some((section, element, _)) = self.page.editor() else {
 +            unreachable!()
 +        };
 +        let text = self.input.text();
 +        let next = if element == Element::Text {
 +            self.original.change_card(section, |c| {
 +                c.title = text.into();
-+                c.title_visible = !text.is_empty();
 +            })
 +        } else {
 +            let bg = style::parse_hex(text)?;
 +            self.original.change_card(section, |c| c.background = bg)
 +        };
-+        next.validate()
++        super::menu::apply_scoped(&self.original, &next, self.page).validate()
 +    }
 +    fn preview(&mut self) {
 +        match self.edited() {
@@ -12278,7 +13299,7 @@ new file mode 100644
 +}
 +impl Renderable for InputView {
 +    fn desired_height(&self, _width: u16) -> u16 {
-+        4
++        5
 +    }
 +    fn cursor_pos(&self, area: Rect) -> Option<(u16, u16)> {
 +        self.input
@@ -12303,6 +13324,12 @@ new file mode 100644
 +            )
 +            .render(Rect::new(area.x, area.y + 2, area.width, 1), buf);
 +        }
++        if area.height > 3 {
++            if let Some((s, _, mask)) = self.page.editor() {
++                Paragraph::new(format!("Apply to: {}", super::menu::scope_label(s, mask)))
++                    .render(Rect::new(area.x, area.y + 3, area.width, 1), buf);
++            }
++        }
 +    }
 +}
 +
@@ -12310,6 +13337,26 @@ new file mode 100644
 +mod tests {
 +    use super::*;
 +    use crossterm::event::KeyModifiers;
++    #[test]
++    fn codux_bulk_text_and_hex_inputs_preserve_other_fields_and_cancel() {
++        with_settings(Settings::default(), || {
++            let original = current();
++            let (raw, _) = tokio::sync::mpsc::unbounded_channel();
++            let tx = AppEventSender::new(raw);
++            let mut input = InputView::new(Page::Scoped(Section::Answers, Element::Text, 31), tx.clone());
++            input.input.set_text_clearing_elements("Shared title");input.preview();
++            for s in [Section::Questions, Section::Replies, Section::Tools, Section::Intermediate, Section::Answers] {
++                assert_eq!(current().card(s).title, "Shared title");
++                assert_eq!(current().card(s).title_visible, original.card(s).title_visible);
++            }
++            input.on_ctrl_c();assert_eq!(current(), original);
++            let mut input = InputView::new(Page::Scoped(Section::Tools, Element::CustomColor, 31), tx);
++            input.input.set_text_clearing_elements("#123456");input.preview();
++            assert_eq!(current().card(Section::Questions).background, Background::Rgb(18, 52, 86));
++            assert_eq!(current().card(Section::Answers).padding_x, original.card(Section::Answers).padding_x);
++            input.on_ctrl_c();assert_eq!(current(), original);
++        });
++    }
 +    #[test]
 +    fn mycodx_ui_text_and_hex_edit_preview_cancel_and_validation() {
 +        with_settings(Settings::comparison(), || {
@@ -12343,7 +13390,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text_mycodx.rs b/codex-rs/tui/src/
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/text_mycodx.rs
-@@ -0,0 +1,530 @@
+@@ -0,0 +1,545 @@
 +//! Shared geometry for all three card kinds. All decoration has empty source ranges.
 +use super::*;
 +use crate::mycodx_ui::style::{Paint, color};
@@ -12634,22 +13681,24 @@ new file mode 100644
 +        let paint = c.style.colors_for(active);
 +        let top = padding_sample(c, paint, row * 2, height);
 +        let bottom = padding_sample(c, paint, row * 2 + 1, height);
++        // Resolve palette colors once per row, including on 256-color terminals.
++        let body = paint.body();
++        let (symbol, style) = if paint.filled {
++            half_cell(top, bottom, paint.outer)
++        } else {
++            (" ", body)
++        };
 +        for x in 0..c.width.min(area.width.saturating_sub(c.left)) {
-+            paint_halves(
-+                buf,
-+                area.x + c.left + x,
-+                area.y + y,
-+                top,
-+                bottom,
-+                paint.outer,
-+            );
++            if let Some(cell) = buf.cell_mut((area.x + c.left + x, area.y + y)) {
++                cell.set_symbol(symbol).set_style(style);
++            }
 +        }
 +        if row >= usize::from(c.top_rows) && row < height.saturating_sub(usize::from(c.bottom_rows))
 +        {
 +            let inset = c.style.inset(c.width);
 +            buf.set_style(
 +                Rect::new(area.x + c.left + inset, area.y + y, c.width - 2 * inset, 1),
-+                paint.body(),
++                body,
 +            );
 +        }
 +        if c.marker_row == Some(index) && c.marker_gutter > 0 {
@@ -12657,7 +13706,7 @@ new file mode 100644
 +            if x < area.width {
 +                if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
 +                    cell.set_symbol(if c.expanded { "▾" } else { "▸" })
-+                        .set_style(paint.body());
++                        .set_style(body);
 +                }
 +            }
 +        }
@@ -12681,17 +13730,11 @@ new file mode 100644
 +    }
 +    p.bg
 +}
-+fn paint_halves(
-+    buf: &mut Buffer,
-+    x: u16,
-+    y: u16,
++fn half_cell(
 +    top: (u8, u8, u8),
 +    bottom: (u8, u8, u8),
 +    outer: (u8, u8, u8),
-+) {
-+    let Some(cell) = buf.cell_mut((x, y)) else {
-+        return;
-+    };
++) -> (&'static str, Style) {
 +    let (symbol, fg, bg) = if top == bottom {
 +        (" ", top, top)
 +    } else if top == outer {
@@ -12699,7 +13742,8 @@ new file mode 100644
 +    } else {
 +        ("▀", top, bottom)
 +    };
-+    cell.set_symbol(symbol).set_style(
++    (
++        symbol,
 +        Style::default()
 +            .bg(if bg == outer {
 +                ratatui::style::Color::Reset
@@ -12707,13 +13751,31 @@ new file mode 100644
 +                color(bg)
 +            })
 +            .fg(color(fg)),
-+    );
++    )
 +}
 +
 +#[cfg(test)]
 +mod tests {
 +    use super::*;
 +    use crate::mycodx_ui::{Background, Settings};
++    #[test]
++    fn codux_unknown_palette_keeps_padding_blank_and_text_copyable() {
++        crate::terminal_palette::with_test_default_colors(None, || {
++            let mut card = CardStyle::preview(0);
++            card.title_visible = false;
++            let layout = TextLayout::new(vec![Line::from("readable text").into()], 30)
++                .with_message_card(40, card, true, true, true);
++            let area = Rect::new(0, 0, 40, layout.row_count() as u16);
++            let mut buf = Buffer::empty(area);
++            layout.render(area, &mut buf, 0);
++            assert_eq!(layout.text(), "readable text");
++            for cell in &buf.content {
++                assert_eq!(cell.bg, ratatui::style::Color::Reset);
++                assert!(!matches!(cell.symbol(), "▄" | "▀"));
++            }
++        });
++    }
++
 +    #[test]
 +    fn mycodx_message_state_marker_keeps_hyperlink_hits_on_source() {
 +        let destination = "https://example.com/auth";
@@ -12908,10 +13970,18 @@ diff --git a/codex-rs/tui/src/slash_command.rs b/codex-rs/tui/src/slash_command.
 diff --git a/codex-rs/tui/src/chatwidget/settings_popups.rs b/codex-rs/tui/src/chatwidget/settings_popups.rs
 --- a/codex-rs/tui/src/chatwidget/settings_popups.rs
 +++ b/codex-rs/tui/src/chatwidget/settings_popups.rs
-@@ -6,6 +6,37 @@
+@@ -6,6 +6,45 @@
  use super::*;
  
  impl ChatWidget {
++    pub(crate) fn show_codux_card_mode(&mut self) {
++        let mode = crate::mycodx_ui::current().card_mode();
++        self.bottom_pane.show_footer_flash(
++            Line::from(format!("Cards {}: {}", mode.label(), mode.description())),
++            std::time::Duration::from_secs(3),
++        );
++    }
++
 +    pub(super) fn open_custom_picker(&mut self) {
 +        crate::mycodx_ui::begin_session();
 +        self.open_custom_page(crate::mycodx_ui::Page::Root);
@@ -13127,7 +14197,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
 +        {
 +            if self.keymap.app.open_transcript.is_pressed(*key) {
 +                if key.kind != KeyEventKind::Repeat {
-+                    self.toggle_codux_tools(tui);
++                    self.cycle_codux_card_mode(tui);
 +                }
 +                return Ok(true);
 +            }
@@ -14975,7 +16045,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                  Some(Anchor {
                      key: cells.get(top).map_or(EntryKey::Live, EntryKey::cell),
                      index: top,
-@@ -356,53 +756,55 @@
+@@ -356,53 +756,60 @@
                  offset: 0,
                  row_bias: 0,
              });
@@ -15024,19 +16094,15 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 -        })
 -        .collect();
 -        // Drop navigation before the details/back controls, retaining whole remapped chords.
-+        let tools = self
++        let shortcut = self
 +            .disclosure
 +            .keymap
 +            .primary_hint(crate::keymap::KeymapContext::Global, "open_transcript")
 +            .map(|key| key.display_label())
 +            .unwrap_or_default();
-+        let state = if crate::mycodx_ui::tools_visible() {
-+            "shown"
-+        } else {
-+            "hidden"
-+        };
++        let mode = crate::mycodx_ui::current().card_mode().label();
 +        let full = format!(
-+            "Browsing \u{b7} \u{2191}\u{2193} scroll \u{b7} ctrl+arrows cards \u{b7} enter fold \u{b7} ctrl+e edit \u{b7} {tools} tools {state} \u{b7} esc back"
++            "Browsing \u{b7} \u{2191}\u{2193} scroll \u{b7} ctrl+arrows cards \u{b7} enter fold \u{b7} ctrl+e edit \u{b7} {shortcut} {mode} \u{b7} esc back"
 +        );
          let text = crate::footer_hint::first_fitting_line(
 -            (0..hints.len()).map(|start| {
@@ -15051,6 +16117,15 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 -            }),
 +            [
 +                super::footer::navigation_line(&full),
++                super::footer::navigation_line(&format!(
++                    "Browsing \u{b7} \u{2191}\u{2193} scroll \u{b7} ctrl+arrows cards \u{b7} enter fold \u{b7} {shortcut} {mode} \u{b7} esc back"
++                )),
++                super::footer::navigation_line(&format!(
++                    "Browsing \u{b7} ctrl+arrows cards \u{b7} enter fold \u{b7} {shortcut} {mode} \u{b7} esc back"
++                )),
++                super::footer::navigation_line(&format!(
++                    "Browsing \u{b7} enter fold \u{b7} {shortcut} {mode} \u{b7} esc back"
++                )),
 +                super::footer::navigation_line(
 +                    "Browsing \u{b7} \u{2191}\u{2193} scroll \u{b7} ctrl+arrows cards \u{b7} enter fold \u{b7} esc back",
 +                ),
@@ -15064,7 +16139,7 @@ diff --git a/codex-rs/tui/src/transcript_view/codux_navigation.rs b/codex-rs/tui
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/codux_navigation.rs
-@@ -0,0 +1,207 @@
+@@ -0,0 +1,217 @@
 +//! Navigation changes must preserve source positions when hiding tools joins prose cards.
 +use super::*;
 +use crate::mycodx_ui::Section;
@@ -15077,12 +16152,21 @@ new file mode 100644
 +            && self.copy_mode.is_none()
 +    }
 +
-+    pub(crate) fn toggle_codux_tools(
++    pub(crate) fn cycle_codux_card_mode(
 +        &mut self,
 +        cells: &[Arc<dyn HistoryCell>],
 +        home: &std::path::Path,
 +    ) -> anyhow::Result<()> {
 +        let old = crate::mycodx_ui::current();
++        self.apply_codux_card_settings(cells, home, old.with_card_mode(old.card_mode().next()))
++    }
++
++    pub(crate) fn apply_codux_card_settings(
++        &mut self,
++        cells: &[Arc<dyn HistoryCell>],
++        home: &std::path::Path,
++        next: crate::mycodx_ui::Settings,
++    ) -> anyhow::Result<()> {
 +        let selected = self.codux_focused_index(cells);
 +        let origin = match self.position {
 +            Position::Reading(anchor) => Some(self.codux_source_anchor(cells, anchor)),
@@ -15097,8 +16181,6 @@ new file mode 100644
 +            })
 +            .map(|index| (index, self.mycodx_expanded(cells, index)))
 +            .collect();
-+        let mut next = old;
-+        next.show_tools = !next.show_tools;
 +        // A failed save leaves both the live view and the settings unchanged.
 +        crate::mycodx_ui::save(home, next)?;
 +        self.refresh_mycodx_ui();
@@ -15179,10 +16261,13 @@ new file mode 100644
 +    }
 +
 +    fn codux_visible_neighbor(&self, cells: &[Arc<dyn HistoryCell>], index: usize) -> usize {
-+        if crate::mycodx_ui::tools_visible()
-+            || !(cells.get(index).is_some_and(super::mycodx::is_tool)
-+                || (index == cells.len() && !self.mycodx_stream))
-+        {
++        let settings = crate::mycodx_ui::current();
++        let section = if index == cells.len() {
++            Some(if self.mycodx_stream { self.mycodx_stream_section } else { Section::Tools })
++        } else {
++            super::mycodx::section_at(cells, index)
++        };
++        if section.is_none_or(|section| settings.visible(section)) {
 +            return index;
 +        }
 +        let start = super::mycodx::prompt_start(cells, index);
@@ -15192,7 +16277,7 @@ new file mode 100644
 +        (start..end)
 +            .filter(|&i| {
 +                super::mycodx::section_at(cells, i)
-+                    .is_some_and(|s| crate::mycodx_ui::current().visible(s))
++                    .is_some_and(|s| settings.visible(s))
 +                    && matches!(
 +                        super::mycodx::section_at(cells, i),
 +                        Some(Section::Answers | Section::Intermediate)
@@ -16573,7 +17658,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx_tests.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx_tests.rs
-@@ -0,0 +1,2534 @@
+@@ -0,0 +1,2581 @@
 +use super::*;
 +use crate::history_cell::PlainHistoryCell;
 +use crate::mycodx_ui::{Background, Section, Settings};
@@ -16904,7 +17989,11 @@ new file mode 100644
 +        view.disclosure.focused = Some(view.activity_ids(&cells, 2));
 +        let tool_ids = view.activity_ids(&cells, 2);
 +        view.disclosure.expanded.extend(tool_ids.clone());
-+        view.toggle_codux_tools(&cells, home.path()).unwrap();
++        view.apply_codux_card_settings(&cells, home.path(), {
++            let mut next = crate::mycodx_ui::current();
++            next.show_tools = !next.show_tools;
++            next
++        }).unwrap();
 +        assert!(!crate::mycodx_ui::tools_visible());
 +        let Position::Reading(anchor) = view.position else {
 +            panic!("lost reading anchor")
@@ -16914,7 +18003,11 @@ new file mode 100644
 +        assert!(layout.text()[anchor.offset..].starts_with("reading here"));
 +        assert_ne!(view.codux_focused_index(&cells), Some(2));
 +        assert!(view.is_activity_focused());
-+        view.toggle_codux_tools(&cells, home.path()).unwrap();
++        view.apply_codux_card_settings(&cells, home.path(), {
++            let mut next = crate::mycodx_ui::current();
++            next.show_tools = !next.show_tools;
++            next
++        }).unwrap();
 +        let Position::Reading(anchor) = view.position else {
 +            panic!("lost reading anchor")
 +        };
@@ -16931,9 +18024,48 @@ new file mode 100644
 +        let bad_home = home.path().join("file");
 +        std::fs::write(&bad_home, "file").unwrap();
 +        let position = view.position;
-+        assert!(view.toggle_codux_tools(&cells, &bad_home).is_err());
++        assert!(view.cycle_codux_card_mode(&cells, &bad_home).is_err());
 +        assert!(crate::mycodx_ui::tools_visible());
 +        assert_eq!(view.position, position);
++    });
++}
++
++#[test]
++fn codux_card_mode_cycle_rehomes_hidden_progress_and_keeps_folds() {
++    crate::mycodx_ui::with_settings(Settings::default(), || {
++        let home = tempfile::tempdir().unwrap();
++        let renders = Arc::new(AtomicUsize::new(0));
++        let cells = vec![user("question"), progress("progress before"), tool("read", &renders), progress("progress after"), answer("final")];
++        let mut view = TranscriptView::default();
++        let area = Rect::new(0, 0, 80, 20);
++        let mut buf = Buffer::empty(area);
++        view.render(area, &mut buf, &cells);
++        view.disclosure.browsing = true;
++        view.disclosure.focused = Some(view.activity_ids(&cells, 1));
++        let progress_ids = view.activity_ids(&cells, 1);
++        view.disclosure.expanded.extend(progress_ids.clone());
++        view.position = Position::Reading(Anchor { index: 1, key: EntryKey::cell(&cells[1]), offset: 0, row_bias: 0 });
++        view.cycle_codux_card_mode(&cells, home.path()).unwrap();
++        assert_eq!(crate::mycodx_ui::current().card_mode(), crate::mycodx_ui::CardMode::Answers);
++        assert_eq!(view.codux_focused_index(&cells), Some(4));
++        assert!(matches!(view.position, Position::Reading(Anchor { index: 4, .. })));
++        view.render(area, &mut buf, &cells);
++        assert_eq!(renders.load(Ordering::SeqCst), 0);
++        assert!(view.is_activity_focused());
++        view.cycle_codux_card_mode(&cells, home.path()).unwrap();
++        assert!(crate::mycodx_ui::tools_visible());
++        assert!(progress_ids.iter().all(|id| view.disclosure.expanded.contains(id)));
++        view.cycle_codux_card_mode(&cells, home.path()).unwrap();
++        assert_eq!(crate::mycodx_ui::current().card_mode(), crate::mycodx_ui::CardMode::Progress);
++        crate::mycodx_ui::load(home.path()).unwrap();
++        assert_eq!(crate::mycodx_ui::current().card_mode(), crate::mycodx_ui::CardMode::Progress);
++
++        // A hidden live intermediate card must also fall back to a visible card.
++        view.set_mycodx_stream(true);
++        view.set_mycodx_stream_section(crate::mycodx_ui::Section::Intermediate);
++        view.position = Position::Reading(Anchor { index: cells.len(), key: EntryKey::Live, offset: 0, row_bias: 0 });
++        view.cycle_codux_card_mode(&cells, home.path()).unwrap();
++        assert!(matches!(view.position, Position::Reading(Anchor { index: 4, .. })));
 +    });
 +}
 +

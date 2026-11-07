@@ -17,6 +17,11 @@ checkout alone does not apply to them. No administrator terminal is required.
 
 Use a new patch revision for changed code. See [Packaging](RELEASE.md) to prepare npm archives. Locally built executables are updated by rebuilding; npm installations use `codux update`.
 
+Use the [Windows compatibility acceptance checks](COMPATIBILITY.md#verification-and-release-acceptance)
+before declaring a terminal verified. Automated tests run without the maintainer's
+UI settings; installed-package checks use a fresh home and a prefix containing
+spaces and Unicode. Interactive terminal results must be recorded separately.
+
 ## Other native hosts
 
 The manual **Verify native npm packages** workflow can run on Windows x64, Linux x64 (glibc), and macOS Apple Silicon. Linux and macOS are experimental until the workflow passes on those hosts. macOS Intel packaging is supported by the packaging script but is not in the initial workflow matrix. Alpine/musl and Windows ARM64 are not supported.

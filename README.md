@@ -7,13 +7,15 @@ A patched Codex CLI with a clearer conversation layout and configurable terminal
 - Card navigation and search filtered by message type.
 - Mermaid images in supported terminals, with Codex text fallback.
 
+[Open the browser playground locally](docs/PLAYGROUND.md#local-preview) — try Codux card styles, folding, navigation, and `/custom` using short excerpts from your saved conversations. No model or login required.
+
 Codux builds a separate `codux` executable from a pinned official Codex commit. This repository contains the UI patch and build inputs; upstream source is fetched during the build.
 
 The official `codex` installation stays available. Codux shares its login, configuration, and conversation history through `CODEX_HOME`, and stores UI preferences separately in `codux-ui.json`.
 
 ## Install and keep up to date
 
-Windows x64 is the currently tested platform. Install Node.js 22+ first.
+Currently available for Windows x64. Install Node.js 22+ first.
 
 ```sh
 npm install -g @neulkeukeu/codux
@@ -21,6 +23,8 @@ codux
 ```
 
 npm installs the compiled application for your platform. You do not need Rust or a local source build. Check the installed version with `codux --version`.
+
+PowerShell, Command Prompt, and Git Bash launch the same executable. Terminal features vary; see [compatibility and first-run defaults](docs/COMPATIBILITY.md).
 
 Codux checks for updates in the background at startup. Checks are cached for 20 hours, and a newly discovered version is offered on the next launch. Accepting the prompt closes Codux and lets npm update it. For an immediate check and update:
 
@@ -45,7 +49,9 @@ The builder fetches the pinned upstream commit, verifies and applies the patch, 
 
 ## Customize and navigate
 
-Use `/custom` to adjust the conversation UI. Preferences persist across sessions. Tools are hidden by default; final answers use no background. Reopening a session expands all final answers and folds intermediate answers.
+Use `/custom` to adjust the conversation UI. Preferences persist across sessions. Its header identifies default or customized settings. **Reset to defaults** previews this version's first-install UI; Enter saves and Esc restores your previous settings. New installations use Base16 Ocean Dark card colors with no final-answer background. Tools are hidden by default. Reopening a session expands all final answers and folds intermediate answers.
+
+Edit styles by card. Within an element, **Apply to** targets the current card, selected cards, or all five card types. Only that element changes; Enter saves and Esc restores the preview.
 
 | Control | Action |
 | --- | --- |
@@ -55,9 +61,11 @@ Use `/custom` to adjust the conversation UI. Preferences persist across sessions
 | Up/Down in F4 | Scroll |
 | Ctrl+arrows in F4 | Select a card |
 | Enter in F4 | Fold or unfold the selected card; reveal it first if off-screen |
-| Ctrl+T | Show or hide tools |
+| Shift+F4 | Cycle card display: Progress → Answers only → All cards |
 | Ctrl+End | Return to the latest message |
 | Ctrl+E in F4 | Confirm rewinding to and editing an original question |
+
+Card display modes keep questions, replies, final answers and notices visible. **Progress** hides tools (the default); **Answers only** also hides intermediate answers; **All cards** shows both. Shift+F4 saves the mode without changing styles or folding. Per-card Display settings remain available in `/custom`. Explicit custom keybindings are preserved; `tui.keymap.global.open_transcript` now controls card display.
 
 Esc closes menus, search, or F4 browsing; from a scrolled composer it returns to the latest message. It does not interrupt a task by default. Use Ctrl+C for task controls. Double Esc no longer enters transcript browsing. An explicit `tui.keymap.chat.interrupt_turn` setting can still assign a dedicated interrupt key.
 

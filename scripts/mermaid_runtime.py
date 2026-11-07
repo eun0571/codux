@@ -150,9 +150,9 @@ def stage_text(root: Path, package: Path) -> bool:
     return True
 
 
-def verify_renderers(package: Path, scratch: Path) -> None:
+def verify_renderers(package: Path, scratch: Path, *, env: dict[str, str] | None = None) -> None:
     """Exercise the relocated, compact runtime before publishing an archive."""
-    node = shutil.which("node")
+    node = shutil.which("node", path=env.get("PATH") if env is not None else None)
     if not node:
         raise RuntimeError("Node.js is required to verify the packaged Mermaid runtime")
     with tempfile.TemporaryDirectory(prefix="mermaid-release-check-", dir=scratch) as temporary:
@@ -161,7 +161,7 @@ def verify_renderers(package: Path, scratch: Path) -> None:
                     {"source": "sequenceDiagram\n Alice->>Bob: Hello\n Bob-->>Alice: Ready", "background": "#ffffff"}]
         worker = package / "codex-resources/codux-mermaid/worker.mjs"
         result = subprocess.run([node, str(worker), str(cache)], input="".join(json.dumps(r) + "\n" for r in requests),
-                                text=True, encoding="utf-8", capture_output=True, check=True, timeout=90)
+                                text=True, encoding="utf-8", capture_output=True, check=True, timeout=90, env=env)
         responses = [json.loads(line) for line in result.stdout.splitlines()]
         if len(responses) != len(requests):
             raise RuntimeError("Packaged image worker returned incomplete output")
@@ -172,7 +172,7 @@ def verify_renderers(package: Path, scratch: Path) -> None:
                 raise RuntimeError("Packaged Mermaid renderer produced invalid image files")
         worker = package / "codex-resources/codux-mermaid-text/worker.mjs"
         result = subprocess.run([node, str(worker)], input=json.dumps({"source": requests[0]["source"], "columns": 160}) + "\n",
-                                text=True, encoding="utf-8", capture_output=True, check=True, timeout=30)
+                                text=True, encoding="utf-8", capture_output=True, check=True, timeout=30, env=env)
         if not json.loads(result.stdout).get("ok"):
             raise RuntimeError("Packaged text renderer failed")
     print("Packaged Mermaid image and text render checks passed.")

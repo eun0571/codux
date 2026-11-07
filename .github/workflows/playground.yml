@@ -1,0 +1,50 @@
+name: Playground
+
+on:
+  push:
+    paths: ['playground/**', 'scripts/build_playground.py', 'scripts/test_playground.cjs', 'scripts/serve_playground.py', 'scripts/test_playground_server.py', 'release.json', 'upstream.lock.json', '.github/workflows/playground.yml']
+  pull_request:
+    paths: ['playground/**', 'scripts/build_playground.py', 'scripts/test_playground.cjs', 'scripts/serve_playground.py', 'scripts/test_playground_server.py', 'release.json', 'upstream.lock.json', '.github/workflows/playground.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: playground-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate and build the static demo
+        run: python scripts/build_playground.py
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: .build/playground
+
+  deploy:
+    needs: build
+    if: vars.CODUX_PLAYGROUND_DEPLOY_ENABLED == 'true' && github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
+        id: deployment

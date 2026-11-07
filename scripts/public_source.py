@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_FILES = [
     "README.md", "LICENSE", "NOTICE", "release.json", "upstream.lock.json", ".gitignore", ".gitattributes",
-    "patches/codux-ui.patch", "docs/DEVELOPMENT.md", "docs/RELEASE.md", "docs/MERMAID.md",
+    "patches/codux-ui.patch", "docs/DEVELOPMENT.md", "docs/RELEASE.md", "docs/MERMAID.md", "docs/COMPATIBILITY.md",
     "scripts/build.ps1", "scripts/manage.py", "scripts/migration_inputs.py", "scripts/release_info.py",
     "scripts/mermaid_runtime.py", "scripts/public_source.py", "scripts/audit_public.py",
     "scripts/setup-windows.ps1", "scripts/setup-runtime.ps1",
@@ -17,6 +17,11 @@ SOURCE_FILES = [
     "scripts/npm_smoke.py", "scripts/ci_build.py", ".github/workflows/native-build.yml",
     "scripts/prepare_upstream.py", "scripts/track_upstream.py", "scripts/publish_npm.py",
     ".github/workflows/track-upstream.yml", ".github/workflows/verify-pr.yml", ".github/workflows/publish-npm.yml",
+    ".github/workflows/playground.yml", "scripts/build_playground.py", "scripts/test_playground.cjs",
+    "docs/PLAYGROUND.md", "playground/index.html", "playground/style.css", "playground/model.js",
+    "playground/app.js", "playground/palettes.js", "playground/catalog.json",
+    "playground/sessions.js", "playground/viewer.js",
+    "scripts/serve_playground.py", "scripts/test_playground_server.py",
 ]
 
 
