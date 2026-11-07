@@ -36,14 +36,19 @@ sweep every four seconds. Reduced-motion preferences disable both effects.
 [Open the playground](https://eun0571.github.io/codux/). No installation, source
 checkout, account, or model access is required.
 
-Choose **Open sessions** for a Codex rollout `.jsonl` file, or **Open folder** for
-your sessions folder. The default location is `%USERPROFILE%\.codex\sessions`
+Click **Choose sessions folder** and select your `sessions` folder. Files in its
+dated subfolders appear together in the session list, newest filenames first.
+The list shows the number of sessions and supports filtering. Click a session to
+load its excerpt; selecting a folder does not read conversation contents.
+Use **Open files** to select individual rollout `.jsonl` files instead.
+The default location is `%USERPROFILE%\.codex\sessions`
 on Windows and `~/.codex/sessions` on macOS or Linux. If you use `CODEX_HOME`,
 choose its `sessions` folder instead.
 
 The Sessions sidebar includes a short guide to the default location. On Windows,
-look in `C:\Users\<your username>\.codex\sessions`. Select a dated subfolder or a
-rollout `.jsonl` file inside it. File selection uses your browser's standard picker.
+look in `C:\Users\<your username>\.codex\sessions`. Select this folder itself;
+there is no need to open each dated subfolder. File selection uses your browser's
+standard picker.
 
 The website reads only the files you select, inside your browser. Conversation
 contents are not uploaded. A hosted website cannot discover your local sessions

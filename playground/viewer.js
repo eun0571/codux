@@ -170,7 +170,8 @@
         const button=el('button','session-file');button.append(el('strong','session-name',file.title||path));
         if(file.local)button.append(el('small','session-details',[file.project,new Date(file.modified).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})].filter(Boolean).join(' · ')));
         button.title=[file.title,file.cwd,path].filter(Boolean).join('\n');button.setAttribute('aria-current',String(file===selectedFile));button.addEventListener('click',()=>load(index));list.append(button);}
-      if(!list.childElementCount)list.append(el('p','muted',files.length?'No matching sessions.':local?'No local sessions found.':'No files selected.'));
+      const count=$('#session-count');count.hidden=!files.length;count.textContent=needle?`${list.childElementCount} of ${files.length} sessions`:`${files.length} sessions · select one to open`;
+      if(!list.childElementCount)list.append(el('p','muted',files.length?'No matching sessions.':local?'No local sessions found.':'No session files selected.'));
     }
     async function readFileWindow(file,before){
       const end=before??file.size,start=Math.max(0,end-1024*1024),raw=new Uint8Array(await file.slice(start,end).arrayBuffer());
@@ -203,8 +204,17 @@
       }catch(error){if(generation===loadGeneration&&error.name!=='AbortError')say(error.message||'Could not read this excerpt.');}
     }
     function importFiles(selected){const incoming=Array.from(selected).filter(f=>/\.jsonl$/i.test(f.name)).sort((a,b)=>b.name.localeCompare(a.name));
-      if(!incoming.length){say('No .jsonl sessions found. Choose the default sessions folder shown above.');return;}
-      ++libraryGeneration;$('#refresh-library').disabled=false;files=incoming;listFiles();load(0);
+      // Selecting a folder lists files without reading any conversation. Cancel
+      // an older excerpt load so it cannot replace the newly selected library.
+      ++libraryGeneration;++loadGeneration;loadController?.abort();stopPreview();
+      files=incoming;selectedFile=null;session={items:[]};active=null;browsing=false;
+      pageCursor=null;pageHistory=[];pageWindow=null;manual.clear();restored.clear();
+      searchOpen=false;searchReading=false;helpOpen=false;query='';matches=[];matchIndex=0;
+      $('#search-panel').hidden=true;$('#search-input').value='';$('#session-filter').value='';
+      $('#reload-session').disabled=true;$('#refresh-library').disabled=false;
+      empty.querySelector('p').textContent=files.length?'Choose a session from the list.':'No .jsonl sessions found in the selected folder.';
+      updatePageControls();listFiles();render();
+      say(files.length?`${files.length} sessions found. Select one to load its conversation.`:'Choose the sessions folder shown above, or a rollout .jsonl file.');
     }
     async function localRequest(path,signal){
       const response=await fetch(path,{headers:{'X-Codux-Local':local.token},cache:'no-store',credentials:'omit',mode:'same-origin',signal});
