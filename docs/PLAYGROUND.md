@@ -43,14 +43,9 @@ choose its `sessions` folder instead.
 
 The Sessions sidebar shows your platform's default path with a **Copy** button.
 Click Copy, then Open folder; use **Ctrl+L** in the Windows or Linux picker (or
-**Cmd+Shift+G** on macOS), paste the path, and press Enter. A website cannot set
-an arbitrary local path as the picker's initial location. Supported browsers,
-including Chrome and Edge, can remember your selection for the next picker visit.
-Other browsers use the standard file and folder inputs.
-
-Folder discovery lists names without reading conversation contents. It is limited
-to 10,000 entries, 1,000 sessions, and eight nested directory levels; choose a dated
-subfolder if the limit is reached. Only the selected session's excerpt is read.
+**Cmd+Shift+G** on macOS), paste the path, and press Enter. On Windows this opens
+`C:\Users\<your username>\.codex\sessions`. Select a dated subfolder or a rollout
+`.jsonl` file inside it. File selection uses your browser's standard picker.
 
 The website reads only the files you select, inside your browser. Conversation
 contents are not uploaded. A hosted website cannot discover your local sessions

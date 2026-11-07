@@ -5,7 +5,7 @@
     const M=PlaygroundModel,$=s=>document.querySelector(s),host=$('#custom'),cardsHost=$('#conversation-cards');
     const empty=cardsHost.firstElementChild.cloneNode(true);
     const local=window.PLAYGROUND_LOCAL;
-    let libraryGeneration=0,pickerGeneration=0,lastDirectory=null;
+    let libraryGeneration=0;
     if(local){
       $('.session-import').hidden=true;$('#session-location').hidden=true;$('#refresh-library').hidden=false;
       $('#session-filter').placeholder='Find a conversation or project';$('#session-filter').setAttribute('aria-label','Filter conversations');
@@ -173,7 +173,6 @@
       if(!list.childElementCount)list.append(el('p','muted',files.length?'No matching sessions.':local?'No local sessions found.':'No files selected.'));
     }
     async function readFileWindow(file,before){
-      if(file.handle)file=await file.handle.getFile();
       const end=before??file.size,start=Math.max(0,end-1024*1024),raw=new Uint8Array(await file.slice(start,end).arrayBuffer());
       const first=start?raw.indexOf(10)+1:0,base=first?start+first:start;
       return {source:start&&!first?'':new TextDecoder().decode(raw.subarray(first)),base,
@@ -203,39 +202,14 @@
         say('Only this excerpt is loaded. Search and copy apply to the displayed excerpt.');
       }catch(error){if(generation===loadGeneration&&error.name!=='AbortError')say(error.message||'Could not read this excerpt.');}
     }
-    function importFiles(selected,{truncated=false}={}){const incoming=Array.from(selected).filter(f=>/\.jsonl$/i.test(f.name)).sort((a,b)=>b.name.localeCompare(a.name));
-      ++pickerGeneration;
-      if(!incoming.length){say(truncated?'Folder scan limit reached. Choose the sessions folder or a dated subfolder.':'No .jsonl sessions found. Choose the default sessions folder shown above.');return;}
-      ++libraryGeneration;$('#refresh-library').disabled=false;files=incoming;
-      if(!local){$('#library-path').hidden=!truncated;$('#library-path').textContent=truncated?'Limited folder scan. Choose a dated subfolder for more sessions.':'';$('#library-path').title=$('#library-path').textContent;}
-      listFiles();load(0);
-    }
-    async function chooseFolder(){
-      if(!window.showDirectoryPicker){$('#folder').click();return;}
-      const generation=++pickerGeneration;
-      try{
-        const directory=await window.showDirectoryPicker({id:'codux-sessions',mode:'read',...(lastDirectory?{startIn:lastDirectory}:{})});
-        if(generation!==pickerGeneration)return;lastDirectory=directory;say('Finding session files in the selected folder…');
-        const result=await PlaygroundSessions.directoryFiles(directory,{cancelled:()=>generation!==pickerGeneration});
-        if(generation!==pickerGeneration)return;
-        $('#session-picker-memory').textContent=`Selected folder: ${directory.name}. Open folder can return here next time.`;
-        importFiles(result.files,result);
-      }catch(error){if(generation===pickerGeneration&&error.name!=='AbortError')say('Could not read that folder. Try Open sessions, or choose the sessions folder again.');}
-    }
-    async function chooseFiles(){
-      if(!window.showOpenFilePicker){$('#files').click();return;}
-      const generation=++pickerGeneration;
-      try{
-        const handles=await window.showOpenFilePicker({id:'codux-sessions',multiple:true,
-          types:[{description:'Codex sessions',accept:{'text/plain':['.jsonl']}}],...(lastDirectory?{startIn:lastDirectory}:{})});
-        if(generation===pickerGeneration)importFiles(handles.map(handle=>({name:handle.name,handle})));
-      }catch(error){if(generation===pickerGeneration&&error.name!=='AbortError')say('Could not open the file picker. Try Open folder or drag a .jsonl session into the preview.');}
+    function importFiles(selected){const incoming=Array.from(selected).filter(f=>/\.jsonl$/i.test(f.name)).sort((a,b)=>b.name.localeCompare(a.name));
+      if(!incoming.length){say('No .jsonl sessions found. Choose the default sessions folder shown above.');return;}
+      ++libraryGeneration;$('#refresh-library').disabled=false;files=incoming;listFiles();load(0);
     }
     if(!local){
       const location=PlaygroundSessions.sessionLocation(navigator.userAgentData?.platform||navigator.platform||navigator.userAgent);
       $('#session-path').value=location.path;
       $('#session-path-help').textContent=`Open folder, press ${location.shortcut}, paste this path, then press Enter.`;
-      $('#session-picker-memory').hidden=!window.showDirectoryPicker;
       $('#session-path').addEventListener('click',event=>event.target.select());
       $('#copy-session-path').addEventListener('click',async()=>{
         try{await navigator.clipboard.writeText($('#session-path').value);say(`Path copied. Open folder, press ${location.shortcut}, paste, then press Enter.`);}
@@ -265,7 +239,7 @@
       finally{if(generation===libraryGeneration)$('#refresh-library').disabled=false;}
     }
     $('#refresh-library').addEventListener('click',()=>refreshLibrary(!session.items.length));
-    $('#files-button').addEventListener('click',chooseFiles);$('#folder-button').addEventListener('click',chooseFolder);
+    $('#files-button').addEventListener('click',()=>$('#files').click());$('#folder-button').addEventListener('click',()=>$('#folder').click());
     for(const id of ['files','folder'])$('#'+id).addEventListener('change',event=>{importFiles(event.target.files);event.target.value='';});
     $('#session-filter').addEventListener('input',listFiles);$('#reload-session').addEventListener('click',()=>load(files.indexOf(selectedFile)));
     $('#earlier-excerpt').addEventListener('click',()=>{if(pageWindow?.has_older)load(files.indexOf(selectedFile),{before:pageWindow.before,history:[...pageHistory,pageCursor]});});
