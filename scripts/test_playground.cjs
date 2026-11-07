@@ -336,4 +336,35 @@ assert(small.items.length<=40);assert(small.characters<=32000);assert(small.shor
 assert.equal(small.items.at(-1).id,'199');assert.equal(longItems[199].text.length,10000,'Preview clipping must not mutate parsed source');
 const utf8=row('event_msg',{type:'user_message',message:'Caf\u00e9'}), afterUtf8=event({type:'agent_message',message:'Answer'});
 assert.equal(S.parse(utf8+'\r\n'+afterUtf8,'utf8',1024,50).items[1].sourceOffset,50+Buffer.byteLength(utf8+'\r\n'));
-console.log(`Playground: ${palettes.length} palettes, scoped card settings, rollout parsing, duplicate handling, grouping, search, navigation and keyboard routing passed.`);
+async function checkDirectoryImport(){
+  assert.deepEqual(S.sessionLocation('Win32'),{path:'%USERPROFILE%\\.codex\\sessions',shortcut:'Ctrl+L'});
+  assert.deepEqual(S.sessionLocation('macOS'),{path:'~/.codex/sessions',shortcut:'Cmd+Shift+G'});
+  assert.deepEqual(S.sessionLocation('Linux'),{path:'~/.codex/sessions',shortcut:'Ctrl+L'});
+  let reads=0,enumerated=0;
+  const file=name=>({kind:'file',name,getFile(){reads++;throw Error('Listing must not read files');}});
+  const dir=(name,children)=>({kind:'directory',name,async *values(){for(const child of children){enumerated++;yield child;}}});
+  const rootDir=dir('sessions',[dir('2025',[file('rollout-2025.jsonl')]),file('auth.json'),
+    dir('2026',[dir('11',[file('rollout-2026-11-02.jsonl'),file('rollout-2026-11-07.jsonl')])])]);
+  const listed=await S.directoryFiles(rootDir);
+  assert.equal(reads,0);assert.equal(listed.truncated,false);
+  assert.deepEqual(listed.files.map(f=>f.webkitRelativePath),[
+    'sessions/2026/11/rollout-2026-11-07.jsonl','sessions/2026/11/rollout-2026-11-02.jsonl','sessions/2025/rollout-2025.jsonl']);
+  assert(listed.files.every(f=>f.handle.kind==='file'));
+  const limited=await S.directoryFiles(rootDir,{maxFiles:1});
+  assert.equal(limited.truncated,true);assert.equal(limited.files.length,1);assert.equal(limited.files[0].name,'rollout-2026-11-07.jsonl');
+  const shallow=await S.directoryFiles(rootDir,{maxDepth:0});
+  assert.equal(shallow.truncated,true);assert.equal(shallow.files.length,0);
+  enumerated=0;
+  const wide=await S.directoryFiles(dir('large',Array.from({length:100},(_,i)=>file(`${i}.jsonl`))),{maxEntries:10});
+  assert.equal(wide.truncated,true);assert.equal(wide.files.length,10);assert(enumerated<=11,'Stop enumerating an oversized folder');
+  enumerated=0;
+  assert.equal((await S.directoryFiles(rootDir,{cancelled:()=>true})).files.length,0);assert.equal(enumerated,0);
+  let cancel=false;
+  const interrupted={name:'sessions',async *values(){yield file('first.jsonl');cancel=true;yield file('second.jsonl');}};
+  assert.equal((await S.directoryFiles(interrupted,{cancelled:()=>cancel})).files.length,0,'An obsolete picker must not replace a newer import');
+  await assert.rejects(()=>S.directoryFiles({name:'sessions',async *values(){throw Error('Permission revoked');}}),/Permission revoked/);
+  assert.equal(reads,0);
+}
+checkDirectoryImport().then(()=>{
+  console.log(`Playground: ${palettes.length} palettes, scoped card settings, rollout parsing, folder discovery limits, grouping, search, navigation and keyboard routing passed.`);
+}).catch(error=>{console.error(error);process.exitCode=1;});

@@ -128,6 +128,37 @@
     for(const item of items){if(item.role==='question')candidate=null;else if(item.role==='answer'){if(candidate)candidate.role='intermediate';candidate=item;}}
     return {meta,items,stats};
   }
-  root.PlaygroundSessions={parse,text,formReply};
+  function sessionLocation(platform=''){
+    if(/win/i.test(platform))return {path:'%USERPROFILE%\\.codex\\sessions',shortcut:'Ctrl+L'};
+    return {path:'~/.codex/sessions',shortcut:/mac/i.test(platform)?'Cmd+Shift+G':'Ctrl+L'};
+  }
+  // Enumerate names only; reading a file is deferred until a session is opened.
+  // A mistakenly selected large directory must not stall the browser.
+  async function directoryFiles(directory,{maxEntries=10000,maxFiles=1000,maxDepth=8,cancelled=()=>false}={}){
+    const files=[];let entries=0,truncated=false;
+    async function visit(dir,path,depth){
+      if(cancelled())return;
+      const children=[];
+      for await(const entry of dir.values()){
+        if(cancelled())return;
+        if(entries>=maxEntries){truncated=true;break;}
+        entries++;children.push(entry);
+      }
+      // Codex uses dated subdirectories and filenames; visit newer names first.
+      children.sort((a,b)=>b.name.localeCompare(a.name));
+      for(const entry of children){
+        if(cancelled())return;
+        if(files.length>=maxFiles){truncated=true;break;}
+        if(entry.kind==='directory'){
+          if(depth>=maxDepth||entries>=maxEntries){truncated=true;continue;}
+          await visit(entry,path+'/'+entry.name,depth+1);
+        }else if(entry.kind==='file'&&/\.jsonl$/i.test(entry.name))
+          files.push({name:entry.name,webkitRelativePath:path+'/'+entry.name,handle:entry});
+      }
+    }
+    await visit(directory,directory.name,0);
+    return {files,truncated};
+  }
+  root.PlaygroundSessions={parse,text,formReply,sessionLocation,directoryFiles};
   if(typeof module!=='undefined')module.exports=root.PlaygroundSessions;
 })(globalThis);

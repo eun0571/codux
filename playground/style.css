@@ -113,6 +113,13 @@ mark{color:#201b0a;background:#e7c875;border-radius:2px}
 #guide h2{font-size:12px;font-weight:600;margin:0 0 12px;color:#303930}
 #guide p{font-size:11px;line-height:1.8;color:var(--chrome-muted);margin-bottom:8px}
 .session-import{display:flex;gap:6px;margin-bottom:10px;font-size:11px}
+.session-location{margin:0 0 10px;font-size:10px}
+.session-location label{display:block;color:var(--chrome-muted);margin-bottom:5px}
+.session-path-row{display:flex;gap:5px}.session-path-row input{font:10px var(--mono);flex:1}
+.session-path-row button{font-size:10px;padding:5px 8px}
+#guide .session-location p{font-size:10px;line-height:1.5;margin:5px 0 0}
+.session-location summary{cursor:pointer;color:var(--chrome-accent);margin-top:5px}
+.session-location code{font:9px var(--mono);overflow-wrap:anywhere}
 .session-picker{display:flex;flex-direction:column;min-height:0;flex:0 1 auto}
 .session-picker>*{flex-shrink:0}
 .session-picker h2{display:flex;justify-content:space-between;align-items:center}
