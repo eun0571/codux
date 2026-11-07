@@ -45,9 +45,10 @@
         <div id="session-location" class="session-location">
           <p>Sessions are usually saved in <code>C:\Users\&lt;username&gt;\.codex\sessions</code> on Windows, or <code>~/.codex/sessions</code> on macOS / Linux.</p>
           <p>Select the <code>sessions</code> folder itself. Sessions in its dated subfolders will appear below. If you changed CODEX_HOME, look in its <code>sessions</code> folder.</p>
+          <p>Titles use the first question. For saved names, also open <code>.codex/session_index.jsonl</code> with Open files.</p>
         </div>
         <input id="files" type="file" accept=".jsonl" multiple hidden><input id="folder" type="file" webkitdirectory multiple hidden>
-        <p id="library-path" hidden></p><input id="session-filter" type="search" placeholder="Filter filenames" aria-label="Filter sessions"><p id="session-count" hidden></p><div id="session-list"><p class="muted">Choose your sessions folder to list its conversations.</p></div><button id="reload-session" disabled>Reload latest excerpt</button>
+        <p id="library-path" hidden></p><input id="session-filter" type="search" placeholder="Find a title, project, or filename" aria-label="Filter sessions"><p id="session-count" hidden></p><p id="title-status" hidden role="status">Reading session titles…</p><div id="session-list"><p class="muted">Choose your sessions folder to list its conversations.</p></div><button id="reload-session" disabled>Reload latest excerpt</button>
         <nav id="excerpt-nav" class="excerpt-nav" hidden aria-label="Conversation excerpt"><div><button id="earlier-excerpt">← Earlier</button><button id="newer-excerpt">Newer →</button><button id="latest-excerpt">Latest</button></div><span id="excerpt-note"></span></nav>
         <p id="announcement" role="status" aria-live="polite">Read-only preview · no model calls</p>
       </section>

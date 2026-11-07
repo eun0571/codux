@@ -5,7 +5,8 @@
     const M=PlaygroundModel,$=s=>document.querySelector(s),host=$('#custom'),cardsHost=$('#conversation-cards');
     const empty=cardsHost.firstElementChild.cloneNode(true);
     const local=window.PLAYGROUND_LOCAL;
-    let libraryGeneration=0;
+    let libraryGeneration=0,importGeneration=0,metadataGeneration=0,listLimit=100,titleRefresh=null;
+    let titleNames=new Map(),titleRows=new Map();
     if(local){
       $('.session-import').hidden=true;$('#session-location').hidden=true;$('#refresh-library').hidden=false;
       $('#session-filter').placeholder='Find a conversation or project';$('#session-filter').setAttribute('aria-label','Filter conversations');
@@ -165,15 +166,38 @@
       $('#working-note').textContent='Preview only · no model call or answer generation';
       tickPreview();previewTimer=setInterval(tickPreview,100);statusChanged();if(follow)bottom();else updateScroll();return true;
     }
-    function listFiles(){const list=$('#session-list');list.replaceChildren();const needle=$('#session-filter').value.toLocaleLowerCase();
-      for(const [index,file] of files.entries()){const path=file.webkitRelativePath||file.name;if(![path,file.title,file.cwd].filter(Boolean).join(' ').toLocaleLowerCase().includes(needle))continue;
-        const button=el('button','session-file');button.append(el('strong','session-name',file.title||path));
-        if(file.local)button.append(el('small','session-details',[file.project,new Date(file.modified).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})].filter(Boolean).join(' · ')));
-        button.title=[file.title,file.cwd,path].filter(Boolean).join('\n');button.setAttribute('aria-current',String(file===selectedFile));button.addEventListener('click',()=>load(index));list.append(button);}
-      const count=$('#session-count');count.hidden=!files.length;count.textContent=needle?`${list.childElementCount} of ${files.length} sessions`:`${files.length} sessions · select one to open`;
+    function titleOf(file){return titleNames.get(file.sessionId)||file.title||file.firstPrompt||(file.metadataDone?(file.readError?'Unreadable session':'Untitled conversation'):'Reading title…');}
+    function paintTitle(file,row){
+      row.name.textContent=titleOf(file);
+      const date=new Date(file.modified),project=file.project||file.cwd?.split(/[\\/]/).filter(Boolean).at(-1);
+      row.details.textContent=[project,file.modified&&Number.isFinite(date.getTime())?date.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):''].filter(Boolean).join(' · ');
+      row.details.hidden=!row.details.textContent;
+      row.button.title=[titleOf(file),file.firstPrompt&&!titleNames.has(file.sessionId)?'Title from first question':'',file.cwd,file.webkitRelativePath||file.name].filter(Boolean).join('\n');
+    }
+    function listFiles(){const list=$('#session-list'),scroll=list.scrollTop;list.replaceChildren();titleRows=new Map();const needle=$('#session-filter').value.toLocaleLowerCase();let matched=0,shown=0;
+      for(const [index,file] of files.entries()){const path=file.webkitRelativePath||file.name;if(![path,titleOf(file),file.cwd].filter(Boolean).join(' ').toLocaleLowerCase().includes(needle))continue;
+        matched++;if(shown>=listLimit)continue;shown++;
+        const button=el('button','session-file'),name=el('strong','session-name'),details=el('small','session-details'),row={button,name,details};button.append(name,details);paintTitle(file,row);titleRows.set(file,row);
+        button.setAttribute('aria-current',String(file===selectedFile));button.addEventListener('click',()=>load(index));list.append(button);}
+      const count=$('#session-count');count.hidden=!files.length;count.textContent=needle?`${matched} of ${files.length} sessions`:`${files.length} sessions · select one to open`;
       if(!list.childElementCount)list.append(el('p','muted',files.length?'No matching sessions.':local?'No local sessions found.':'No session files selected.'));
+      if(shown<matched){const more=el('button','session-file',`Show more (${shown} of ${matched})`);more.addEventListener('click',()=>{listLimit+=100;listFiles();});list.append(more);}
+      list.scrollTop=scroll;
+    }
+    function refreshTitle(file){
+      const row=titleRows.get(file);if(row)paintTitle(file,row);
+      if($('#session-filter').value&&!titleRefresh)titleRefresh=setTimeout(()=>{titleRefresh=null;listFiles();},100);
+    }
+    function readTitles(){
+      const generation=++metadataGeneration;
+      $('#title-status').hidden=!files.some(file=>!file.local&&!file.metadataDone&&!titleNames.has(file.sessionId));
+      $('#title-status').textContent='Reading session titles…';
+      PlaygroundSessions.hydrateMetadata(files,{names:titleNames,cancelled:()=>generation!==metadataGeneration,apply:refreshTitle})
+        .then(()=>{if(generation===metadataGeneration){$('#title-status').hidden=true;if($('#session-filter').value)listFiles();}})
+        .catch(()=>{if(generation===metadataGeneration){$('#title-status').hidden=false;$('#title-status').textContent='Some titles could not be read. You can still open a session.';}});
     }
     async function readFileWindow(file,before){
+      file=file.blob||file;
       const end=before??file.size,start=Math.max(0,end-1024*1024),raw=new Uint8Array(await file.slice(start,end).arrayBuffer());
       const first=start?raw.indexOf(10)+1:0,base=first?start+first:start;
       return {source:start&&!first?'':new TextDecoder().decode(raw.subarray(first)),base,
@@ -203,18 +227,29 @@
         say('Only this excerpt is loaded. Search and copy apply to the displayed excerpt.');
       }catch(error){if(generation===loadGeneration&&error.name!=='AbortError')say(error.message||'Could not read this excerpt.');}
     }
-    function importFiles(selected){const incoming=Array.from(selected).filter(f=>/\.jsonl$/i.test(f.name)).sort((a,b)=>b.name.localeCompare(a.name));
-      // Selecting a folder lists files without reading any conversation. Cancel
-      // an older excerpt load so it cannot replace the newly selected library.
-      ++libraryGeneration;++loadGeneration;loadController?.abort();stopPreview();
-      files=incoming;selectedFile=null;session={items:[]};active=null;browsing=false;
-      pageCursor=null;pageHistory=[];pageWindow=null;manual.clear();restored.clear();
-      searchOpen=false;searchReading=false;helpOpen=false;query='';matches=[];matchIndex=0;
-      $('#search-panel').hidden=true;$('#search-input').value='';$('#session-filter').value='';
-      $('#reload-session').disabled=true;$('#refresh-library').disabled=false;
-      empty.querySelector('p').textContent=files.length?'Choose a session from the list.':'No .jsonl sessions found in the selected folder.';
-      updatePageControls();listFiles();render();
-      say(files.length?`${files.length} sessions found. Select one to load its conversation.`:'Choose the sessions folder shown above, or a rollout .jsonl file.');
+    async function importFiles(selected){
+      const generation=++importGeneration,{files:incoming,index}=PlaygroundSessions.importSelection(selected);
+      ++metadataGeneration;clearTimeout(titleRefresh);titleRefresh=null;
+      if(incoming.length||!index){
+        // List the new library immediately. Title metadata is read separately;
+        // only selecting a session opens its transcript excerpt.
+        ++libraryGeneration;++loadGeneration;loadController?.abort();stopPreview();
+        files=incoming;selectedFile=null;session={items:[]};active=null;browsing=false;listLimit=100;
+        pageCursor=null;pageHistory=[];pageWindow=null;manual.clear();restored.clear();
+        searchOpen=false;searchReading=false;helpOpen=false;query='';matches=[];matchIndex=0;
+        $('#search-panel').hidden=true;$('#search-input').value='';$('#session-filter').value='';
+        $('#reload-session').disabled=true;$('#refresh-library').disabled=false;
+        empty.querySelector('p').textContent=files.length?'Choose a session from the list.':'No .jsonl sessions found in the selected folder.';
+        updatePageControls();listFiles();render();
+      }
+      if(index){
+        try{
+          const result=await PlaygroundSessions.readTitleIndex(index);if(generation!==importGeneration)return;
+          titleNames=result.titles;listFiles();
+          say(result.truncated?'Loaded recent saved titles. Older sessions use their first question.':'Saved session titles loaded.');
+        }catch(_){if(generation!==importGeneration)return;say('Could not read saved titles. First questions will be used instead.');}
+      }else say(files.length?`${files.length} sessions found. Select one to load its conversation.`:'Choose the sessions folder shown above, or a rollout .jsonl file.');
+      readTitles();
     }
     async function localRequest(path,signal){
       const response=await fetch(path,{headers:{'X-Codux-Local':local.token},cache:'no-store',credentials:'omit',mode:'same-origin',signal});
@@ -222,7 +257,7 @@
       return response;
     }
     async function refreshLibrary(autoOpen=false){
-      if(!local)return;const generation=++libraryGeneration;say('Finding local conversations…');$('#refresh-library').disabled=true;
+      if(!local)return;++metadataGeneration;++importGeneration;$('#title-status').hidden=true;const generation=++libraryGeneration;say('Finding local conversations…');$('#refresh-library').disabled=true;
       try{
         const result=await (await localRequest('/api/sessions')).json();if(generation!==libraryGeneration)return;
         const previous=selectedFile;
@@ -241,7 +276,7 @@
     $('#refresh-library').addEventListener('click',()=>refreshLibrary(!session.items.length));
     $('#files-button').addEventListener('click',()=>$('#files').click());$('#folder-button').addEventListener('click',()=>$('#folder').click());
     for(const id of ['files','folder'])$('#'+id).addEventListener('change',event=>{importFiles(event.target.files);event.target.value='';});
-    $('#session-filter').addEventListener('input',listFiles);$('#reload-session').addEventListener('click',()=>load(files.indexOf(selectedFile)));
+    $('#session-filter').addEventListener('input',()=>{listLimit=100;listFiles();});$('#reload-session').addEventListener('click',()=>load(files.indexOf(selectedFile)));
     $('#earlier-excerpt').addEventListener('click',()=>{if(pageWindow?.has_older)load(files.indexOf(selectedFile),{before:pageWindow.before,history:[...pageHistory,pageCursor]});});
     $('#newer-excerpt').addEventListener('click',()=>{if(pageHistory.length){const history=[...pageHistory],before=history.pop();load(files.indexOf(selectedFile),{before,history});}});
     $('#latest-excerpt').addEventListener('click',()=>load(files.indexOf(selectedFile)));
@@ -287,7 +322,7 @@
       terminal.style.setProperty('--prompt-bottom',promptBottom+'px');terminal.style.setProperty('--composer-height',promptBottom+'px');updateScroll();});
     for(const element of [terminal,$('#command'),$('#search-panel'),$('.terminal-footer')])composerSize.observe(element);
     document.addEventListener('visibilitychange',()=>{if(previewTimer)tickPreview();});
-    window.addEventListener('pagehide',()=>stopPreview());
+    window.addEventListener('pagehide',()=>{++metadataGeneration;++importGeneration;clearTimeout(titleRefresh);stopPreview();});
     document.addEventListener('keydown',event=>{
       if(event.defaultPrevented||event.isComposing)return;
       if(!event.target.closest('.terminal'))return;

@@ -38,8 +38,9 @@ checkout, account, or model access is required.
 
 Click **Choose sessions folder** and select your `sessions` folder. Files in its
 dated subfolders appear together in the session list, newest filenames first.
-The list shows the number of sessions and supports filtering. Click a session to
-load its excerpt; selecting a folder does not read conversation contents.
+The list shows conversation titles, projects, and dates, with filtering and
+100 rows at a time. Click **Show more** for additional rows. Click a session to
+open its transcript excerpt; choosing a folder does not open a conversation.
 Use **Open files** to select individual rollout `.jsonl` files instead.
 The default location is `%USERPROFILE%\.codex\sessions`
 on Windows and `~/.codex/sessions` on macOS or Linux. If you use `CODEX_HOME`,
@@ -49,6 +50,19 @@ The Sessions sidebar includes a short guide to the default location. On Windows,
 look in `C:\Users\<your username>\.codex\sessions`. Select this folder itself;
 there is no need to open each dated subfolder. File selection uses your browser's
 standard picker.
+
+Titles use the first user question by default. Metadata and first questions are
+read progressively from each file's first 64 KiB, extended to at most 256 KiB when
+needed, with up to four concurrent reads. The full conversation is not parsed
+for the list. Sessions without a question in that window show Untitled conversation.
+Filenames remain available in the tooltip and search.
+
+Codex keeps saved names in `.codex/session_index.jsonl`, outside the `sessions`
+folder. To use those names, select that file with **Open files** as well. This
+updates the existing list without replacing its sessions. The latest indexed name
+takes precedence over the first question; no parent directory is read automatically.
+The title index is limited to its last 4 MiB. Titles and metadata stay in this tab's
+memory and are never uploaded or written to your Codex files.
 
 The website reads only the files you select, inside your browser. Conversation
 contents are not uploaded. A hosted website cannot discover your local sessions

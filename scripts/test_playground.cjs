@@ -336,4 +336,56 @@ assert(small.items.length<=40);assert(small.characters<=32000);assert(small.shor
 assert.equal(small.items.at(-1).id,'199');assert.equal(longItems[199].text.length,10000,'Preview clipping must not mutate parsed source');
 const utf8=row('event_msg',{type:'user_message',message:'Caf\u00e9'}), afterUtf8=event({type:'agent_message',message:'Answer'});
 assert.equal(S.parse(utf8+'\r\n'+afterUtf8,'utf8',1024,50).items[1].sourceOffset,50+Buffer.byteLength(utf8+'\r\n'));
-console.log(`Playground: ${palettes.length} palettes, scoped card settings, rollout parsing, duplicate handling, grouping, search, navigation and keyboard routing passed.`);
+async function checkSessionTitles(){
+  const id='0194aabc-1234-7123-8123-123456789abc';
+  const metadata=S.metadata([
+    row('session_meta',{id,cwd:'C:\\work\\project'}),
+    response({type:'message',role:'user',content:[{text:'# AGENTS.md instructions\nDo things'}]}),
+    response({type:'message',role:'user',content:[{text:'<environment_context>context</environment_context>'}]}),
+    event({type:'user_message',message:'<send_user_message_question_reply>reply</send_user_message_question_reply>'}),
+    event({type:'user_message',message:'# Context from my IDE setup:\nFiles\n## My request for Codex:\n Fix the\n  auth flow 🚀'}),
+    event({type:'user_message',message:'A later prompt must not replace the first'}),
+  ].join('\n'));
+  assert.deepEqual(metadata,{sessionId:id,cwd:'C:\\work\\project',firstPrompt:'Fix the auth flow 🚀'});
+  assert.equal(S.metadata(canonical('UserMessage','user','Canonical first question')).firstPrompt,'Canonical first question');
+  assert.equal(S.metadata(response({type:'message',role:'user',content:[{text:'Response first question'}]})).firstPrompt,'Response first question');
+  assert.equal(S.metadata(event({type:'agent_message',message:'Do not use the answer'})).firstPrompt,undefined);
+  const unicode=S.metadata(event({type:'user_message',message:'🚀'.repeat(200)})).firstPrompt;
+  assert.equal(Array.from(unicode).length,160);
+  assert.equal(S.sessionId('rollout-2026-11-07T12-00-00-'+id.toUpperCase()+'.jsonl'),id);
+  const blob=(name,value,relative='')=>{
+    const data=new Blob([value]);return {name,size:data.size,lastModified:1000,webkitRelativePath:relative,slice:(...args)=>data.slice(...args)};
+  };
+  const titleIndex=blob('session_index.jsonl',[
+    JSON.stringify({id,thread_name:'Old name'}),'not JSON',JSON.stringify({id,thread_name:'Saved title'}),
+    JSON.stringify({id:'invalid',thread_name:'Ignore'}),JSON.stringify({id,thread_name:123}),
+  ].join('\n'));
+  assert.equal((await S.readTitleIndex(titleIndex)).titles.get(id),'Saved title');
+  const hugeIndex=blob('session_index.jsonl','x'.repeat(4*1024*1024)+'\n'+JSON.stringify({id,thread_name:'Recent name'}));
+  const tail=await S.readTitleIndex(hugeIndex);assert.equal(tail.truncated,true);assert.equal(tail.titles.get(id),'Recent name');
+  const rollout=blob('rollout-'+id+'.jsonl',event({type:'user_message',message:'First question'}),'sessions/2026/11/07/rollout-'+id+'.jsonl');
+  const selection=S.importSelection([rollout,titleIndex,{name:'auth.json',webkitRelativePath:'.codex/auth.json'},
+    {name:'history.jsonl',webkitRelativePath:'.codex/history.jsonl'}]);
+  assert.equal(selection.files.length,1);assert.equal(selection.index,titleIndex);assert.equal(selection.files[0].blob,rollout);
+  assert.equal(S.importSelection([titleIndex]).files.length,0,'An index is not a conversation');
+  let ranges=[];
+  const big=blob('large.jsonl','x'.repeat(70000)+'\n'+event({type:'user_message',message:'Found after large context'})+'\n'+'x'.repeat(300000));
+  const bounded={size:big.size,slice(start,end){ranges.push([start,end]);assert(end<=256*1024);return big.slice(start,end);}};
+  assert.equal((await S.readMetadata(bounded)).firstPrompt,'Found after large context');assert.equal(ranges.length,2);
+  ranges=[];await S.readMetadata({size:1e9,slice(start,end){ranges.push([start,end]);return rollout.slice(start,end);}});
+  assert.equal(ranges.length,1,'A first question avoids the larger prefix read');
+  const files=S.importSelection([rollout]).files;let updates=0;
+  await S.hydrateMetadata(files,{apply(){updates++;},yieldTask:async()=>{}});
+  assert.equal(files[0].firstPrompt,'First question');assert.equal(updates,1);
+  await S.hydrateMetadata(files,{apply(){throw Error('Do not reread cached metadata');}});
+  await S.hydrateMetadata([{sessionId:id,blob:{slice(){throw Error('Indexed names need no content read');}}}],{names:new Map([[id,'Saved title']])});
+  let cancelled=false,started=0;const pending=[];
+  const waiting=Array.from({length:12},()=>({blob:{size:1,slice(){started++;return {text:()=>new Promise(resolve=>pending.push(resolve))};}}}));
+  const task=S.hydrateMetadata(waiting,{cancelled:()=>cancelled,apply(){throw Error('A replaced library must not update');},yieldTask:async()=>{}});
+  assert.equal(started,4,'Bound concurrent reads');cancelled=true;for(const resolve of pending)resolve('');await task;
+  assert.equal(started,4);assert(waiting.every(file=>!file.metadataDone));
+  const unreadable={blob:{size:1,slice(){throw Error('Permission revoked');}}};
+  await S.hydrateMetadata([unreadable],{yieldTask:async()=>{}});assert.equal(unreadable.readError,true);
+}
+checkSessionTitles().then(()=>console.log(`Playground: ${palettes.length} palettes, scoped card settings, session titles, bounded metadata reads, grouping, search, navigation and keyboard routing passed.`))
+  .catch(error=>{console.error(error);process.exitCode=1;});

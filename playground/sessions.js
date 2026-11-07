@@ -128,6 +128,81 @@
     for(const item of items){if(item.role==='question')candidate=null;else if(item.role==='answer'){if(candidate)candidate.role='intermediate';candidate=item;}}
     return {meta,items,stats};
   }
-  root.PlaygroundSessions={parse,text,formReply};
+  function firstPrompt(value){
+    if(typeof value!=='string')return '';
+    value=value.trim();
+    if(value.startsWith('# Context from my IDE setup:')){
+      const marker='## My request for Codex:';
+      if(!value.includes(marker))return '';
+      value=value.slice(value.indexOf(marker)+marker.length).trim();
+    }
+    if(/^(?:# AGENTS\.md|<environment_context>|<INSTRUCTIONS>|<send_user_message_question_reply>)/.test(value))return '';
+    return Array.from(value.replace(/\s+/g,' ')).slice(0,160).join('');
+  }
+  function metadata(source){
+    const result={};
+    for(const line of source.replace(/^\uFEFF/,'').split('\n')){
+      const row=decode(line),p=row?.payload;if(!p||typeof p!=='object')continue;
+      if(row.type==='session_meta'){
+        if(typeof p.id==='string'||typeof p.session_id==='string')result.sessionId=String(p.id||p.session_id).toLowerCase();
+        if(typeof p.cwd==='string')result.cwd=p.cwd.slice(0,1024);
+      }
+      if(result.firstPrompt)continue;
+      let body;
+      if(row.type==='event_msg'&&p.type==='user_message')body=p.message;
+      else if(row.type==='event_msg'&&p.type==='item_completed'&&kind(p.item?.type)==='usermessage')body=text(p.item.content);
+      else if(row.type==='response_item'&&p.type==='message'&&p.role==='user')body=text(p.content);
+      const title=firstPrompt(body);if(title)result.firstPrompt=title;
+    }
+    return result;
+  }
+  function sessionId(name){return name.match(/([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\.jsonl$/i)?.[1].toLowerCase();}
+  async function readMetadata(file){
+    const prefix=64*1024,limit=256*1024;
+    let info=metadata(await file.slice(0,prefix).text());
+    if(!info.firstPrompt&&file.size>prefix)info=metadata(await file.slice(0,limit).text());
+    return info;
+  }
+  async function readTitleIndex(file){
+    const limit=4*1024*1024,start=Math.max(0,file.size-limit);
+    let source=await file.slice(start).text();
+    if(start)source=source.includes('\n')?source.slice(source.indexOf('\n')+1):'';
+    const titles=new Map();
+    for(const line of source.replace(/^\uFEFF/,'').split('\n')){
+      const row=decode(line);
+      if(typeof row?.id!=='string'||typeof row.thread_name!=='string')continue;
+      if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(row.id))continue;
+      const id=row.id.toLowerCase(),title=Array.from(row.thread_name.replace(/\s+/g,' ').trim()).slice(0,240).join('');
+      if(title)titles.set(id,title);else titles.delete(id);
+    }
+    return {titles,truncated:start>0};
+  }
+  function importSelection(selected){
+    const all=Array.from(selected),index=all.find(file=>file.name==='session_index.jsonl');
+    // A selected .codex folder can contain unrelated JSONL files. Only its
+    // rollout files and the explicitly recognized title index are considered.
+    const files=all.filter(file=>file.name!=='session_index.jsonl'&&/\.jsonl$/i.test(file.name)
+      &&(!file.webkitRelativePath||/^rollout-.*\.jsonl$/i.test(file.name)))
+      .sort((a,b)=>b.name.localeCompare(a.name)).map(blob=>({blob,name:blob.name,
+        webkitRelativePath:blob.webkitRelativePath,size:blob.size,sessionId:sessionId(blob.name),
+        modified:blob.lastModified||null,metadataDone:false}));
+    return {files,index};
+  }
+  // Keep title reads small and yield between batches. Replaced libraries stop
+  // scheduling reads, and late results cannot update the new session list.
+  async function hydrateMetadata(files,{cancelled=()=>false,apply=()=>{},names=new Map(),yieldTask=()=>new Promise(resolve=>setTimeout(resolve,0))}={}){
+    const queue=files.filter(file=>!file.local&&!file.metadataDone&&!names.has(file.sessionId));let cursor=0;
+    async function worker(){
+      while(!cancelled()){
+        const file=queue[cursor++];if(!file)return;
+        let info;
+        try{info=await readMetadata(file.blob);}catch(_){info={readError:true};}
+        if(cancelled())return;
+        Object.assign(file,info,{metadataDone:true});apply(file);await yieldTask();
+      }
+    }
+    await Promise.all(Array.from({length:Math.min(4,queue.length)},worker));
+  }
+  root.PlaygroundSessions={parse,text,formReply,metadata,sessionId,readMetadata,readTitleIndex,importSelection,hydrateMetadata};
   if(typeof module!=='undefined')module.exports=root.PlaygroundSessions;
 })(globalThis);
