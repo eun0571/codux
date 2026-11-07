@@ -7,7 +7,7 @@ A patched Codex CLI with a clearer conversation layout and configurable terminal
 - Card navigation and search filtered by message type.
 - Mermaid images in supported terminals, with Codex text fallback.
 
-[Open the browser playground locally](docs/PLAYGROUND.md#local-preview) — try Codux card styles, folding, navigation, and `/custom` using short excerpts from your saved conversations. No model or login required.
+[Try the browser playground](https://eun0571.github.io/codux/) — no installation or login required. Open a local Codex session file or folder to try card styles, folding, navigation, and `/custom`. Files stay in your browser. See the [playground guide](docs/PLAYGROUND.md) for details.
 
 Codux builds a separate `codux` executable from a pinned official Codex commit. This repository contains the UI patch and build inputs; upstream source is fetched during the build.
 

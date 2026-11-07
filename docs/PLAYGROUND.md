@@ -31,6 +31,20 @@ Its background uses the native cosine pulse at the selected 1–4 second period.
 The text uses Codex's separate shimmer: a 600 ms start delay, then a one-second
 sweep every four seconds. Reduced-motion preferences disable both effects.
 
+## Open in your browser
+
+[Open the playground](https://eun0571.github.io/codux/). No installation, source
+checkout, account, or model access is required.
+
+Choose **Open sessions** for a Codex rollout `.jsonl` file, or **Open folder** for
+your sessions folder. The default location is `%USERPROFILE%\.codex\sessions`
+on Windows and `~/.codex/sessions` on macOS or Linux. If you use `CODEX_HOME`,
+choose its `sessions` folder instead.
+
+The website reads only the files you select, inside your browser. Conversation
+contents are not uploaded. A hosted website cannot discover your local sessions
+automatically. Use a desktop browser for the full keyboard controls.
+
 ## Local preview
 
 With Python 3.12+ and Node.js 22+:
@@ -157,13 +171,11 @@ manual file or directory selection; large files are also read in bounded excerpt
     python -m http.server 8765 --bind 127.0.0.1 --directory .build/playground
 
 For GitHub Pages, select **Settings > Pages > Source > GitHub Actions**.
-Then set the repository Actions variable **CODUX_PLAYGROUND_DEPLOY_ENABLED** to
-**true** and run the Playground workflow. Static deployment is opt-in; source
-pushes still build and validate the demo when deployment is disabled.
+The Playground workflow automatically validates and deploys relevant changes on
+the default branch. It can also be started manually from the Actions tab.
 The Playground workflow deploys only the nine static web assets. PRs build without
 deploying. No sessions, native binaries, or local server are uploaded.
-For eun0571/codux, the expected Pages URL is <https://eun0571.github.io/codux/>.
-Update the README link only after the first successful deployment.
+The public playground is hosted at <https://eun0571.github.io/codux/>.
 
 ## Maintenance
 
