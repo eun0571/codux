@@ -23,6 +23,7 @@ h1,h2,p{margin-top:0}
 .wordmark strong{color:#283129;font:600 16px "Segoe UI",sans-serif;margin-left:7px}
 .badge,.eyebrow{font:9px var(--mono);letter-spacing:1.3px;color:var(--chrome-muted)}
 #version{font-size:10px;color:var(--chrome-muted)}
+.app-footer{display:flex;justify-content:flex-end;align-items:center;min-height:28px;flex-shrink:0;padding:5px 20px;border-top:1px solid var(--chrome-line);background:#f7f8f5;color:var(--chrome-muted);font:10px var(--mono)}
 .workspace{display:grid;grid-template-columns:minmax(0,1fr) 310px;flex:1;min-height:0;position:relative}
 .excerpt-nav{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:10px 0;font-size:10px;color:var(--chrome-muted)}
 .excerpt-nav>div{display:flex;gap:5px}.excerpt-nav button{padding:4px 8px;font-size:10px}

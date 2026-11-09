@@ -233,5 +233,7 @@
   });
   $('#version').textContent=`Preview ${PLAYGROUND_RELEASE.version}`;
   $('#version').title=`UI build target: Codux ${PLAYGROUND_RELEASE.version}, pinned Codex ${PLAYGROUND_RELEASE.upstream}. No CLI process is running in this page.`;
+  $('#footer-version').textContent=`Codux ${PLAYGROUND_RELEASE.version}`;
+  $('#footer-version').title=$('#version').title;
   setSyntax();
 })();
