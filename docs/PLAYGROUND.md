@@ -108,8 +108,8 @@ mid-turn; some message or tool relationships can cross the loaded boundary.
 Malformed records or records larger than the bounded source window may be omitted,
 with an indication above the preview. The original file remains unchanged.
 
-The version in the page header and bottom footer identifies the preview build. Its tooltip gives
-the pinned upstream version. A rollout's historical cli_version is not a
+The version in the page header and terminal footer below the prompt identifies
+the preview build. Its tooltip gives the pinned upstream version. A rollout's historical cli_version is not a
 running application version and is not displayed as one.
 
 ## Controls and layout

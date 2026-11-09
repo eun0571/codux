@@ -1,3 +1,380 @@
+diff --git a/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__input_tests__raw_paste_burst_render.snap b/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__input_tests__raw_paste_burst_render.snap
+--- a/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__input_tests__raw_paste_burst_render.snap
++++ b/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__input_tests__raw_paste_burst_render.snap
+@@ -26,7 +26,7 @@
+ › Ask Codex to do anything
+ 
+   GPT-5.6-Sol default · /tmp/project
+-  ? for shortcuts
++  ? for shortcuts                                                  Codux 0.0.0
+ 
+ After flush:
+ After paste
+@@ -52,3 +52,4 @@
+ › [Pasted Content 2084 chars]
+ 
+   GPT-5.6-Sol default · /tmp/project
++                                                                   Codux 0.0.0
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__paste_tests__paste_burst_tab_indentation.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__paste_tests__paste_burst_tab_indentation.snap
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__paste_tests__paste_burst_tab_indentation.snap
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__paste_tests__paste_burst_tab_indentation.snap
+@@ -1,6 +1,5 @@
+ ---
+ source: tui/src/bottom_pane/chat_composer/paste_tests.rs
+-assertion_line: 38
+ expression: terminal.backend()
+ ---
+ "                                                            "
+@@ -10,4 +9,4 @@
+ "                                                            "
+ "                                                            "
+ "                                                            "
+-"  tab to queue message                   100% context left  "
++"  tab to queue message     100% context left · Codux 0.0.0  "
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__slash_popup_footer_wide.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__slash_popup_footer_wide.snap
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__slash_popup_footer_wide.snap
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__slash_popup_footer_wide.snap
+@@ -1,6 +1,5 @@
+ ---
+ source: tui/src/bottom_pane/chat_composer/status_surface_tests.rs
+-assertion_line: 344
+ expression: "format!(\"{buf:?}\")"
+ ---
+ Buffer {
+@@ -13,7 +12,7 @@
+         "                                                                                ",
+         "› /m                                                                            ",
+         "                                                                                ",
+-        "  model · high · fast                                                           ",
++        "  model · high · fast                                              Codux 0.0.0  ",
+     ],
+     styles: [
+         x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap
+@@ -12,15 +12,17 @@
+ 
+   Keyboard shortcuts
+ 
+-  Compose                       Session                              Transcript (open first)
+-  /        Commands             tab      Send message                ⌃t            Open transcript
+-  @        Mention files        ⌥,       Less reasoning              f3            Find text
+-  !        Shell command        ⌥.       More reasoning              pgup / pgdn   Scroll
+-  ⌃j       New line             ⌥← / ⌥→  Subagents (empty prompt)    ⌃space        Start selection
+-  ⌃v       Paste image          f4       Inspect activity            ⌃home / ⌃end  Top / latest
+-  ⌃g       External editor      ⌃c       Quit                        ⇧⌥, / ⇧⌥.     Top / latest
+-  ⌃r       Search history
+-  esc esc  Edit last message
++  Compose                Session                              Transcript / browsing
++  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3            Find text
++  !   Shell command      ⌥.       More reasoning              up / down     Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+arrows   Select card
++  ⌃v  Paste image        f4       Browse cards                enter         Fold selected card
++  ⌃g  External editor    ⌃c       Quit                        ⌃e            Rewind selected question
++  ⌃r  Search history                                          pgup / pgdn   Scroll
++                                                              ⌃space        Start selection
++                                                              ⌃home / ⌃end  Top / latest
++                                                              ⇧⌥, / ⇧⌥.     Top / latest
+ 
+   /keymap customize
+ 
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap
+@@ -13,26 +13,29 @@
+   Keyboard shortcuts
+ 
+   Compose
+-  /        Commands
+-  @        Mention files
+-  !        Shell command
+-  ⌃j       New line
+-  ⌃v       Paste image
+-  ⌃g       External editor
+-  ⌃r       Search history
+-  esc esc  Edit last message
++  /   Commands
++  @   Mention files
++  !   Shell command
++  ⌃j  New line
++  ⌃v  Paste image
++  ⌃g  External editor
++  ⌃r  Search history
+ 
+   Session
+   tab      Send message
+   ⌥,       Less reasoning
+   ⌥.       More reasoning
+   ⌥← / ⌥→  Subagents (empty prompt)
+-  f4       Inspect activity
++  f4       Browse cards
+   ⌃c       Quit
+ 
+-  Transcript (open first)
+-  ⌃t            Open transcript
++  Transcript / browsing
++  ⇧f4           Cycle card display
+   f3            Find text
++  up / down     Scroll in browsing
++  ctrl+arrows   Select card
++  enter         Fold selected card
++  ⌃e            Rewind selected question
+   pgup / pgdn   Scroll
+   ⌃space        Start selection
+   ⌃home / ⌃end  Top / latest
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap
+@@ -14,7 +14,7 @@
+ › Ask Codex
+ 
+   MODEL · ~/project · Context 20% used               Plan mode
+-  ? for shortcuts
++  ? for shortcuts                                  Codux 0.0.0
+ ---
+ 
+ 
+@@ -42,7 +42,7 @@
+ › Ask Codex
+ 
+   MODEL · ~/project · Context 20% used               Plan mode
+-  Ctrl+X waiting for chord
++  Ctrl+X waiting for chord                         Codux 0.0.0
+ ---
+ 
+ 
+@@ -56,4 +56,4 @@
+ › Continue the task
+ 
+   MODEL · ~/project · Context 20% used               Plan mode
+-  tab to queue message
++  tab to queue message                             Codux 0.0.0
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__fullscreen_plan_cycle_hint.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__fullscreen_plan_cycle_hint.snap
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__fullscreen_plan_cycle_hint.snap
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__fullscreen_plan_cycle_hint.snap
+@@ -14,4 +14,4 @@
+ › Ask Codex
+ 
+   MODEL · ~/project · Context 20% used                                   Plan mode (⇧tab to cycle)
+-  ? for shortcuts
++  ? for shortcuts                                                                      Codux 0.0.0
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap
+@@ -13,15 +13,17 @@
+ 
+   Keyboard shortcuts
+ 
+-  Compose                       Session                              Transcript (open first)
+-  /        Commands             tab      Send message                ⌃t            Open transcript
+-  @        Mention files        ⌥,       Less reasoning              f3            Find text
+-  !        Shell command        ⌥.       More reasoning              pgup / pgdn   Scroll
+-  ⌃j       New line             ⌥← / ⌥→  Subagents (empty prompt)    ⌃space        Start selection
+-  ⌃v       Paste image          f4       Inspect activity            ⌃home / ⌃end  Top / latest
+-  ⌃g       External editor      ⌃c       Quit                        ⇧⌥, / ⇧⌥.     Top / latest
+-  ⌃r       Search history
+-  esc esc  Edit last message
++  Compose                Session                              Transcript / browsing
++  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3            Find text
++  !   Shell command      ⌥.       More reasoning              up / down     Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+arrows   Select card
++  ⌃v  Paste image        f4       Browse cards                enter         Fold selected card
++  ⌃g  External editor    ⌃c       Quit                        ⌃e            Rewind selected question
++  ⌃r  Search history                                          pgup / pgdn   Scroll
++                                                              ⌃space        Start selection
++                                                              ⌃home / ⌃end  Top / latest
++                                                              ⇧⌥, / ⇧⌥.     Top / latest
+ 
+   /keymap customize
+ 
+@@ -41,15 +43,17 @@
+ 
+   Keyboard shortcuts
+ 
+-  Compose                       Session                              Transcript (open first)
+-  /        Commands             tab      Send message                ⌃t            Open transcript
+-  @        Mention files        ⌥,       Less reasoning              f3            Find text
+-  !        Shell command        ⌥.       More reasoning              pgup / pgdn   Scroll
+-  ⌃j       New line             ⌥← / ⌥→  Subagents (empty prompt)    ⌃space        Start selection
+-  ⌃v       Paste image          ⌃x t     Inspect activity            ⌃home / ⌃end  Top / latest
+-  ⌃g       External editor      ⌃c       Quit                        ⇧⌥, / ⇧⌥.     Top / latest
+-  ⌃r       Search history
+-  esc esc  Edit last message
++  Compose                Session                              Transcript / browsing
++  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3            Find text
++  !   Shell command      ⌥.       More reasoning              up / down     Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+arrows   Select card
++  ⌃v  Paste image        ⌃x t     Browse cards                enter         Fold selected card
++  ⌃g  External editor    ⌃c       Quit                        ⌃e            Rewind selected question
++  ⌃r  Search history                                          pgup / pgdn   Scroll
++                                                              ⌃space        Start selection
++                                                              ⌃home / ⌃end  Top / latest
++                                                              ⇧⌥, / ⇧⌥.     Top / latest
+ 
+   /keymap customize
+ 
+@@ -69,15 +73,17 @@
+ 
+   Keyboard shortcuts
+ 
+-  Compose                       Session                              Transcript (open first)
+-  /        Commands             tab      Send message                ⌃t            Open transcript
+-  @        Mention files        ⌥,       Less reasoning              f3            Find text
+-  !        Shell command        ⌥.       More reasoning              pgup / pgdn   Scroll
+-  ⌃j       New line             ⌥← / ⌥→  Subagents (empty prompt)    ⌃space        Start selection
+-  ⌃v       Paste image          ⌃c       Quit                        ⌃home / ⌃end  Top / latest
+-  ⌃g       External editor                                           ⇧⌥, / ⇧⌥.     Top / latest
+-  ⌃r       Search history
+-  esc esc  Edit last message
++  Compose                Session                              Transcript / browsing
++  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3            Find text
++  !   Shell command      ⌥.       More reasoning              up / down     Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+arrows   Select card
++  ⌃v  Paste image        ⌃c       Quit                        enter         Fold selected card
++  ⌃g  External editor                                         ⌃e            Rewind selected question
++  ⌃r  Search history                                          pgup / pgdn   Scroll
++                                                              ⌃space        Start selection
++                                                              ⌃home / ⌃end  Top / latest
++                                                              ⇧⌥, / ⇧⌥.     Top / latest
+ 
+   /keymap customize
+ 
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__transcript_find_copy_footer.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__transcript_find_copy_footer.snap
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__transcript_find_copy_footer.snap
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__transcript_find_copy_footer.snap
+@@ -6,4 +6,4 @@
+ › Ask Codex
+ 
+   Find: needle
+-  Copied selection to clipboard
++  Copied selection to clipboard                  Codux 0.0.0
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap
+@@ -1,6 +1,5 @@
+ ---
+ source: tui/src/bottom_pane/chat_composer/footer_state_tests.rs
+-assertion_line: 231
+ expression: "frames.join(\"\\n\\n\")"
+ ---
+ 60x8, cursor Some((10, 6))
+@@ -11,7 +10,7 @@
+ 
+ 
+   Find: needle
+-  Enter next · Esc close
++  Enter next · Esc close                         Codux 0.0.0
+ 
+ 24x8, cursor Some((10, 6))
+ 
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs b/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs
+@@ -57,6 +57,14 @@
+     (text, composer.cursor_pos_with_options(area, options))
+ }
+ 
++// Check instructional text independently from the ambient build indicator.
++fn hint_without_version(line: &str) -> &str {
++    line.trim()
++        .strip_suffix(&crate::bottom_pane::footer::codux_version_line().to_string())
++        .unwrap_or(line.trim())
++        .trim_end()
++}
++
+ #[test]
+ fn passive_activity_keeps_shortcuts_only_when_the_complete_hint_fits() {
+     let mut composer = composer();
+@@ -72,19 +80,22 @@
+         (40, "ctrl+o t/f4 inspect activity"),
+     ] {
+         let (text, _) = render(&composer, width, Some(&footer));
+-        assert_eq!(text.lines().last().map(str::trim), Some(expected));
++        assert_eq!(
++            text.lines().last().map(hint_without_version),
++            Some(expected)
++        );
+     }
+     footer.is_interactive = true;
+     let (text, _) = render(&composer, /*width*/ 80, Some(&footer));
+     assert_eq!(
+-        text.lines().last().map(str::trim),
++        text.lines().last().map(hint_without_version),
+         Some("ctrl+o t/f4 inspect activity")
+     );
+     footer.is_interactive = false;
+     composer.footer.toggle_shortcuts_key = None;
+     let (text, _) = render(&composer, /*width*/ 80, Some(&footer));
+     assert_eq!(
+-        text.lines().last().map(str::trim),
++        text.lines().last().map(hint_without_version),
+         Some("ctrl+o t/f4 inspect activity")
+     );
+ }
+@@ -290,7 +301,10 @@
+             /*footer*/ None,
+             /*height*/ Some(8),
+         );
+-        assert_eq!(text.lines().last().map(str::trim), Some(expected));
++        assert_eq!(
++            text.lines().last().map(hint_without_version),
++            Some(expected)
++        );
+         assert_eq!(text.matches("close").count(), 1);
+         assert_eq!(text.matches("/keymap customize").count(), 1);
+     }
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/footer_state_tests.rs b/codex-rs/tui/src/bottom_pane/chat_composer/footer_state_tests.rs
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/footer_state_tests.rs
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/footer_state_tests.rs
+@@ -55,6 +55,43 @@
+         })
+         .collect::<Vec<_>>()
+         .join("\n")
++}
++
++#[test]
++fn codux_version_stays_in_the_footer_and_preserves_find_cursor() {
++    let mut composer = composer();
++    let version = crate::bottom_pane::footer::codux_version_line().to_string();
++    for running in [false, true] {
++        composer.set_task_running(running);
++        let (buffer, _) = render(&composer, None);
++        let rendered = text(&buffer);
++        assert!(
++            rendered.lines().last().unwrap().ends_with(&version),
++            "{rendered}"
++        );
++        assert!(rendered.contains("MODEL STATUS"));
++    }
++    for interactive in [false, true] {
++        let footer = TranscriptFooter {
++            text: vec![
++                Line::from("Find: needle"),
++                Line::from("Enter next · Esc close"),
++            ]
++            .into(),
++            cursor_column: interactive.then_some(8),
++            is_interactive: interactive,
++        };
++        let (buffer, cursor) = render(&composer, Some(&footer));
++        let rendered = text(&buffer);
++        assert!(
++            rendered.lines().last().unwrap().ends_with(&version),
++            "{rendered}"
++        );
++        assert!(rendered.contains("Find: needle"));
++        if interactive {
++            assert_eq!(cursor, Some((10, buffer.area.bottom() - 2)));
++        }
++    }
+ }
+ 
+ #[test]
 diff --git a/codex-rs/tui/src/terminal_probe.rs b/codex-rs/tui/src/terminal_probe.rs
 --- a/codex-rs/tui/src/terminal_probe.rs
 +++ b/codex-rs/tui/src/terminal_probe.rs
@@ -1161,6 +1538,24 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/footer_state.rs b/codex-
              is_task_running: self.is_task_running,
              queue_submissions: self.queue_submissions,
              quit_shortcut_key: self.footer.quit_shortcut_key,
+@@ -327,6 +326,17 @@
+             shortcuts.push_span(" shortcuts".set_style(secondary_text_style()));
+             if line.width() + shortcuts.width() <= usize::from(hint_area.width) {
+                 line.extend(shortcuts.spans);
++            }
++        }
++        // Use only trailing space on the last hint row. Search text, its cursor,
++        // and card-navigation hints retain their full measured width.
++        if let Some(line) = text.lines.last_mut() {
++            let version = crate::bottom_pane::footer::codux_version_line();
++            let gap = usize::from(hint_area.width)
++                .saturating_sub(line.width().saturating_add(version.width()));
++            if gap >= 2 {
++                line.push_span(" ".repeat(gap));
++                line.extend(version.spans);
+             }
+         }
+         Paragraph::new(text).render(hint_area, buf);
 diff --git a/codex-rs/tui/src/bottom_pane/shortcut_overlay.rs b/codex-rs/tui/src/bottom_pane/shortcut_overlay.rs
 --- a/codex-rs/tui/src/bottom_pane/shortcut_overlay.rs
 +++ b/codex-rs/tui/src/bottom_pane/shortcut_overlay.rs
@@ -1638,7 +2033,42 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              find_transcript: Some(key_hint::plain(KeyCode::F(3)).into()),
              focus_activity: Some(key_hint::plain(KeyCode::F(4)).into()),
              history_search: Some(key_hint::ctrl(KeyCode::Char('r')).into()),
-@@ -800,7 +800,7 @@
+@@ -740,6 +740,34 @@
+     }
+ }
+ 
++/// Add the running Codux build to spare footer space, without displacing controls or context.
++pub(crate) fn codux_footer_with_version(
++    area: Rect,
++    left_width: u16,
++    right: Option<Line<'static>>,
++) -> Option<Line<'static>> {
++    let mut combined = right.clone().unwrap_or_default();
++    if combined.width() > 0 {
++        combined.push_span(" · ".set_style(secondary_text_style()));
++    }
++    combined.extend(codux_version_line().spans);
++    let width = combined.width().min(u16::MAX as usize) as u16;
++    if width.saturating_add(2 * FOOTER_INDENT_COLS as u16) <= area.width
++        && can_show_left_with_context(area, left_width, width)
++    {
++        Some(combined)
++    } else {
++        right
++    }
++}
++
++pub(crate) fn codux_version_line() -> Line<'static> {
++    let version = option_env!("MYCODEX_DISPLAY_VERSION")
++        .and_then(|value| value.split_whitespace().next())
++        .unwrap_or("dev");
++    Line::from(format!("Codux {version}").set_style(secondary_text_style()))
++}
++
+ pub(crate) fn inset_footer_hint_area(mut area: Rect) -> Rect {
+     if area.width > 2 {
+         area.x += 2;
+@@ -800,7 +828,7 @@
              )]
          }
          FooterMode::ShortcutOverlay => shortcut_overlay::lines(props, u16::MAX),
@@ -1647,7 +2077,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
          FooterMode::ComposerHasDraft => {
              let state = LeftSideState {
                  hint: if show_queue_hint {
-@@ -936,19 +936,13 @@
+@@ -936,19 +964,13 @@
      line
  }
  
@@ -1674,7 +2104,41 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
  }
  
  pub(crate) fn context_window_line(percent: Option<i64>, used_tokens: Option<i64>) -> Line<'static> {
-@@ -1291,7 +1285,7 @@
+@@ -981,6 +1003,33 @@
+     use ratatui::Terminal;
+     use ratatui::backend::Backend;
+     use ratatui::backend::TestBackend;
++
++    #[test]
++    fn codux_version_footer_preserves_context_and_yields_to_controls() {
++        let version = codux_version_line();
++        let context = context_window_line(Some(75), None);
++        let wide = Rect::new(0, 0, 120, 1);
++        let combined = codux_footer_with_version(wide, 20, Some(context.clone())).unwrap();
++        assert!(combined.to_string().starts_with(&context.to_string()));
++        assert!(combined.to_string().ends_with(&version.to_string()));
++        assert_eq!(
++            codux_footer_with_version(Rect::new(0, 0, 40, 1), 20, Some(context.clone())),
++            Some(context),
++        );
++        assert_eq!(
++            codux_footer_with_version(Rect::new(0, 0, 4, 1), 0, None),
++            None
++        );
++        // Working can have no context indicator; the build still appears.
++        assert_eq!(
++            codux_footer_with_version(wide, 20, None),
++            Some(version.clone())
++        );
++        let mut buffer = Buffer::empty(wide);
++        render_context_right(wide, &mut buffer, &combined);
++        let visible: String = (0..wide.width).map(|x| buffer[(x, 0)].symbol()).collect();
++        assert!(visible.trim_end().ends_with(&version.to_string()));
++    }
+ 
+     #[test]
+     fn voice_live_microphone_indicator_is_red() {
+@@ -1291,7 +1340,7 @@
              "footer_shortcuts_default",
              FooterProps {
                  mode: FooterMode::ComposerEmpty,
@@ -1683,7 +2147,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1308,7 +1302,7 @@
+@@ -1308,7 +1357,7 @@
              "footer_shortcuts_shift_and_esc",
              FooterProps {
                  mode: FooterMode::ShortcutOverlay,
@@ -1692,7 +2156,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1328,7 +1322,7 @@
+@@ -1328,7 +1377,7 @@
              "footer_shortcuts_collaboration_modes_enabled",
              FooterProps {
                  mode: FooterMode::ShortcutOverlay,
@@ -1701,7 +2165,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: true,
-@@ -1345,7 +1339,7 @@
+@@ -1345,7 +1394,7 @@
              "footer_shortcuts_running",
              FooterProps {
                  mode: FooterMode::ShortcutOverlay,
@@ -1710,7 +2174,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: true,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1362,7 +1356,7 @@
+@@ -1362,7 +1411,7 @@
              "footer_ctrl_c_quit_idle",
              FooterProps {
                  mode: FooterMode::QuitShortcutReminder,
@@ -1719,7 +2183,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1379,7 +1373,7 @@
+@@ -1379,7 +1428,7 @@
              "footer_esc_hint_idle",
              FooterProps {
                  mode: FooterMode::EscHint,
@@ -1728,7 +2192,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1396,7 +1390,7 @@
+@@ -1396,7 +1445,7 @@
              "footer_esc_hint_primed",
              FooterProps {
                  mode: FooterMode::EscHint,
@@ -1737,7 +2201,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1413,7 +1407,7 @@
+@@ -1413,7 +1462,7 @@
              "footer_shortcuts_context_running",
              FooterProps {
                  mode: FooterMode::ComposerEmpty,
@@ -1746,7 +2210,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: true,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1432,7 +1426,7 @@
+@@ -1432,7 +1481,7 @@
              "footer_context_tokens_used",
              FooterProps {
                  mode: FooterMode::ComposerEmpty,
@@ -1755,7 +2219,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1451,7 +1445,7 @@
+@@ -1451,7 +1500,7 @@
              "footer_composer_has_draft_queue_hint_enabled",
              FooterProps {
                  mode: FooterMode::ComposerHasDraft,
@@ -1764,7 +2228,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: true,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1466,7 +1460,7 @@
+@@ -1466,7 +1515,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -1773,7 +2237,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1494,7 +1488,7 @@
+@@ -1494,7 +1543,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -1782,7 +2246,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: true,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1515,7 +1509,7 @@
+@@ -1515,7 +1564,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -1791,7 +2255,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1531,7 +1525,7 @@
+@@ -1531,7 +1580,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerHasDraft,
@@ -1800,7 +2264,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: true,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1547,7 +1541,7 @@
+@@ -1547,7 +1596,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerHasDraft,
@@ -1809,7 +2273,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1563,7 +1557,7 @@
+@@ -1563,7 +1612,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -1818,7 +2282,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1593,7 +1587,7 @@
+@@ -1593,7 +1642,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -1827,7 +2291,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1615,7 +1609,7 @@
+@@ -1615,7 +1664,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -1836,7 +2300,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1638,7 +1632,7 @@
+@@ -1638,7 +1687,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -1845,7 +2309,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1662,7 +1656,7 @@
+@@ -1662,7 +1711,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -1854,7 +2318,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1678,7 +1672,7 @@
+@@ -1678,7 +1727,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -1863,7 +2327,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1697,7 +1691,7 @@
+@@ -1697,7 +1746,7 @@
      fn footer_status_line_truncates_to_keep_mode_indicator() {
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -14049,7 +14513,15 @@ diff --git a/codex-rs/tui/src/chatwidget/input_flow.rs b/codex-rs/tui/src/chatwi
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bottom_pane/chat_composer.rs
 --- a/codex-rs/tui/src/bottom_pane/chat_composer.rs
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer.rs
-@@ -544,6 +544,7 @@
+@@ -22,6 +22,7 @@
+ //! Fullscreen limits the composer height; wheel browsing preserves the caret until editor input.
+ //! Transcript interactions borrow the hint footer through `ComposerRenderOptions`;
+ //! its resolved presentation drives height, painting, and the focused cursor together.
++//! Spare footer space shows the Codux build version; controls and context keep priority on resize.
+ //!
+ //! Preset submenu hints borrow slots and reflow with the composer.
+ //!
+@@ -544,6 +545,7 @@
                  | SlashCommand::Usage
                  | SlashCommand::Ide
                  | SlashCommand::DebugConfig
@@ -14057,6 +14529,18 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bo
                  | SlashCommand::Theme
                  | SlashCommand::Pets
                  | SlashCommand::Ps
+@@ -4777,6 +4779,11 @@
+                         } else {
+                             Some(self.right_footer_line_with_context())
+                         };
++                    let right_line = super::footer::codux_footer_with_version(
++                        hint_rect,
++                        left_width,
++                        right_line,
++                    );
+                     let right_width = right_line.as_ref().map(|l| l.width() as u16).unwrap_or(0);
+                     if status_line_active
+                         && let Some(max_left) = max_left_width_for_right(hint_rect, right_width)
 diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event_dispatch.rs
 --- a/codex-rs/tui/src/app/event_dispatch.rs
 +++ b/codex-rs/tui/src/app/event_dispatch.rs

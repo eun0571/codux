@@ -23,7 +23,6 @@ h1,h2,p{margin-top:0}
 .wordmark strong{color:#283129;font:600 16px "Segoe UI",sans-serif;margin-left:7px}
 .badge,.eyebrow{font:9px var(--mono);letter-spacing:1.3px;color:var(--chrome-muted)}
 #version{font-size:10px;color:var(--chrome-muted)}
-.app-footer{display:flex;justify-content:flex-end;align-items:center;min-height:28px;flex-shrink:0;padding:5px 20px;border-top:1px solid var(--chrome-line);background:#f7f8f5;color:var(--chrome-muted);font:10px var(--mono)}
 .workspace{display:grid;grid-template-columns:minmax(0,1fr) 310px;flex:1;min-height:0;position:relative}
 .excerpt-nav{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:10px 0;font-size:10px;color:var(--chrome-muted)}
 .excerpt-nav>div{display:flex;gap:5px}.excerpt-nav button{padding:4px 8px;font-size:10px}
@@ -76,7 +75,8 @@ mark{color:#201b0a;background:#e7c875;border-radius:2px}
 .terminal-footer{font:13px/1.7 var(--mono);color:var(--muted);padding:0 26px 12px;flex-shrink:0}
 .footer-line{display:flex;justify-content:space-between;align-items:baseline;gap:2ch;min-height:1.7em}
 #mode-label{min-width:0;white-space:nowrap;overflow:hidden;flex:1}
-#footer-context{white-space:nowrap;font-size:inherit}
+#footer-right{display:flex;align-items:baseline;gap:2ch;flex-shrink:0}
+#footer-context,#footer-version{white-space:nowrap;font-size:inherit}
 .terminal .footer-key{color:var(--fg);font:inherit;border:0;padding:0;line-height:inherit}
 #shortcut-help{padding:1em 0;max-height:45dvh;overflow:auto}
 #shortcut-help strong{color:var(--fg);font-weight:500}

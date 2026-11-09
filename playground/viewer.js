@@ -104,7 +104,10 @@
       if(browsing||hasSearch()||helpOpen||preview.remaining()||!$('#menu').hidden)hideCommandSuggestions();
       $('#shortcut-help').hidden=!helpOpen;
       const context=$('#footer-context');context.textContent=hasSearch()?`${matches.length?matchIndex+1:0}/${matches.length} · excerpt`:'Preview';
-      const style=getComputedStyle(host),columns=Math.max(12,Math.floor(($('.footer-line').clientWidth-context.offsetWidth-24)/(parseFloat(style.fontSize)*.61)));
+      const style=getComputedStyle(host),cell=parseFloat(style.fontSize)*.61,footer=$('.footer-line'),version=$('#footer-version');
+      version.hidden=false;
+      if(footer.clientWidth-$('#footer-right').offsetWidth-24<(browsing||hasSearch()?32:18)*cell)version.hidden=true;
+      const columns=Math.max(12,Math.floor((footer.clientWidth-$('#footer-right').offsetWidth-24)/cell));
       const hint=M.footer({columns,browsing,searchMode:searchOpen?'editing':searchReading?'reading':'closed',query,matches:matches.length,filter,
         hasDraft:!!$('#command-input').value,working:!!preview.remaining(),help:helpOpen,
         scrolled:host.scrollHeight-host.scrollTop-host.clientHeight>50,mode:M.cardMode(getSettings())});

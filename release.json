@@ -1,7 +1,7 @@
 {
   "name": "codux",
   "display_name": "Codux",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "target": "x86_64-pc-windows-msvc",
   "provisional_name": false,
   "repository": "eun0571/codux",

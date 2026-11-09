@@ -269,6 +269,8 @@ def build(lock: dict, profile: str) -> None:
     # Snapshot buffers include RGB styles. Headless CI reports less color support
     # than an interactive terminal; use a fixed capability for tests only.
     test_env = {**env, "FORCE_COLOR": "3", "INSTA_UPDATE": "no",
+                # Keep footer snapshots independent of release and patch numbers.
+                "MYCODEX_DISPLAY_VERSION": "0.0.0 (Codex test; patch 0)",
                 "RUST_MIN_STACK": str(max(8 * 1024 * 1024, int(env.get("RUST_MIN_STACK", "0"))))}
     print(f"Test thread stack: {test_env['RUST_MIN_STACK']} bytes (upstream CI minimum: 8 MiB)")
     run("cargo", "test", *check_options, "--lib", "transcript_view::mycodx::tests", cwd=rust, env=test_env)
@@ -279,6 +281,8 @@ def build(lock: dict, profile: str) -> None:
     run("cargo", "test", *check_options, "--lib", "keymap::", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "bottom_pane::shortcut_overlay::tests", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "bottom_pane::footer::tests", cwd=rust, env=test_env)
+    run("cargo", "test", *check_options, "--lib", "bottom_pane::chat_composer::footer_state::tests", cwd=rust, env=test_env)
+    run("cargo", "test", *check_options, "--lib", "bottom_pane::chat_composer::status_surface::tests", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "transcript_view::search::", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "transcript_view::footer::tests", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "transcript_view::prompt_header::tests", cwd=rust, env=test_env)
