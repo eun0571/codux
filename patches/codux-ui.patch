@@ -275,7 +275,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs b/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs
-@@ -57,6 +57,14 @@
+@@ -109,6 +109,14 @@
      (text, composer.cursor_pos_with_options(area, options))
  }
  
@@ -290,7 +290,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs 
  #[test]
  fn passive_activity_keeps_shortcuts_only_when_the_complete_hint_fits() {
      let mut composer = composer();
-@@ -72,19 +80,22 @@
+@@ -124,19 +132,22 @@
          (40, "ctrl+o t/f4 inspect activity"),
      ] {
          let (text, _) = render(&composer, width, Some(&footer));
@@ -316,7 +316,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs 
          Some("ctrl+o t/f4 inspect activity")
      );
  }
-@@ -290,7 +301,10 @@
+@@ -347,7 +358,10 @@
              /*footer*/ None,
              /*height*/ Some(8),
          );
@@ -729,7 +729,7 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
 diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
 --- a/codex-rs/tui/src/keymap.rs
 +++ b/codex-rs/tui/src/keymap.rs
-@@ -715,6 +715,20 @@
+@@ -722,6 +722,20 @@
              })
              .collect();
  
@@ -750,7 +750,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
          let app = AppKeymap {
              open_agents: resolve_bindings(
                  keymap.global.open_agents.as_ref(),
-@@ -723,7 +737,7 @@
+@@ -730,7 +744,7 @@
              )?,
              open_transcript: resolve_bindings(
                  keymap.global.open_transcript.as_ref(),
@@ -759,7 +759,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
                  "tui.keymap.global.open_transcript",
              )?,
              find_transcript: resolve_bindings(
-@@ -1691,7 +1705,7 @@
+@@ -1698,7 +1712,7 @@
          Self {
              app: AppKeymap {
                  open_agents: default_bindings![],
@@ -768,7 +768,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
                  find_transcript: default_bindings![plain(KeyCode::F(3))],
                  select_transcript: default_bindings![],
                  focus_activity: default_bindings![plain(KeyCode::F(4))],
-@@ -1710,7 +1724,8 @@
+@@ -1717,7 +1731,8 @@
                  toggle_voice: default_bindings![plain(KeyCode::F(8))],
                  toggle_voice_mute: default_bindings![plain(KeyCode::F(9))],
                  chord_hints: Arc::default(),
@@ -778,7 +778,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
                  decrease_reasoning_effort: default_bindings![
                      alt(KeyCode::Char(',')),
                      shift(KeyCode::Down)
-@@ -2971,6 +2986,29 @@
+@@ -2978,6 +2993,29 @@
      }
  
      #[test]
@@ -808,7 +808,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
      fn invalid_global_open_external_editor_binding_reports_global_path() {
          let mut keymap = TuiKeymap::default();
          keymap.global.open_external_editor = Some(one("meta-g"));
-@@ -3026,10 +3064,7 @@
+@@ -3033,10 +3071,7 @@
              vec![key_hint::ctrl(KeyCode::Char('l'))]
          );
          assert_eq!(runtime.app.toggle_fast_mode, Vec::new());
@@ -820,7 +820,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
          assert_eq!(
              runtime.chat.decrease_reasoning_effort,
              vec![
-@@ -3757,9 +3792,11 @@
+@@ -3764,9 +3799,11 @@
          expect_conflict(&keymap, "rename", "stop");
  
          keymap.agents.stop = Some(one("f10"));
@@ -833,7 +833,7 @@ diff --git a/codex-rs/tui/src/keymap.rs b/codex-rs/tui/src/keymap.rs
          keymap.global.open_agents = Some(one("f12"));
          keymap.agents.stop = Some(one("ctrl-c"));
          expect_conflict(&keymap, "stop", "fixed.interrupt_or_quit");
-@@ -3909,9 +3946,13 @@
+@@ -3916,9 +3953,13 @@
      }
  
      #[test]
@@ -1055,7 +1055,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/composer_submission.rs b/codex-rs
      let esc = KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE);
  
      chat.bottom_pane.set_task_running(/*running*/ true);
-@@ -2858,11 +2866,13 @@
+@@ -2859,11 +2867,13 @@
                      assert_eq!(chat.bottom_pane.composer_text(), "describe\nnew draft");
                  } else if scenario == "escape" || scenario == "ctrl_c" {
                      chat.on_task_started();
@@ -1089,7 +1089,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/review_mode.rs b/codex-rs/tui/src
      chat.thread_id = Some(ThreadId::new());
      handle_turn_started(&mut chat, "turn-1");
      handle_entered_review_mode(&mut chat, "feature branch");
-@@ -869,6 +874,11 @@
+@@ -870,6 +875,11 @@
  #[tokio::test]
  async fn esc_interrupt_sends_all_pending_steers_immediately_and_keeps_existing_draft() {
      let (mut chat, mut rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -1101,7 +1101,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/review_mode.rs b/codex-rs/tui/src
      chat.thread_id = Some(ThreadId::new());
      chat.on_task_started();
      chat.on_agent_message_delta("Final answer line\n".to_string());
-@@ -949,6 +959,11 @@
+@@ -950,6 +960,11 @@
  #[tokio::test]
  async fn esc_with_pending_steers_overrides_agent_command_interrupt_behavior() {
      let (mut chat, _rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -1530,7 +1530,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/shortcut_overlay_tests.rs b/codex-rs/t
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/footer_state.rs b/codex-rs/tui/src/bottom_pane/chat_composer/footer_state.rs
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/footer_state.rs
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/footer_state.rs
-@@ -99,7 +99,6 @@
+@@ -104,7 +104,6 @@
  
          FooterProps {
              mode,
@@ -1538,7 +1538,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/footer_state.rs b/codex-
              is_task_running: self.is_task_running,
              queue_submissions: self.queue_submissions,
              quit_shortcut_key: self.footer.quit_shortcut_key,
-@@ -327,6 +326,17 @@
+@@ -332,6 +331,17 @@
              shortcuts.push_span(" shortcuts".set_style(secondary_text_style()));
              if line.width() + shortcuts.width() <= usize::from(hint_area.width) {
                  line.extend(shortcuts.spans);
@@ -2015,7 +2015,7 @@ new file mode 100644
 diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pane/footer.rs
 --- a/codex-rs/tui/src/bottom_pane/footer.rs
 +++ b/codex-rs/tui/src/bottom_pane/footer.rs
-@@ -72,7 +72,7 @@
+@@ -70,7 +70,7 @@
  #[derive(Clone, Debug)]
  pub(crate) struct FooterProps {
      pub(crate) mode: FooterMode,
@@ -2024,7 +2024,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
      pub(crate) is_task_running: bool,
      pub(crate) queue_submissions: bool,
      pub(crate) collaboration_modes_enabled: bool,
-@@ -136,7 +136,7 @@
+@@ -134,7 +134,7 @@
              insert_newline: Some(key_hint::ctrl(KeyCode::Char('j')).into()),
              external_editor: Some(key_hint::ctrl(KeyCode::Char('g')).into()),
              edit_previous: Some(key_hint::plain(KeyCode::Esc).into()),
@@ -2033,7 +2033,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              find_transcript: Some(key_hint::plain(KeyCode::F(3)).into()),
              focus_activity: Some(key_hint::plain(KeyCode::F(4)).into()),
              history_search: Some(key_hint::ctrl(KeyCode::Char('r')).into()),
-@@ -740,6 +740,34 @@
+@@ -723,6 +723,34 @@
      }
  }
  
@@ -2068,7 +2068,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
  pub(crate) fn inset_footer_hint_area(mut area: Rect) -> Rect {
      if area.width > 2 {
          area.x += 2;
-@@ -800,7 +828,7 @@
+@@ -783,7 +811,7 @@
              )]
          }
          FooterMode::ShortcutOverlay => shortcut_overlay::lines(props, u16::MAX),
@@ -2077,7 +2077,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
          FooterMode::ComposerHasDraft => {
              let state = LeftSideState {
                  hint: if show_queue_hint {
-@@ -936,19 +964,13 @@
+@@ -930,19 +958,13 @@
      line
  }
  
@@ -2104,7 +2104,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
  }
  
  pub(crate) fn context_window_line(percent: Option<i64>, used_tokens: Option<i64>) -> Line<'static> {
-@@ -981,6 +1003,33 @@
+@@ -975,6 +997,33 @@
      use ratatui::Terminal;
      use ratatui::backend::Backend;
      use ratatui::backend::TestBackend;
@@ -2138,7 +2138,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
  
      #[test]
      fn voice_live_microphone_indicator_is_red() {
-@@ -1291,7 +1340,7 @@
+@@ -1286,7 +1335,7 @@
              "footer_shortcuts_default",
              FooterProps {
                  mode: FooterMode::ComposerEmpty,
@@ -2147,7 +2147,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1308,7 +1357,7 @@
+@@ -1303,7 +1352,7 @@
              "footer_shortcuts_shift_and_esc",
              FooterProps {
                  mode: FooterMode::ShortcutOverlay,
@@ -2156,7 +2156,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1328,7 +1377,7 @@
+@@ -1323,7 +1372,7 @@
              "footer_shortcuts_collaboration_modes_enabled",
              FooterProps {
                  mode: FooterMode::ShortcutOverlay,
@@ -2165,7 +2165,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: true,
-@@ -1345,7 +1394,7 @@
+@@ -1340,7 +1389,7 @@
              "footer_shortcuts_running",
              FooterProps {
                  mode: FooterMode::ShortcutOverlay,
@@ -2174,7 +2174,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: true,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1362,7 +1411,7 @@
+@@ -1357,7 +1406,7 @@
              "footer_ctrl_c_quit_idle",
              FooterProps {
                  mode: FooterMode::QuitShortcutReminder,
@@ -2183,7 +2183,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1379,7 +1428,7 @@
+@@ -1374,7 +1423,7 @@
              "footer_esc_hint_idle",
              FooterProps {
                  mode: FooterMode::EscHint,
@@ -2192,7 +2192,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1396,7 +1445,7 @@
+@@ -1391,7 +1440,7 @@
              "footer_esc_hint_primed",
              FooterProps {
                  mode: FooterMode::EscHint,
@@ -2201,7 +2201,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1413,7 +1462,7 @@
+@@ -1408,7 +1457,7 @@
              "footer_shortcuts_context_running",
              FooterProps {
                  mode: FooterMode::ComposerEmpty,
@@ -2210,7 +2210,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: true,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1432,7 +1481,7 @@
+@@ -1427,7 +1476,7 @@
              "footer_context_tokens_used",
              FooterProps {
                  mode: FooterMode::ComposerEmpty,
@@ -2219,7 +2219,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: false,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1451,7 +1500,7 @@
+@@ -1446,7 +1495,7 @@
              "footer_composer_has_draft_queue_hint_enabled",
              FooterProps {
                  mode: FooterMode::ComposerHasDraft,
@@ -2228,7 +2228,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
                  is_task_running: true,
                  queue_submissions: false,
                  collaboration_modes_enabled: false,
-@@ -1466,7 +1515,7 @@
+@@ -1461,7 +1510,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2237,7 +2237,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1494,7 +1543,7 @@
+@@ -1489,7 +1538,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2246,7 +2246,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: true,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1515,7 +1564,7 @@
+@@ -1510,7 +1559,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2255,7 +2255,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1531,7 +1580,7 @@
+@@ -1526,7 +1575,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerHasDraft,
@@ -2264,7 +2264,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: true,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1547,7 +1596,7 @@
+@@ -1542,7 +1591,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerHasDraft,
@@ -2273,7 +2273,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1563,7 +1612,7 @@
+@@ -1558,7 +1607,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2282,7 +2282,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1593,7 +1642,7 @@
+@@ -1588,7 +1637,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2291,7 +2291,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1615,7 +1664,7 @@
+@@ -1610,7 +1659,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2300,7 +2300,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1638,7 +1687,7 @@
+@@ -1633,7 +1682,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2309,7 +2309,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: true,
-@@ -1662,7 +1711,7 @@
+@@ -1661,7 +1710,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2318,7 +2318,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1678,7 +1727,7 @@
+@@ -1677,7 +1726,7 @@
  
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2327,7 +2327,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
              is_task_running: false,
              queue_submissions: false,
              collaboration_modes_enabled: false,
-@@ -1697,7 +1746,7 @@
+@@ -1696,7 +1745,7 @@
      fn footer_status_line_truncates_to_keep_mode_indicator() {
          let props = FooterProps {
              mode: FooterMode::ComposerEmpty,
@@ -2339,7 +2339,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/footer.rs b/codex-rs/tui/src/bottom_pa
 diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
 --- a/codex-rs/tui/src/app/input.rs
 +++ b/codex-rs/tui/src/app/input.rs
-@@ -597,11 +597,13 @@
+@@ -613,11 +613,13 @@
  
          let find_transcript = self.keymap.app.find_transcript.is_pressed(key_event);
          let select_transcript = self.keymap.app.select_transcript.is_pressed(key_event);
@@ -2358,7 +2358,7 @@ diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
              self.scrollback_has_older_history = self
                  .chat_widget
                  .thread_id()
-@@ -792,7 +794,9 @@
+@@ -806,7 +808,9 @@
      }
  
      pub(crate) fn should_handle_backtrack_esc(&self, key_event: KeyEvent) -> bool {
@@ -2366,10 +2366,10 @@ diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
 +        // Retained for an already-open upstream preview; Esc cannot enter one in Codux.
 +        self.backtrack.overlay_preview_active
 +            && !self.chat_widget.is_external_writer_view()
+             && !self.chat_widget.has_provider_error()
              && !self.chat_widget.side_conversation_active()
              && !self.chat_widget.shortcut_overlay_visible()
-             && self.chat_widget.is_normal_backtrack_mode()
-@@ -801,7 +805,8 @@
+@@ -816,7 +820,8 @@
      }
  
      pub(super) fn should_reject_side_backtrack_esc(&self, key_event: KeyEvent) -> bool {
@@ -2382,8 +2382,8 @@ diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
 diff --git a/codex-rs/tui/src/app.rs b/codex-rs/tui/src/app.rs
 --- a/codex-rs/tui/src/app.rs
 +++ b/codex-rs/tui/src/app.rs
-@@ -218,6 +218,7 @@
- mod backend_events;
+@@ -219,6 +219,7 @@
+ mod backend_selection;
  pub(crate) mod backend_sessions;
  mod background_requests;
 +mod codux_navigation;
@@ -4599,7 +4599,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header_tests.rs b/codex-rs/
  use pretty_assertions::assert_eq;
  use ratatui::style::Modifier;
  
-@@ -25,105 +19,146 @@
+@@ -25,108 +19,176 @@
  }
  
  #[test]
@@ -4669,7 +4669,10 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header_tests.rs b/codex-rs/
 -#[test]
 -fn header_sanitizes_controls_and_truncates_by_display_width() {
 -    let cells = vec![user("\x1b[31m界 café\r\nnext question"), cell("answer")];
--    let (line, _) = line(&cells, /*first*/ 1, /*width*/ 18).unwrap();
+-    let (line, _) = line(
+-        &cells, /*first*/ 1, /*width*/ 18, /*detailed*/ false,
+-    )
+-    .unwrap();
 -    assert!(line.width() <= 18);
 -    insta::assert_snapshot!(line.to_string());
 -}
@@ -4679,6 +4682,36 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header_tests.rs b/codex-rs/
 -    for prompt in [
 -        new_user_prompt("keep going".into(), Vec::new(), Vec::new(), Vec::new()),
 -        new_spoken_user_prompt("keep going".into()),
++fn codux_pinned_question_respects_clear_screen_boundary_and_detailed_history() {
++    use crate::history_cell::{ClearScreenHeader, SessionHeaderHistoryCell};
++
++    mycodx_ui::with_settings(Settings::web(), || {
++        let cells: Vec<Arc<dyn HistoryCell>> = vec![
++            user("Before clearing"),
++            cell("earlier answer"),
++            Arc::new(ClearScreenHeader(SessionHeaderHistoryCell::new(
++                "test-model".into(),
++                None,
++                std::path::PathBuf::from("."),
++                "test",
++            ))),
++            cell("later output"),
++            user("After clearing"),
++            cell("latest answer"),
++        ];
++        assert!(layout(&cells, 3, 80, false).is_none());
++        assert_eq!(
++            layout(&cells, 3, 80, true).unwrap().1,
++            EntryKey::cell(&cells[0])
++        );
++        assert_eq!(
++            layout(&cells, 5, 80, false).unwrap().1,
++            EntryKey::cell(&cells[4])
++        );
++    });
++}
++
++#[test]
 +fn codux_pinned_question_matches_card_palette_width_padding_and_title() {
 +    for background in [
 +        Background::Rgb(35, 63, 105),
@@ -4746,7 +4779,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header_tests.rs b/codex-rs/
 +            user("\x1b[31m界 café\r\nnext very long question"),
 +            cell("answer"),
 +        ];
-+        let (layout, _) = layout(&cells, 1, 24).unwrap();
++        let (layout, _) = layout(&cells, 1, 24, false).unwrap();
 +        assert!(!layout.text().contains(['\x1b', '\r', '\n']));
 +        assert!(layout.text().ends_with('…'));
 +        let style = mycodx_ui::current().card(Section::Questions);
@@ -4758,7 +4791,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header_tests.rs b/codex-rs/
 +            layout.row_count(),
 +            1 + usize::from(2 * style.half_rows().div_ceil(2))
 +        );
-+        assert!(super::layout(&cells, 1, 15).is_none());
++        assert!(super::layout(&cells, 1, 15, false).is_none());
 +    });
 +}
 +
@@ -4841,7 +4874,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header_tests.rs b/codex-rs/
  }
  
  #[test]
-@@ -253,7 +288,10 @@
+@@ -256,7 +318,10 @@
          } else {
              8
          };
@@ -4945,82 +4978,90 @@ new file mode 100644
 diff --git a/codex-rs/tui/src/transcript_view/footer_tests.rs b/codex-rs/tui/src/transcript_view/footer_tests.rs
 --- a/codex-rs/tui/src/transcript_view/footer_tests.rs
 +++ b/codex-rs/tui/src/transcript_view/footer_tests.rs
-@@ -437,104 +437,131 @@
+@@ -437,148 +437,185 @@
  
  #[test]
- fn activity_focus_keeps_controls_without_passive_hints() {
--    let mut cells: Vec<Arc<dyn HistoryCell>> = Vec::new();
--    let cell = Arc::new(ActivityCell::default());
--    let mut view = TranscriptView::default();
--    let render_live = |view: &mut TranscriptView| {
--        let expanded = view.sync_live_activity(&cells, cell.activity_ids());
--        view.sync_live_activity_tail(/*width*/ 32, /*key*/ None, expanded, |width| {
--            Some(ActivityTranscriptLines {
--                activity: if expanded {
--                    cell.expanded_hyperlink_lines(width)
--                } else {
--                    cell.compact_hyperlink_lines(width)
--                },
--                auxiliary: Vec::new(),
--                disclosure: cell.activity_disclosure(width),
--            })
--        });
--        render(view, &[])
--    };
--    let collapsed = render_live(&mut view);
--    let mut hints = vec![format!("collapsed\n{collapsed:?}")];
--    for width in [20, 32, 80] {
--        hints.push(format!(
--            "{width} columns: {}",
--            view.footer(width, MotionMode::Reduced).map_or_else(
--                || "<composer hints>".to_owned(),
--                |footer| footer.text.to_string()
--            ),
--        ));
--    }
--    view.handle_key(KeyEvent::new(KeyCode::F(4), KeyModifiers::NONE), &cells);
--    assert!(view.is_activity_focused());
--    hints.push(format!("focused\n{:?}", render_live(&mut view)));
--    for width in [20, 32, 80] {
--        let footer = view.footer(width, MotionMode::Reduced).unwrap();
--        assert!(footer.is_interactive);
--        hints.push(format!("focused, {width} columns: {}", footer.text));
--    }
--    view.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), &cells);
--    assert!(view.disclosure.is_expanded(&["sample-activity".to_owned()]));
--    let expanded = render_live(&mut view);
--    hints.push(format!("expanded\n{expanded:?}"));
--    let hidden = Rect::new(
--        /*x*/ 0, /*y*/ 0, /*width*/ 32, /*height*/ 0,
+ fn patch_disclosure_preserves_manual_scrolling() {
+-    let cells: Vec<Arc<dyn HistoryCell>> = vec![
+-        Arc::new(PlainHistoryCell::new(vec!["older output".into(); 20])),
+-        Arc::new(ActivityCell::default()),
+-        Arc::new(PlainHistoryCell::new(vec!["tail".into()])),
+-    ];
+-    let area = Rect::new(
+-        /*x*/ 0, /*y*/ 0, /*width*/ 32, /*height*/ 10,
 -    );
--    view.render(hidden, &mut Buffer::empty(hidden), &cells);
--    cells.push(cell.clone());
--    view.sync_live_activity(&cells, Vec::new());
--    view.sync_live_tail(/*width*/ 32, /*key*/ None, |_| None);
--    assert_eq!(render(&mut view, &cells), expanded);
--    assert!(cell.expanded_renders.swap(/*val*/ 0, Ordering::Relaxed) > 0);
--    view.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), &cells);
--    render(&mut view, &cells);
--    assert_eq!(cell.expanded_renders.load(Ordering::Relaxed), 0);
--    view.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE), &cells);
--    assert!(!view.is_activity_focused());
--
--    for configured in [
--        serde_json::json!("ctrl-x t"),
--        serde_json::json!(["ctrl-x t", "f4"]),
--        serde_json::json!([]),
--    ] {
--        let config = serde_json::from_value(serde_json::json!({
--            "global": {"focus_activity": configured}
--        }))
--        .unwrap();
--        let keymap = crate::keymap::RuntimeKeymap::from_config(&config).unwrap();
--        view.set_keymap_bindings(&keymap);
--        view.jump_to_latest();
--        render(&mut view, &cells);
--        let hint = view.footer(/*width*/ 80, MotionMode::Reduced).map_or_else(
--            || "<composer hints>".to_owned(),
--            |footer| footer.text.to_string(),
+-    for scroll_before_click in [false, true] {
+-        let mut view = TranscriptView::default();
+-        let mut buf = Buffer::empty(area);
+-        view.render(area, &mut buf, &cells);
+-        if scroll_before_click {
+-            view.scroll(&cells, /*rows*/ -1);
++    crate::mycodx_ui::with_settings(crate::mycodx_ui::Settings::comparison(), || {
++        let cells: Vec<Arc<dyn HistoryCell>> = vec![
++            Arc::new(PlainHistoryCell::new(vec!["older output".into(); 20])),
++            Arc::new(ActivityCell::default()),
++            Arc::new(PlainHistoryCell::new(vec!["tail".into()])),
++        ];
++        let area = Rect::new(
++            /*x*/ 0, /*y*/ 0, /*width*/ 32, /*height*/ 10,
++        );
++        for scroll_before_click in [false, true] {
++            let mut view = TranscriptView::default();
++            let mut buf = Buffer::empty(area);
+             view.render(area, &mut buf, &cells);
+-        }
+-        let (column, row) = crate::transcript_view::tests::text(&buf)
+-            .lines()
+-            .enumerate()
+-            .find_map(|(row, line)| line.find("+ Show details").map(|column| (column, row)))
+-            .expect("activity disclosure");
+-        view.handle_selection_mouse(
+-            MouseEvent {
+-                kind: MouseEventKind::Down(MouseButton::Left),
+-                column: column as u16,
+-                row: row as u16,
+-                modifiers: KeyModifiers::NONE,
++            if scroll_before_click {
++                view.scroll(&cells, /*rows*/ -1);
++                view.render(area, &mut buf, &cells);
++            }
++            let (column, row) = view
++                .visible
++                .iter()
++                .enumerate()
++                .find_map(|(row, visible)| {
++                    (visible.layout.disclosure_row() == Some(visible.row)).then(|| {
++                        (
++                            view.area.x + visible.layout.disclosure_columns().start,
++                            view.area.y + row as u16,
++                        )
++                    })
++                })
++                .expect("activity disclosure");
++            view.handle_selection_mouse(
++                MouseEvent {
++                    kind: MouseEventKind::Down(MouseButton::Left),
++                    column: column as u16,
++                    row: row as u16,
++                    modifiers: KeyModifiers::NONE,
++                },
++                &cells,
++                Some((codex_protocol::ThreadId::new(), "patch")),
++            );
++            assert!(view.is_activity_focused());
++            if !scroll_before_click {
++                view.scroll(&cells, /*rows*/ -1);
++            }
++            let position = view.position;
++            view.sync_patch_approval(/*current*/ None);
++            assert_eq!(view.position, position);
++            assert!(!view.is_following());
++        }
++    });
++}
++
++#[test]
++fn activity_focus_keeps_controls_without_passive_hints() {
 +    let mut settings = crate::mycodx_ui::Settings::web();
 +    settings.show_tools = true;
 +    crate::mycodx_ui::with_settings(settings, || {
@@ -5028,7 +5069,9 @@ diff --git a/codex-rs/tui/src/transcript_view/footer_tests.rs b/codex-rs/tui/src
 +            crate::terminal_probe::DefaultColors {
 +                fg: (230, 230, 230),
 +                bg: (24, 24, 24),
-+            },
+             },
+-            &cells,
+-            Some((codex_protocol::ThreadId::new(), "patch")),
 +            || {
 +                let mut cells: Vec<Arc<dyn HistoryCell>> = Vec::new();
 +                let cell = Arc::new(ActivityCell::default());
@@ -5113,6 +5156,92 @@ diff --git a/codex-rs/tui/src/transcript_view/footer_tests.rs b/codex-rs/tui/src
 +                insta::assert_snapshot!(hints.join("\n"));
 +            },
          );
+-        assert!(view.is_activity_focused());
+-        if !scroll_before_click {
+-            view.scroll(&cells, /*rows*/ -1);
+-        }
+-        let position = view.position;
+-        view.sync_patch_approval(/*current*/ None);
+-        assert_eq!(view.position, position);
+-        assert!(!view.is_following());
+-    }
+-}
+-
+-#[test]
+-fn activity_focus_keeps_controls_without_passive_hints() {
+-    let mut cells: Vec<Arc<dyn HistoryCell>> = Vec::new();
+-    let cell = Arc::new(ActivityCell::default());
+-    let mut view = TranscriptView::default();
+-    let render_live = |view: &mut TranscriptView| {
+-        let expanded = view.sync_live_activity(&cells, cell.activity_ids());
+-        view.sync_live_activity_tail(/*width*/ 32, /*key*/ None, expanded, |width| {
+-            Some(ActivityTranscriptLines {
+-                activity: if expanded {
+-                    cell.expanded_hyperlink_lines(width)
+-                } else {
+-                    cell.compact_hyperlink_lines(width)
+-                },
+-                auxiliary: Vec::new(),
+-                disclosure: cell.activity_disclosure(width),
+-            })
+-        });
+-        render(view, &[])
+-    };
+-    let collapsed = render_live(&mut view);
+-    let mut hints = vec![format!("collapsed\n{collapsed:?}")];
+-    for width in [20, 32, 80] {
+-        hints.push(format!(
+-            "{width} columns: {}",
+-            view.footer(width, MotionMode::Reduced).map_or_else(
+-                || "<composer hints>".to_owned(),
+-                |footer| footer.text.to_string()
+-            ),
+-        ));
+-    }
+-    view.handle_key(KeyEvent::new(KeyCode::F(4), KeyModifiers::NONE), &cells);
+-    assert!(view.is_activity_focused());
+-    hints.push(format!("focused\n{:?}", render_live(&mut view)));
+-    for width in [20, 32, 80] {
+-        let footer = view.footer(width, MotionMode::Reduced).unwrap();
+-        assert!(footer.is_interactive);
+-        hints.push(format!("focused, {width} columns: {}", footer.text));
+-    }
+-    view.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), &cells);
+-    assert!(view.disclosure.is_expanded(&["sample-activity".to_owned()]));
+-    let expanded = render_live(&mut view);
+-    hints.push(format!("expanded\n{expanded:?}"));
+-    let hidden = Rect::new(
+-        /*x*/ 0, /*y*/ 0, /*width*/ 32, /*height*/ 0,
+-    );
+-    view.render(hidden, &mut Buffer::empty(hidden), &cells);
+-    cells.push(cell.clone());
+-    view.sync_live_activity(&cells, Vec::new());
+-    view.sync_live_tail(/*width*/ 32, /*key*/ None, |_| None);
+-    assert_eq!(render(&mut view, &cells), expanded);
+-    assert!(cell.expanded_renders.swap(/*val*/ 0, Ordering::Relaxed) > 0);
+-    view.handle_key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE), &cells);
+-    render(&mut view, &cells);
+-    assert_eq!(cell.expanded_renders.load(Ordering::Relaxed), 0);
+-    view.handle_key(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE), &cells);
+-    assert!(!view.is_activity_focused());
+-
+-    for configured in [
+-        serde_json::json!("ctrl-x t"),
+-        serde_json::json!(["ctrl-x t", "f4"]),
+-        serde_json::json!([]),
+-    ] {
+-        let config = serde_json::from_value(serde_json::json!({
+-            "global": {"focus_activity": configured}
+-        }))
+-        .unwrap();
+-        let keymap = crate::keymap::RuntimeKeymap::from_config(&config).unwrap();
+-        view.set_keymap_bindings(&keymap);
+-        view.jump_to_latest();
+-        render(&mut view, &cells);
+-        let hint = view.footer(/*width*/ 80, MotionMode::Reduced).map_or_else(
+-            || "<composer hints>".to_owned(),
+-            |footer| footer.text.to_string(),
+-        );
 -        hints.push(format!("{configured}: {hint}"));
 -    }
 -    insta::assert_snapshot!(hints.join("\n"));
@@ -6610,7 +6739,7 @@ diff --git a/codex-rs/tui/src/history_cell/notices.rs b/codex-rs/tui/src/history
 diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
 --- a/codex-rs/cli/src/main.rs
 +++ b/codex-rs/cli/src/main.rs
-@@ -110,20 +110,27 @@
+@@ -109,20 +109,27 @@
  use codex_protocol::user_input::UserInput;
  use codex_terminal_detection::TerminalName;
  
@@ -6645,7 +6774,7 @@ diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
  )]
  struct MultitoolCli {
      #[clap(flatten)]
-@@ -182,7 +189,7 @@
+@@ -181,7 +188,7 @@
      /// Generate shell completion scripts.
      Completion(CompletionCommand),
  
@@ -6654,7 +6783,7 @@ diff --git a/codex-rs/cli/src/main.rs b/codex-rs/cli/src/main.rs
      Update,
  
      /// Diagnose local Codex installation, config, auth, and runtime health.
-@@ -799,6 +806,28 @@
+@@ -795,6 +802,28 @@
      action: UpdateAction,
      cli_executable: Option<&std::path::Path>,
  ) -> anyhow::Result<()> {
@@ -7747,7 +7876,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header.rs b/codex-rs/tui/sr
  //! The header is never transcript content, so copying, searching and exporting stay exact.
  //! A header that yields at a turn boundary stays hidden while that viewport and top row are held.
  
-@@ -15,17 +15,112 @@
+@@ -15,18 +15,113 @@
      pub(super) row: usize,
  }
  
@@ -7825,7 +7954,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header.rs b/codex-rs/tui/sr
 +            }
 +            return;
 +        }
-+        let header = layout(cells, index, viewport.width)
++        let header = layout(cells, index, viewport.width, self.detailed)
 +            .filter(|(header, _)| usize::from(viewport.height) >= header.row_count() + 3);
 +        let height = header.as_ref().map_or(0, |(header, _)| header.row_count());
 +        let (index, row) = self.move_rows(cells, index, row, height as isize);
@@ -7851,6 +7980,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header.rs b/codex-rs/tui/sr
      cells: &[Arc<dyn HistoryCell>],
      first: usize,
      width: u16,
+     detailed: bool,
 -) -> Option<(Line<'static>, EntryKey)> {
 +) -> Option<(TextLayout, EntryKey)> {
      // A prompt that is still visible supplies its own context. Only pin a preceding prompt.
@@ -7863,7 +7993,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header.rs b/codex-rs/tui/sr
      {
          return None;
      }
-@@ -36,7 +131,7 @@
+@@ -40,7 +135,7 @@
          .find_map(|(index, cell)| {
              cell.as_any()
                  .downcast_ref::<UserHistoryCell>()
@@ -7872,7 +8002,7 @@ diff --git a/codex-rs/tui/src/transcript_view/prompt_header.rs b/codex-rs/tui/sr
                  .map(|prompt| (index, prompt))
          })?;
      // Bound work even for pasted multi-megabyte prompts; sanitize before painting controls.
-@@ -50,19 +145,12 @@
+@@ -54,19 +149,12 @@
      } else {
          message
      };
@@ -7984,7 +8114,7 @@ diff --git a/codex-rs/tui/src/app/tests/recap_generation_tests.rs b/codex-rs/tui
 diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_cell/tests.rs
 --- a/codex-rs/tui/src/history_cell/tests.rs
 +++ b/codex-rs/tui/src/history_cell/tests.rs
-@@ -2313,6 +2313,8 @@
+@@ -2318,6 +2318,8 @@
  fn user_history_cell_wraps_and_prefixes_each_line_snapshot() {
      let msg = "_count_r\x1b[13;2:3uows";
      let cell = UserHistoryCell {
@@ -7993,7 +8123,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message: msg.to_string(),
          text_elements: Vec::new(),
-@@ -2337,6 +2339,8 @@
+@@ -2342,6 +2344,8 @@
      );
      let image_start = message.find("[Image #1]").unwrap();
      let cell = UserHistoryCell {
@@ -8002,7 +8132,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message,
          text_elements: vec![TextElement::new(
-@@ -2388,6 +2392,8 @@
+@@ -2393,6 +2397,8 @@
  #[test]
  fn user_history_cell_renders_remote_image_urls() {
      let cell = UserHistoryCell {
@@ -8011,7 +8141,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message: "describe these".to_string(),
          text_elements: Vec::new(),
-@@ -2409,6 +2415,8 @@
+@@ -2414,6 +2420,8 @@
  
      let placeholder = "[Image #1]";
      let cell = UserHistoryCell {
@@ -8020,7 +8150,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message: format!("{placeholder} describe these"),
          text_elements: vec![TextElement::new(
-@@ -2445,6 +2453,8 @@
+@@ -2450,6 +2458,8 @@
  #[test]
  fn user_history_cell_summarizes_inline_data_urls() {
      let mut cell = UserHistoryCell {
@@ -8029,7 +8159,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message: "describe inline image".to_string(),
          text_elements: Vec::new(),
-@@ -2471,6 +2481,8 @@
+@@ -2476,6 +2486,8 @@
  #[test]
  fn user_history_cell_numbers_multiple_remote_images() {
      let cell = UserHistoryCell {
@@ -8038,7 +8168,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message: "describe both".to_string(),
          text_elements: Vec::new(),
-@@ -2491,6 +2503,8 @@
+@@ -2496,6 +2508,8 @@
  #[test]
  fn user_history_cell_height_matches_rendered_lines_with_remote_images() {
      let cell = UserHistoryCell {
@@ -8047,7 +8177,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message: "line one\nline two".to_string(),
          text_elements: Vec::new(),
-@@ -2514,6 +2528,8 @@
+@@ -2519,6 +2533,8 @@
  #[test]
  fn user_history_cell_trims_trailing_blank_message_lines() {
      let cell = UserHistoryCell {
@@ -8056,7 +8186,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message: "line one\n\n   \n\t \n".to_string(),
          text_elements: Vec::new(),
-@@ -2535,6 +2551,8 @@
+@@ -2540,6 +2556,8 @@
  fn user_history_cell_trims_trailing_blank_message_lines_with_text_elements() {
      let message = "tokenized\n\n\n".to_string();
      let cell = UserHistoryCell {
@@ -8065,7 +8195,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message,
          text_elements: vec![TextElement::new(
-@@ -2559,6 +2577,8 @@
+@@ -2564,6 +2582,8 @@
  fn render_uses_wrapping_for_long_url_like_line() {
      let url = "https://example.test/api/v1/projects/alpha-team/releases/2026-02-17/builds/1234567890/artifacts/reports/performance/summary/detail/with/a/very/long/path/that/keeps/going/for/testing/purposes-only-and-does/not/need/to/resolve/index.html?session_id=abc123def456ghi789jkl012mno345pqr678stu901vwx234yz";
      let cell: Box<dyn HistoryCell> = Box::new(UserHistoryCell {
@@ -8074,7 +8204,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message: url.to_string(),
          text_elements: Vec::new(),
-@@ -3051,6 +3071,8 @@
+@@ -3056,6 +3076,8 @@
  #[test]
  fn wrapped_and_prefixed_cells_handle_tiny_widths() {
      let user_cell = UserHistoryCell {
@@ -8083,7 +8213,7 @@ diff --git a/codex-rs/tui/src/history_cell/tests.rs b/codex-rs/tui/src/history_c
          presentation: Default::default(),
          message: "tiny width coverage for wrapped user history".to_string(),
          text_elements: Vec::new(),
-@@ -3158,6 +3180,8 @@
+@@ -3163,6 +3185,8 @@
  
      // Build a transcript with: [UserCell, AgentMsg(head), AgentMsg(cont), AgentMsg(cont)]
      let user = Arc::new(UserHistoryCell {
@@ -8107,7 +8237,7 @@ diff --git a/codex-rs/tui/src/app/transcript_export_tests.rs b/codex-rs/tui/src/
 diff --git a/codex-rs/tui/src/app/tests.rs b/codex-rs/tui/src/app/tests.rs
 --- a/codex-rs/tui/src/app/tests.rs
 +++ b/codex-rs/tui/src/app/tests.rs
-@@ -6231,6 +6231,8 @@
+@@ -6312,6 +6312,8 @@
  
      let user_cell = |text: &str| -> Arc<dyn HistoryCell> {
          Arc::new(UserHistoryCell {
@@ -8116,7 +8246,7 @@ diff --git a/codex-rs/tui/src/app/tests.rs b/codex-rs/tui/src/app/tests.rs
              presentation: Default::default(),
              message: text.to_string(),
              text_elements: Vec::new(),
-@@ -7958,6 +7960,8 @@
+@@ -8098,6 +8100,8 @@
                       remote_image_urls: Vec<String>|
       -> Arc<dyn HistoryCell> {
          Arc::new(UserHistoryCell {
@@ -8125,7 +8255,7 @@ diff --git a/codex-rs/tui/src/app/tests.rs b/codex-rs/tui/src/app/tests.rs
              presentation: Default::default(),
              message: text.to_string(),
              text_elements,
-@@ -10200,6 +10204,8 @@
+@@ -10340,6 +10344,8 @@
      app.chat_widget
          .apply_external_edit("draft prompt".to_string());
      app.transcript_cells = vec![Arc::new(UserHistoryCell {
@@ -8185,7 +8315,7 @@ diff --git a/codex-rs/tui/src/insert_history.rs b/codex-rs/tui/src/insert_histor
 diff --git a/codex-rs/tui/src/app_backtrack.rs b/codex-rs/tui/src/app_backtrack.rs
 --- a/codex-rs/tui/src/app_backtrack.rs
 +++ b/codex-rs/tui/src/app_backtrack.rs
-@@ -516,6 +516,33 @@
+@@ -521,6 +521,33 @@
          self.transcript_view.set_highlight(/*index*/ None);
          // In case a hint is somehow still visible (e.g., race with overlay open/close).
          self.chat_widget.clear_esc_backtrack_hint();
@@ -8219,7 +8349,7 @@ diff --git a/codex-rs/tui/src/app_backtrack.rs b/codex-rs/tui/src/app_backtrack.
      }
  
      fn backtrack_selection(&self, nth_user_message: usize) -> Option<BacktrackSelection> {
-@@ -1215,6 +1242,8 @@
+@@ -1220,6 +1247,8 @@
          assert!(!has_backtrack_target(&cells));
  
          cells.push(Arc::new(UserHistoryCell {
@@ -8231,7 +8361,7 @@ diff --git a/codex-rs/tui/src/app_backtrack.rs b/codex-rs/tui/src/app_backtrack.
 diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transcript_view/input.rs
 --- a/codex-rs/tui/src/transcript_view/input.rs
 +++ b/codex-rs/tui/src/transcript_view/input.rs
-@@ -179,6 +179,34 @@
+@@ -180,6 +180,34 @@
                      ))
                  || (modifiers == KeyModifiers::NONE
                      && matches!(code, KeyCode::PageUp | KeyCode::PageDown));
@@ -8266,7 +8396,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
          }
          self.search.is_active()
              && (code == KeyCode::Esc
-@@ -344,6 +372,7 @@
+@@ -350,6 +378,7 @@
          }
          match event.kind {
              MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
@@ -8274,7 +8404,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  let direction = if event.kind == MouseEventKind::ScrollUp {
                      -1.0
                  } else {
-@@ -374,6 +403,9 @@
+@@ -380,6 +409,9 @@
                  return self.pointer_down(event, cells, mode);
              }
              MouseEventKind::Drag(MouseButton::Left) if dragging => {
@@ -8284,10 +8414,10 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  self.extend_selection(event.column, event.row);
              }
              MouseEventKind::Up(MouseButton::Left) if dragging => {
-@@ -504,22 +536,21 @@
-             && event.modifiers.is_empty()
-             && self.toggle_disclosure_at(cells, event.column, event.row)
-         {
+@@ -515,22 +547,21 @@
+             if was_following && let MouseMode::Selection(Some((thread_id, id))) = mode {
+                 self.disclosure.resume_after_approval = Some((thread_id, id.to_owned()));
+             }
 -            return Some(ViewAction::Changed);
 -        }
 -        self.disclosure.focused = None;
@@ -8312,7 +8442,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
              self.last_click = None;
              self.extend_selection(event.column, event.row);
              if let Some(selection) = &mut self.selection {
-@@ -530,6 +561,17 @@
+@@ -541,6 +572,17 @@
          }
          let clicks =
              crate::text_selection::click_count(&mut self.last_click, event.column, event.row);
@@ -8330,7 +8460,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
          if clicks >= 2
              && visible
                  .layout
-@@ -541,6 +583,9 @@
+@@ -552,6 +594,9 @@
          let link = (mode == MouseMode::Interactive && clicks == 1 && event.modifiers.is_empty())
              .then(|| self.link_at(event.column, event.row))
              .flatten();
@@ -8343,7 +8473,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
 diff --git a/codex-rs/tui/src/chatwidget/protocol.rs b/codex-rs/tui/src/chatwidget/protocol.rs
 --- a/codex-rs/tui/src/chatwidget/protocol.rs
 +++ b/codex-rs/tui/src/chatwidget/protocol.rs
-@@ -586,8 +586,20 @@
+@@ -587,8 +587,20 @@
              {
                  self.remember_realtime_delegated_reasoning_turn(&notification.turn_id);
              }
@@ -8374,7 +8504,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "app_test_support"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
@@ -8383,7 +8513,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-core",
@@ -8392,7 +8522,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-graph-store"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-protocol",
   "codex-state",
@@ -8401,7 +8531,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-identity"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
@@ -8410,7 +8540,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-message-board-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chrono",
@@ -8419,7 +8549,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-message-board-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-extension-api",
   "codex-message-board",
@@ -8428,7 +8558,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-roles"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-config",
   "codex-file-system",
@@ -8437,7 +8567,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-analytics"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-app-server-protocol",
   "codex-git-utils",
@@ -8446,7 +8576,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-ansi-escape"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "ansi-to-tui",
   "pretty_assertions",
@@ -8455,7 +8585,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-api"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "assert_matches",
@@ -8464,7 +8594,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "app_test_support",
@@ -8473,7 +8603,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-app-server",
   "codex-app-server-protocol",
@@ -8482,7 +8612,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-daemon"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "blake3",
@@ -8491,7 +8621,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-protocol"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-app-server-protocol-noop-macros",
@@ -8500,12 +8630,12 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-protocol-noop-macros"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  
  [[package]]
  name = "codex-app-server-test-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "clap",
@@ -8514,7 +8644,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-transport"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "axum",
   "base64 0.22.1",
@@ -8523,7 +8653,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-apply-patch"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "assert_cmd",
@@ -8532,7 +8662,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-arg0"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-apply-patch",
@@ -8541,7 +8671,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-async-utils"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
   "rand 0.9.3",
@@ -8550,7 +8680,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-attachment-store"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
   "serde",
@@ -8559,7 +8689,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-aws-auth"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "aws-config",
   "aws-credential-types",
@@ -8568,7 +8698,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-backend-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-api",
@@ -8577,7 +8707,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-backend-openapi-models"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "serde",
   "serde_json",
@@ -8586,7 +8716,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-build-info"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-install-context",
   "pretty_assertions",
@@ -8595,7 +8725,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-bwrap"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "cc",
   "libc",
@@ -8604,7 +8734,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-chatgpt"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "clap",
@@ -8613,7 +8743,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cli"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "app_test_support",
@@ -8622,7 +8752,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-http-client",
   "eventsource-stream",
@@ -8631,7 +8761,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "async-stream",
@@ -8640,7 +8770,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-config"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "chrono",
@@ -8649,7 +8779,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-tasks"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chrono",
@@ -8658,7 +8788,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-tasks-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chrono",
@@ -8667,7 +8797,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-tasks-mock-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "chrono",
   "codex-cloud-tasks-client",
@@ -8676,7 +8806,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-code-mode"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-code-mode-protocol",
   "codex-http-client",
@@ -8685,7 +8815,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-code-mode-host"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "axum",
@@ -8694,7 +8824,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-code-mode-protocol"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-protocol",
   "glob",
@@ -8703,615 +8833,624 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-code-mode-runtime"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "codex-code-mode-protocol",
-@@ -2816,11 +2816,11 @@
+@@ -2819,11 +2819,11 @@
  
  [[package]]
  name = "codex-collaboration-mode-templates"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  
  [[package]]
  name = "codex-config"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -2874,7 +2874,7 @@
+@@ -2877,7 +2877,7 @@
  
  [[package]]
  name = "codex-config-schema"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "clap",
-@@ -2883,7 +2883,7 @@
+@@ -2886,7 +2886,7 @@
  
  [[package]]
  name = "codex-connectors"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "arc-swap",
-@@ -2905,7 +2905,7 @@
+@@ -2908,7 +2908,7 @@
  
  [[package]]
  name = "codex-connectors-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-connectors",
   "codex-core-plugins",
-@@ -2919,7 +2919,7 @@
+@@ -2922,7 +2922,7 @@
  
  [[package]]
  name = "codex-context-fragments"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-protocol",
   "codex-protocol-test-support",
-@@ -2930,7 +2930,7 @@
+@@ -2933,7 +2933,7 @@
  
  [[package]]
  name = "codex-core"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "arc-swap",
-@@ -3080,7 +3080,7 @@
+@@ -3083,7 +3083,7 @@
  
  [[package]]
  name = "codex-core-api"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-analytics",
   "codex-app-server-protocol",
-@@ -3103,7 +3103,7 @@
+@@ -3106,7 +3106,7 @@
  
  [[package]]
  name = "codex-core-plugin-common"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-utils-absolute-path",
   "semver",
-@@ -3114,7 +3114,7 @@
+@@ -3117,7 +3117,7 @@
  
  [[package]]
  name = "codex-core-plugins"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -3171,7 +3171,7 @@
+@@ -3174,7 +3174,7 @@
  
  [[package]]
  name = "codex-diagnostics"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "libc",
   "pretty_assertions",
-@@ -3179,7 +3179,7 @@
+@@ -3182,7 +3182,7 @@
  
  [[package]]
  name = "codex-direct-tool-timing"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-utils-critical-path",
   "pretty_assertions",
-@@ -3190,7 +3190,7 @@
+@@ -3193,7 +3193,7 @@
  
  [[package]]
  name = "codex-exec"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "assert_cmd",
-@@ -3243,7 +3243,7 @@
+@@ -3246,7 +3246,7 @@
  
  [[package]]
  name = "codex-exec-server"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "arc-swap",
-@@ -3316,7 +3316,7 @@
+@@ -3319,7 +3319,7 @@
  
  [[package]]
  name = "codex-exec-server-cli"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "assert_matches",
-@@ -3356,7 +3356,7 @@
+@@ -3363,7 +3363,7 @@
  
  [[package]]
  name = "codex-exec-server-protocol"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "codex-file-system",
-@@ -3374,7 +3374,7 @@
+@@ -3381,7 +3381,7 @@
  
  [[package]]
  name = "codex-exec-server-test-support"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-exec-server",
-@@ -3389,7 +3389,7 @@
+@@ -3396,7 +3396,7 @@
  
  [[package]]
  name = "codex-execpolicy"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
-  "clap",
-@@ -3407,7 +3407,7 @@
+  "caseless",
+@@ -3416,7 +3416,7 @@
  
  [[package]]
  name = "codex-experimental-api-macros"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "proc-macro2",
   "quote",
-@@ -3416,7 +3416,7 @@
+@@ -3425,7 +3425,7 @@
  
  [[package]]
  name = "codex-extension-api"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-api",
   "codex-config",
-@@ -3439,7 +3439,7 @@
+@@ -3448,7 +3448,7 @@
  
  [[package]]
  name = "codex-extension-items"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-utils-absolute-path",
   "pretty_assertions",
-@@ -3451,7 +3451,7 @@
+@@ -3460,7 +3460,7 @@
  
  [[package]]
  name = "codex-external-agent-migration"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "chrono",
   "codex-analytics",
-@@ -3482,7 +3482,7 @@
+@@ -3491,7 +3491,7 @@
  
  [[package]]
  name = "codex-features"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-network-proxy",
   "codex-protocol",
-@@ -3496,7 +3496,7 @@
+@@ -3505,7 +3505,7 @@
  
  [[package]]
  name = "codex-feedback"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "bytes",
-@@ -3524,7 +3524,7 @@
+@@ -3533,7 +3533,7 @@
  
  [[package]]
  name = "codex-file-search"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "clap",
-@@ -3540,7 +3540,7 @@
+@@ -3549,7 +3549,7 @@
  
  [[package]]
  name = "codex-file-system"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "bytes",
   "codex-protocol",
-@@ -3554,7 +3554,7 @@
+@@ -3563,7 +3563,7 @@
  
  [[package]]
  name = "codex-file-watcher"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "notify",
   "pretty_assertions",
-@@ -3565,7 +3565,7 @@
+@@ -3574,7 +3574,7 @@
  
  [[package]]
  name = "codex-git-attribution"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-backend-client",
   "codex-extension-api",
-@@ -3578,7 +3578,7 @@
+@@ -3587,7 +3587,7 @@
  
  [[package]]
  name = "codex-git-utils"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -3606,7 +3606,7 @@
+@@ -3615,7 +3615,7 @@
  
  [[package]]
  name = "codex-goal-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -3631,7 +3631,7 @@
+@@ -3640,7 +3640,7 @@
  
  [[package]]
  name = "codex-guardian-context"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-context-fragments",
   "codex-history",
-@@ -3645,7 +3645,7 @@
+@@ -3654,7 +3654,7 @@
  
  [[package]]
  name = "codex-guardian-reviewer"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-analytics",
-@@ -3681,7 +3681,7 @@
+@@ -3690,7 +3690,7 @@
  
  [[package]]
  name = "codex-guardian-v2"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-analytics",
-@@ -3720,7 +3720,7 @@
+@@ -3729,7 +3729,7 @@
  
  [[package]]
  name = "codex-guardian-v3"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-message-board",
   "codex-protocol",
-@@ -3729,7 +3729,7 @@
+@@ -3738,7 +3738,7 @@
  
  [[package]]
  name = "codex-history"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-protocol",
-@@ -3741,7 +3741,7 @@
+@@ -3750,7 +3750,7 @@
  
  [[package]]
  name = "codex-history-notes-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-analytics",
   "codex-client",
-@@ -3767,7 +3767,7 @@
+@@ -3776,7 +3776,7 @@
  
  [[package]]
  name = "codex-home"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-extension-api",
   "codex-utils-absolute-path",
-@@ -3779,7 +3779,7 @@
+@@ -3788,7 +3788,7 @@
  
  [[package]]
  name = "codex-hooks"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "async-channel",
-@@ -3808,7 +3808,7 @@
+@@ -3817,7 +3817,7 @@
  
  [[package]]
  name = "codex-http-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "bytes",
   "codex-utils-cargo-bin",
-@@ -3848,7 +3848,7 @@
+@@ -3857,7 +3857,7 @@
  
  [[package]]
  name = "codex-image-generation-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "codex-api",
-@@ -3880,7 +3880,7 @@
+@@ -3889,7 +3889,7 @@
  
  [[package]]
  name = "codex-install-context"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-utils-absolute-path",
   "codex-utils-home-dir",
-@@ -3893,7 +3893,7 @@
+@@ -3902,7 +3902,7 @@
  
  [[package]]
  name = "codex-keyring-store"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "keyring",
   "pretty_assertions",
-@@ -3904,7 +3904,7 @@
+@@ -3913,7 +3913,7 @@
  
  [[package]]
  name = "codex-linux-sandbox"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "clap",
   "codex-core",
-@@ -3933,7 +3933,7 @@
+@@ -3942,7 +3942,7 @@
  
  [[package]]
  name = "codex-lmstudio"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-core",
   "codex-http-client",
-@@ -3947,7 +3947,7 @@
+@@ -3956,7 +3956,7 @@
  
  [[package]]
  name = "codex-login"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -3993,7 +3993,7 @@
+@@ -4004,7 +4004,7 @@
  
  [[package]]
  name = "codex-mcp"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "arc-swap",
-@@ -4037,7 +4037,7 @@
+@@ -4049,7 +4049,7 @@
  
  [[package]]
  name = "codex-mcp-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "axum",
-@@ -4070,7 +4070,7 @@
+@@ -4082,7 +4082,7 @@
  
  [[package]]
  name = "codex-memories-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-core",
   "codex-extension-api",
-@@ -4092,7 +4092,7 @@
+@@ -4104,7 +4104,7 @@
  
  [[package]]
  name = "codex-memories-read"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-protocol",
   "codex-shell-command",
-@@ -4102,7 +4102,7 @@
+@@ -4114,7 +4114,7 @@
  
  [[package]]
  name = "codex-memories-write"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -4139,7 +4139,7 @@
+@@ -4151,7 +4151,7 @@
  
  [[package]]
  name = "codex-mermaid"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "insta",
   "pretty_assertions",
-@@ -4148,7 +4148,7 @@
+@@ -4160,7 +4160,7 @@
  
  [[package]]
  name = "codex-message-board"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "caseless",
-@@ -4171,7 +4171,7 @@
+@@ -4185,7 +4185,7 @@
+ 
+ [[package]]
+ name = "codex-message-board-mcp"
+-version = "0.0.0"
++version = "0.167.0"
+ dependencies = [
+  "codex-attachment-store",
+  "codex-message-board",
+@@ -4199,7 +4199,7 @@
  
  [[package]]
  name = "codex-message-history"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-config",
   "memchr",
-@@ -4185,7 +4185,7 @@
+@@ -4213,7 +4213,7 @@
  
  [[package]]
  name = "codex-model-provider"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "chrono",
-@@ -4224,7 +4224,7 @@
+@@ -4252,7 +4252,7 @@
  
  [[package]]
  name = "codex-model-provider-info"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-client",
   "codex-http-client",
-@@ -4242,7 +4242,7 @@
+@@ -4270,7 +4270,7 @@
  
  [[package]]
  name = "codex-models-manager"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "chrono",
   "codex-http-client",
-@@ -4261,7 +4261,7 @@
+@@ -4289,7 +4289,7 @@
  
  [[package]]
  name = "codex-multi-env-copy-file"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-config",
-@@ -4287,7 +4287,7 @@
+@@ -4315,7 +4315,7 @@
  
  [[package]]
  name = "codex-mxc-sandbox"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-network-proxy",
-@@ -4308,7 +4308,7 @@
+@@ -4336,7 +4336,7 @@
  
  [[package]]
  name = "codex-network-proxy"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "aws-credential-types",
-@@ -4359,7 +4359,7 @@
+@@ -4387,7 +4387,7 @@
  
  [[package]]
  name = "codex-ollama"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "assert_matches",
   "async-stream",
-@@ -4379,7 +4379,7 @@
+@@ -4407,7 +4407,7 @@
  
  [[package]]
  name = "codex-otel"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "bytes",
   "chrono",
-@@ -4418,7 +4418,7 @@
+@@ -4446,7 +4446,7 @@
  
  [[package]]
  name = "codex-otel-trace-websocket"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "axum",
-@@ -4429,7 +4429,7 @@
+@@ -4457,7 +4457,7 @@
  
  [[package]]
  name = "codex-plugin"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-config",
   "codex-core-plugin-common",
-@@ -4444,7 +4444,7 @@
+@@ -4472,7 +4472,7 @@
  
  [[package]]
  name = "codex-plugin-host"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-utils-cargo-bin",
   "codex-utils-process",
-@@ -4461,7 +4461,7 @@
+@@ -4489,7 +4489,7 @@
  
  [[package]]
  name = "codex-process-hardening"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "libc",
   "pretty_assertions",
-@@ -4469,7 +4469,7 @@
+@@ -4497,7 +4497,7 @@
  
  [[package]]
  name = "codex-prompts"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-collaboration-mode-templates",
-@@ -4487,7 +4487,7 @@
+@@ -4515,7 +4515,7 @@
  
  [[package]]
  name = "codex-protocol"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chardetng",
-@@ -4533,14 +4533,14 @@
+@@ -4561,14 +4561,14 @@
  
  [[package]]
  name = "codex-protocol-test-support"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-protocol",
  ]
@@ -9319,232 +9458,232 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-queue-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-core",
-@@ -4561,7 +4561,7 @@
+@@ -4589,7 +4589,7 @@
  
  [[package]]
  name = "codex-realtime-webrtc"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-build-info",
-@@ -4580,7 +4580,7 @@
+@@ -4608,7 +4608,7 @@
  
  [[package]]
  name = "codex-response-debug-context"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "codex-api",
-@@ -4591,7 +4591,7 @@
+@@ -4619,7 +4619,7 @@
  
  [[package]]
  name = "codex-responses-api-proxy"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "bytes",
-@@ -4615,7 +4615,7 @@
+@@ -4643,7 +4643,7 @@
  
  [[package]]
  name = "codex-rmcp-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "axum",
-@@ -4666,7 +4666,7 @@
+@@ -4694,7 +4694,7 @@
  
  [[package]]
  name = "codex-rollout"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -4699,7 +4699,7 @@
+@@ -4727,7 +4727,7 @@
  
  [[package]]
  name = "codex-rollout-trace"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-code-mode",
-@@ -4716,7 +4716,7 @@
+@@ -4744,7 +4744,7 @@
  
  [[package]]
  name = "codex-runtime-agent-instance"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "codex-agent-identity",
-@@ -4742,7 +4742,7 @@
+@@ -4770,7 +4770,7 @@
  
  [[package]]
  name = "codex-sandboxing"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-mxc-sandbox",
-@@ -4770,7 +4770,7 @@
+@@ -4798,7 +4798,7 @@
  
  [[package]]
  name = "codex-secrets"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "age",
   "anyhow",
-@@ -4791,7 +4791,7 @@
+@@ -4819,7 +4819,7 @@
  
  [[package]]
  name = "codex-shell-command"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -4814,7 +4814,7 @@
+@@ -4842,7 +4842,7 @@
  
  [[package]]
  name = "codex-skills"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-protocol",
   "codex-shell-command",
-@@ -4831,7 +4831,7 @@
+@@ -4859,7 +4859,7 @@
  
  [[package]]
  name = "codex-skills-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "assert_matches",
   "blake3",
-@@ -4871,7 +4871,7 @@
+@@ -4899,7 +4899,7 @@
  
  [[package]]
  name = "codex-state"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "chrono",
-@@ -4900,7 +4900,7 @@
+@@ -4928,7 +4928,7 @@
  
  [[package]]
  name = "codex-stdio-to-uds"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-uds",
-@@ -4912,7 +4912,7 @@
+@@ -4940,7 +4940,7 @@
  
  [[package]]
  name = "codex-tcp-tunnel"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "bytes",
-@@ -4933,7 +4933,7 @@
+@@ -4961,7 +4961,7 @@
  
  [[package]]
  name = "codex-terminal-detection"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
   "tracing",
-@@ -4941,7 +4941,7 @@
+@@ -4969,7 +4969,7 @@
  
  [[package]]
  name = "codex-test-binary-support"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-arg0",
   "tempfile",
-@@ -4949,7 +4949,7 @@
+@@ -4977,7 +4977,7 @@
  
  [[package]]
  name = "codex-thread-manager-sample"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "clap",
-@@ -4960,7 +4960,7 @@
+@@ -4988,7 +4988,7 @@
  
  [[package]]
  name = "codex-thread-store"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "chrono",
   "codex-app-server-protocol",
-@@ -4991,7 +4991,7 @@
+@@ -5019,7 +5019,7 @@
  
  [[package]]
  name = "codex-tools"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "bitflags 2.13.1",
   "codex-attachment-store",
-@@ -5017,7 +5017,7 @@
+@@ -5045,7 +5045,7 @@
  
  [[package]]
  name = "codex-tui"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "app_test_support",
-@@ -5145,7 +5145,7 @@
+@@ -5173,7 +5173,7 @@
  
  [[package]]
  name = "codex-uds"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "async-io",
   "libc",
-@@ -5159,7 +5159,7 @@
+@@ -5187,7 +5187,7 @@
  
  [[package]]
  name = "codex-user-verification"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "block2",
-@@ -5180,7 +5180,7 @@
+@@ -5208,7 +5208,7 @@
  
  [[package]]
  name = "codex-utils-absolute-path"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "dirs",
   "dunce",
-@@ -5194,14 +5194,14 @@
+@@ -5222,14 +5222,14 @@
  
  [[package]]
  name = "codex-utils-approval-presets"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-protocol",
  ]
@@ -9552,43 +9691,43 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-audio"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "codex-protocol",
-@@ -5215,7 +5215,7 @@
+@@ -5243,7 +5243,7 @@
  
  [[package]]
  name = "codex-utils-cache"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "lru",
   "sha1 0.10.6",
-@@ -5224,7 +5224,7 @@
+@@ -5252,7 +5252,7 @@
  
  [[package]]
  name = "codex-utils-cargo-bin"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "assert_cmd",
   "runfiles",
-@@ -5233,7 +5233,7 @@
+@@ -5261,7 +5261,7 @@
  
  [[package]]
  name = "codex-utils-cli"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "clap",
   "codex-protocol",
-@@ -5245,22 +5245,22 @@
+@@ -5273,22 +5273,22 @@
  
  [[package]]
  name = "codex-utils-critical-path"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
  ]
@@ -9596,26 +9735,26 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-elapsed"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  
  [[package]]
  name = "codex-utils-fuzzy-match"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  
  [[package]]
  name = "codex-utils-git-discovery"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-git-utils",
   "codex-utils-absolute-path",
-@@ -5273,14 +5273,14 @@
+@@ -5301,14 +5301,14 @@
  
  [[package]]
  name = "codex-utils-head-tail-buffer"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
  ]
@@ -9623,115 +9762,115 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-home-dir"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-utils-absolute-path",
   "dirs",
-@@ -5290,7 +5290,7 @@
+@@ -5318,7 +5318,7 @@
  
  [[package]]
  name = "codex-utils-image"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "codex-utils-cache",
-@@ -5304,7 +5304,7 @@
+@@ -5332,7 +5332,7 @@
  
  [[package]]
  name = "codex-utils-json-to-toml"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
   "serde_json",
-@@ -5313,7 +5313,7 @@
+@@ -5341,7 +5341,7 @@
  
  [[package]]
  name = "codex-utils-oss"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-core",
   "codex-lmstudio",
-@@ -5323,7 +5323,7 @@
+@@ -5351,7 +5351,7 @@
  
  [[package]]
  name = "codex-utils-output-truncation"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-protocol",
   "codex-utils-string",
-@@ -5333,7 +5333,7 @@
+@@ -5361,7 +5361,7 @@
  
  [[package]]
  name = "codex-utils-path"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-utils-absolute-path",
   "dunce",
-@@ -5344,7 +5344,7 @@
+@@ -5372,7 +5372,7 @@
  
  [[package]]
  name = "codex-utils-path-uri"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "base64 0.22.1",
   "codex-utils-absolute-path",
-@@ -5360,7 +5360,7 @@
+@@ -5388,7 +5388,7 @@
  
  [[package]]
  name = "codex-utils-plugins"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-exec-server",
   "codex-exec-server-protocol",
-@@ -5374,7 +5374,7 @@
+@@ -5402,7 +5402,7 @@
  
  [[package]]
  name = "codex-utils-process"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
   "tokio",
-@@ -5382,7 +5382,7 @@
+@@ -5410,7 +5410,7 @@
  
  [[package]]
  name = "codex-utils-pty"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-utils-cargo-bin",
-@@ -5401,7 +5401,7 @@
+@@ -5429,7 +5429,7 @@
  
  [[package]]
  name = "codex-utils-readiness"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "assert_matches",
   "thiserror 2.0.18",
-@@ -5411,7 +5411,7 @@
+@@ -5439,7 +5439,7 @@
  
  [[package]]
  name = "codex-utils-redacted-string"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "schemars 0.8.22",
   "serde",
-@@ -5419,14 +5419,14 @@
+@@ -5447,14 +5447,14 @@
  
  [[package]]
  name = "codex-utils-rustls-provider"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "rustls",
  ]
@@ -9739,25 +9878,25 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-sandbox-summary"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-protocol",
   "codex-utils-absolute-path",
-@@ -5436,7 +5436,7 @@
+@@ -5464,7 +5464,7 @@
  
  [[package]]
  name = "codex-utils-sleep-inhibitor"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "core-foundation 0.9.4",
   "libc",
-@@ -5446,14 +5446,14 @@
+@@ -5474,14 +5474,14 @@
  
  [[package]]
  name = "codex-utils-stream-parser"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
  ]
@@ -9765,16 +9904,16 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-string"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
   "regex-lite",
-@@ -5463,14 +5463,14 @@
+@@ -5491,14 +5491,14 @@
  
  [[package]]
  name = "codex-utils-template"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
  ]
@@ -9782,70 +9921,70 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-v8-poc"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "pretty_assertions",
   "v8",
-@@ -5478,7 +5478,7 @@
+@@ -5506,7 +5506,7 @@
  
  [[package]]
  name = "codex-voice-host"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-install-context",
-@@ -5505,7 +5505,7 @@
+@@ -5533,7 +5533,7 @@
  
  [[package]]
  name = "codex-web-search-extension"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-api",
   "codex-core",
-@@ -5527,7 +5527,7 @@
+@@ -5557,7 +5557,7 @@
  
  [[package]]
  name = "codex-websocket-auth"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -5546,7 +5546,7 @@
+@@ -5576,7 +5576,7 @@
  
  [[package]]
  name = "codex-websocket-client"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-http-client",
   "codex-utils-rustls-provider",
-@@ -5562,7 +5562,7 @@
+@@ -5592,7 +5592,7 @@
  
  [[package]]
  name = "codex-windows-sandbox"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
-@@ -5592,7 +5592,7 @@
+@@ -5622,7 +5622,7 @@
  
  [[package]]
  name = "codex-windows-sandbox-service"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-cloud-config",
-@@ -5610,14 +5610,14 @@
+@@ -5640,14 +5640,14 @@
  
  [[package]]
  name = "codex-windows-sandbox-test-support"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "dirs",
  ]
@@ -9853,25 +9992,25 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-workload-identity"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "codex-http-client",
   "pretty_assertions",
-@@ -5632,7 +5632,7 @@
+@@ -5662,7 +5662,7 @@
  
  [[package]]
  name = "codex-worktree"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "codex-git-utils",
-@@ -5885,7 +5885,7 @@
+@@ -5915,7 +5915,7 @@
  
  [[package]]
  name = "core_test_support"
 -version = "0.0.0"
-+version = "0.166.0"
++version = "0.167.0"
  dependencies = [
   "anyhow",
   "assert_cmd",
@@ -9894,7 +10033,7 @@ diff --git a/codex-rs/tui/src/lib.rs b/codex-rs/tui/src/lib.rs
  mod named_session_lookup;
  mod notifications;
  #[cfg(any(not(debug_assertions), test))]
-@@ -2065,6 +2067,12 @@
+@@ -2099,6 +2101,12 @@
          config.startup_warnings.push(w);
      }
  
@@ -14483,7 +14622,7 @@ diff --git a/codex-rs/tui/src/chatwidget/settings_popups.rs b/codex-rs/tui/src/c
 diff --git a/codex-rs/tui/src/chatwidget/slash_dispatch.rs b/codex-rs/tui/src/chatwidget/slash_dispatch.rs
 --- a/codex-rs/tui/src/chatwidget/slash_dispatch.rs
 +++ b/codex-rs/tui/src/chatwidget/slash_dispatch.rs
-@@ -582,6 +582,7 @@
+@@ -577,6 +577,7 @@
              SlashCommand::Statusline => {
                  self.open_status_line_setup();
              }
@@ -14491,7 +14630,7 @@ diff --git a/codex-rs/tui/src/chatwidget/slash_dispatch.rs b/codex-rs/tui/src/ch
              SlashCommand::Config => {
                  self.open_config_panel();
              }
-@@ -1359,6 +1360,7 @@
+@@ -1354,6 +1355,7 @@
              | SlashCommand::Hooks
              | SlashCommand::Title
              | SlashCommand::Statusline
@@ -14521,7 +14660,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bo
  //!
  //! Preset submenu hints borrow slots and reflow with the composer.
  //!
-@@ -544,6 +545,7 @@
+@@ -549,6 +550,7 @@
                  | SlashCommand::Usage
                  | SlashCommand::Ide
                  | SlashCommand::DebugConfig
@@ -14529,7 +14668,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bo
                  | SlashCommand::Theme
                  | SlashCommand::Pets
                  | SlashCommand::Ps
-@@ -4777,6 +4779,11 @@
+@@ -4809,6 +4811,11 @@
                          } else {
                              Some(self.right_footer_line_with_context())
                          };
@@ -14539,12 +14678,12 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bo
 +                        right_line,
 +                    );
                      let right_width = right_line.as_ref().map(|l| l.width() as u16).unwrap_or(0);
-                     if status_line_active
+                     if status_line_visible
                          && let Some(max_left) = max_left_width_for_right(hint_rect, right_width)
 diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event_dispatch.rs
 --- a/codex-rs/tui/src/app/event_dispatch.rs
 +++ b/codex-rs/tui/src/app/event_dispatch.rs
-@@ -700,6 +700,12 @@
+@@ -742,6 +742,12 @@
                  if self.chat_widget.thread_id() != Some(thread_id) {
                      return Ok(AppRunControl::Continue);
                  }
@@ -14557,7 +14696,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
                  if self.app_server_target.uses_remote_workspace()
                      && (!prompt.local_images.is_empty()
                          || prompt.text.trim_start().starts_with(['/', '!']))
-@@ -915,6 +921,7 @@
+@@ -957,6 +963,7 @@
                  tui.frame_requester().schedule_frame();
              }
              AppEvent::EndInitialHistoryReplayBuffer => {
@@ -14565,7 +14704,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
                  self.scrollback_has_older_history = self
                      .chat_widget
                      .thread_id()
-@@ -925,6 +932,8 @@
+@@ -967,6 +974,8 @@
                  self.finish_initial_history_replay_buffer(tui);
              }
              AppEvent::ConsolidateAgentMessage {
@@ -14574,7 +14713,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
                  source,
                  copy_source,
                  cwd,
-@@ -934,7 +943,7 @@
+@@ -976,7 +985,7 @@
              } => {
                  self.handle_consolidate_agent_message(
                      tui,
@@ -14583,7 +14722,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
                      scrollback_reflow,
                      deferred_history_cell,
                  )?;
-@@ -946,8 +955,11 @@
+@@ -988,8 +997,11 @@
                  let start = trailing_run_start::<history_cell::ProposedPlanStreamCell>(
                      &self.transcript_cells,
                  );
@@ -14596,10 +14735,11 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
  
                  if start < end {
                      self.native_history.consolidate(&self.transcript_cells[start..end], &consolidated);
-@@ -3502,6 +3514,27 @@
+@@ -3565,6 +3577,27 @@
+                         self.chat_widget.report_config_save_error(message);
                      }
                  }
-             }
++            }
 +            AppEvent::MycodxUiMenu { page } => {
 +                self.chat_widget.open_custom_page(page);
 +                tui.frame_requester().schedule_frame();
@@ -14620,17 +14760,16 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
 +            AppEvent::MycodxUiPreviewed => {
 +                self.transcript_view.refresh_mycodx_ui();
 +                tui.frame_requester().schedule_frame();
-+            }
+             }
              AppEvent::SyntaxThemePreviewed => {
                  self.refresh_status_line();
-                 tui.frame_requester().schedule_frame();
 diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/owned_transcript.rs
 --- a/codex-rs/tui/src/app/owned_transcript.rs
 +++ b/codex-rs/tui/src/app/owned_transcript.rs
-@@ -77,6 +77,10 @@
-     }
+@@ -156,6 +156,10 @@
  
      fn sync_owned_transcript(&mut self, width: u16) -> bool {
+         self.transcript_view.image_protocol = self.prepare_frame_images();
 +        self.chat_widget.set_mycodx_stream_cards(
 +            !self.transcript_view.is_detailed()
 +                && self.chat_widget.history_render_mode() == HistoryRenderMode::Rich,
@@ -14638,7 +14777,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          let chat_widget = &self.chat_widget;
          let transcript_width = chat_widget.history_wrap_width(width);
          let view = &mut self.transcript_view;
-@@ -93,7 +97,11 @@
+@@ -168,7 +172,11 @@
              self.local_settings.tui.copy_on_select_clear_selection;
          view.set_keymap_bindings(&self.keymap);
          view.set_presentation(view.is_detailed(), chat_widget.history_render_mode());
@@ -14650,26 +14789,31 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          let detailed = view.is_detailed();
          let active_ids = chat_widget.active_activity_ids();
          let expanded = view.sync_live_activity(&self.transcript_cells, active_ids)
-@@ -118,6 +126,10 @@
-         tui: &mut tui::Tui,
-         screen_size: Size,
-     ) -> Result<Rect> {
-+        crate::codux_mermaid::configure(
-+            Some(tui.frame_requester()),
-+            self.local_settings.tui.animations,
-+        );
+@@ -236,6 +244,7 @@
+     ) -> PreparedConversation {
+         self.conversation_frame.inset = conversation_inset;
+         let area = self.conversation_area(viewport);
++        crate::codux_mermaid::configure(Some(frames.clone()), self.local_settings.tui.animations);
          self.chat_widget.sync_warnings(&self.transcript_cells);
          let motion = MotionMode::from_animations_enabled(
              self.local_settings.tui.animations && self.local_settings.tui.effects.shimmer,
-@@ -362,6 +374,7 @@
-                     (&bottom, bottom_area)
-                 };
-             rendered_cursor = foreground.cursor_pos(foreground_area);
-+            crate::codux_mermaid::clear_occluded_rows(frame.buffer);
-             if let Some(position) = rendered_cursor {
-                 frame.set_cursor_style(foreground.cursor_style(foreground_area));
-                 frame.set_cursor_position(position);
-@@ -503,11 +516,36 @@
+@@ -452,6 +461,7 @@
+         );
+         let first_image = frame.image_placements.len();
+         prepared.paint_foreground(frame, chat_widget, view, &bottom, bottom_area);
++        crate::codux_mermaid::clear_occluded_rows(frame.buffer);
+         let animating =
+             view.is_following() && active_key.is_some_and(|key| key.animation_tick.is_some());
+         let loading = view.is_loading_history() && motion == MotionMode::Animated;
+@@ -524,6 +534,7 @@
+             );
+         }
+         dialog.render(area, frame.buffer);
++        crate::codux_mermaid::clear_occluded_rows(frame.buffer);
+         frame.cursor_position = dialog.cursor_pos(area).map(Into::into);
+         frame.set_cursor_style(dialog.cursor_style(area));
+     }
+@@ -647,11 +658,36 @@
                  return Ok(false);
              }
          }
@@ -14706,7 +14850,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
              && (!self.chat_widget.is_in_paste_burst()
                  || self.transcript_view.is_search_editing()
                  || self.transcript_view.is_activity_focused()
-@@ -547,6 +585,15 @@
+@@ -690,6 +726,15 @@
              tui.frame_requester().schedule_frame();
              return Ok(true);
          }
@@ -14722,7 +14866,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          // Read-only Escape belongs to session navigation, even when the transcript is scrolled.
          // Search and selection still consume Escape first to dismiss their interaction.
          if let TuiEvent::Key(key) = event
-@@ -578,25 +625,6 @@
+@@ -721,25 +766,6 @@
              && self.handle_owned_backtrack_event(tui, event)?
          {
              self.request_owned_history(tui, app_server);
@@ -14774,7 +14918,7 @@ diff --git a/codex-rs/tui/src/app/tests/user_verification_routes_tests.rs b/code
 diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
 --- a/codex-rs/tui/src/app_event.rs
 +++ b/codex-rs/tui/src/app_event.rs
-@@ -1209,6 +1209,8 @@
+@@ -1218,6 +1218,8 @@
      /// `deferred_history_cell` lets callers add the final stream tail to the
      /// transcript without first writing its provisional render to scrollback.
      ConsolidateAgentMessage {
@@ -14783,7 +14927,7 @@ diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
          source: String,
          copy_source: Option<String>,
          cwd: PathBuf,
-@@ -1695,6 +1697,15 @@
+@@ -1704,6 +1706,15 @@
  
      /// Runtime syntax theme preview changed; refresh theme-derived UI colors.
      SyntaxThemePreviewed,
@@ -14815,7 +14959,7 @@ diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
  //!
  //! Slash-command parsing lives in the bottom-pane composer, but slash-command acceptance lives
  //! here. That split lets the composer stage a recall entry before clearing input while this module
-@@ -1249,7 +1249,20 @@
+@@ -1252,7 +1252,20 @@
          self.add_boxed_history(Box::new(cell));
      }
  
@@ -14837,7 +14981,7 @@ diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
          let Err(cell) = self.absorb_activity_detail(cell) else {
              return;
          };
-@@ -1730,8 +1743,8 @@
+@@ -1733,8 +1746,8 @@
      pub(crate) fn on_terminal_resize(&mut self, width: u16) {
          let had_rendered_width = self.last_rendered_width.get().is_some();
          self.last_rendered_width.set(Some(width));
@@ -15348,7 +15492,7 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
 diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_transcript.rs
 --- a/codex-rs/tui/src/thread_transcript.rs
 +++ b/codex-rs/tui/src/thread_transcript.rs
-@@ -269,7 +269,11 @@
+@@ -275,7 +275,11 @@
              cells.push(Arc::new(cell.with_async_replies(replies, cwd.as_path())));
          }
          ThreadItemPayload::AgentMessage {
@@ -15361,7 +15505,7 @@ diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_tra
          } => {
              let parsed = parse_assistant_markdown(&text, cwd.as_path());
              if !parsed.visible_markdown.trim().is_empty() {
-@@ -279,7 +283,15 @@
+@@ -285,7 +289,15 @@
                          cwd.as_path(),
                          inline_visualization_context,
                      )
@@ -15378,7 +15522,7 @@ diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_tra
                  ));
              }
          }
-@@ -303,12 +315,12 @@
+@@ -309,12 +321,12 @@
                  )));
              }
          }
@@ -15477,14 +15621,14 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let mut start = initial_start;
          let mut body = area;
          let header_position = prompt_header::SuppressedHeader {
-@@ -214,24 +244,47 @@
+@@ -214,28 +244,47 @@
              key: self.entry_key(cells, start.0),
              row: start.1,
          };
 -        if matches!(self.position, Position::Reading(_))
 +        let header = scroll_projection.as_ref().map_or_else(
 +            || {
-+                prompt_header::layout(cells, start.0, area.width)
++                prompt_header::layout(cells, start.0, area.width, self.detailed)
 +                    .map(|(layout, key)| (Arc::new(layout), key))
 +            },
 +            |projection| projection.header.clone(),
@@ -15495,11 +15639,12 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          {
              // Freezing follow must preserve a header that yielded to the next visible prompt.
              self.suppressed_prompt_header = Some(header_position);
--        } else if area.height >= 4 && prompt_header::line(cells, start.0, area.width).is_some() {
--            body = Rect::new(area.x, area.y + 1, area.width, area.height - 1);
+-        } else if area.height >= 4
+-            && prompt_header::line(cells, start.0, area.width, self.detailed).is_some()
 +        } else if let Some((header, _)) = header
 +            && area.height >= header.row_count() as u16 + 3
-+        {
+         {
+-            body = Rect::new(area.x, area.y + 1, area.width, area.height - 1);
 +            let header_height = header.row_count() as u16;
 +            body = Rect::new(
 +                area.x,
@@ -15517,12 +15662,14 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 -            // Following may advance into the next turn after reserving the header row.
 +            // Following may advance into the next turn after reserving the header card.
              start = self.start(cells);
--            if let Some((header, key)) = prompt_header::line(cells, start.0, area.width) {
+-            if let Some((header, key)) =
+-                prompt_header::line(cells, start.0, area.width, self.detailed)
+-            {
 -                let header_area = Rect::new(area.x, area.y, area.width, /*height*/ 1);
 -                header.render(header_area, buf);
 +            let header = scroll_projection.as_ref().map_or_else(
 +                || {
-+                    prompt_header::layout(cells, start.0, area.width)
++                    prompt_header::layout(cells, start.0, area.width, self.detailed)
 +                        .map(|(layout, key)| (Arc::new(layout), key))
 +                },
 +                |projection| projection.header.clone(),
@@ -15533,7 +15680,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
                  self.prompt_header_target = Some((header_area, key));
              } else {
                  body = area;
-@@ -243,6 +296,7 @@
+@@ -247,6 +296,7 @@
                  self.suppressed_prompt_header = Some(header_position);
              }
          }
@@ -15541,7 +15688,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let area = body;
          let (mut index, mut row) = start;
          let mut entry_activity_ids: Option<(usize, Arc<[String]>)> = None;
-@@ -272,8 +326,12 @@
+@@ -276,8 +326,12 @@
                  }
              };
              let row_area = Rect::new(area.x, y, area.width, /*height*/ 1);
@@ -15556,7 +15703,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              if self.highlight == Some(index) && self.selection.is_none() && !self.search.is_active()
              {
                  layout.highlight(0..layout.text().len(), row_area, buf, row);
-@@ -349,6 +407,27 @@
+@@ -353,6 +407,27 @@
          })
      }
  
@@ -15584,7 +15731,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      pub(crate) fn sync_live_activity_tail(
          &mut self,
          width: u16,
-@@ -360,9 +439,51 @@
+@@ -364,9 +439,51 @@
              .disclosure
              .keymap
              .primary_hint(crate::keymap::KeymapContext::Global, "open_transcript");
@@ -15639,7 +15786,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      }
  
      pub(crate) fn sync_live_layout(
-@@ -371,6 +492,15 @@
+@@ -375,6 +492,15 @@
          key: Option<ActiveCellTranscriptKey>,
          layout: impl FnOnce(u16) -> Option<TextLayout>,
      ) -> bool {
@@ -15655,7 +15802,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let next = key.map(|key| (width, key));
          if key.is_some_and(|key| key.cacheable) && self.live_key == next {
              return false;
-@@ -381,6 +511,16 @@
+@@ -385,6 +511,16 @@
          self.live_separated = None;
          self.live_continuation = key.is_some_and(|key| key.is_stream_continuation);
          let live = layout(width).map(Arc::new);
@@ -15672,7 +15819,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          if self.live.as_ref().map(|layout| layout.text())
              != live.as_ref().map(|layout| layout.text())
          {
-@@ -392,6 +532,20 @@
+@@ -396,6 +532,20 @@
          let changed = self.live.is_some() || live.is_some();
          self.live = live;
          changed
@@ -15693,7 +15840,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      }
  
      pub(crate) fn set_presentation(&mut self, detailed: bool, mode: HistoryRenderMode) {
-@@ -404,6 +558,7 @@
+@@ -408,6 +558,7 @@
          self.release_live_reading();
          self.cache.clear();
          self.suppressed_prompt_header = None;
@@ -15701,15 +15848,15 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.live_key = None;
          // Keep search's origin independent of either presentation's saved position.
          if self.detailed != detailed && !self.search.is_active() {
-@@ -445,6 +600,7 @@
-     }
+@@ -459,6 +610,7 @@
  
      pub(crate) fn jump_to_latest(&mut self) {
+         self.disclosure.resume_after_approval = None;
 +        self.scroll_projection = None;
          self.cancel_search();
          self.cancel_beginning();
          self.position = Position::Latest;
-@@ -462,6 +618,10 @@
+@@ -477,6 +629,10 @@
              self.cancel_beginning();
          }
          if self.area.is_empty() {
@@ -15720,7 +15867,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              return;
          }
          let current_cells = cells;
-@@ -506,15 +666,19 @@
+@@ -521,15 +677,19 @@
      }
  
      pub(crate) fn jump_to_entry(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) {
@@ -15741,7 +15888,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          });
      }
  
-@@ -593,6 +757,14 @@
+@@ -608,6 +768,14 @@
      }
  
      fn bottom_start(&mut self, cells: &[Arc<dyn HistoryCell>]) -> (usize, usize) {
@@ -15756,7 +15903,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let snapshot = self.snapshot_cells();
          let cells = snapshot.as_deref().unwrap_or(cells);
          let has_live = self.snapshot().map_or(self.live.is_some(), |snapshot| {
-@@ -606,19 +778,14 @@
+@@ -621,19 +789,14 @@
              .layout(cells, last)
              .map_or(/*default*/ 0, |l| l.row_count());
          let recap_gap = usize::from(
@@ -15781,7 +15928,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/transcript_view/disclosure.rs
 --- a/codex-rs/tui/src/transcript_view/disclosure.rs
 +++ b/codex-rs/tui/src/transcript_view/disclosure.rs
-@@ -1,33 +1,47 @@
+@@ -1,36 +1,50 @@
  //! Local activity disclosure keyed by retained tool identities, independent of text selection.
  //! Controls appear only while activity is focused; copied text and full-transcript search remain source based.
  
@@ -15793,6 +15940,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
  use crate::key_hint::KeyBindingListExt;
  use crate::keymap::ListAction;
  use crate::keymap::RuntimeKeymap;
+ use codex_protocol::ThreadId;
 -use crossterm::event::KeyEvent;
 -use ratatui::style::Modifier;
 -use ratatui::style::Style;
@@ -15804,6 +15952,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      pub(super) expanded: HashSet<String>,
 +    pub(super) collapsed: HashSet<String>,
      pub(super) focused: Option<Vec<String>>,
+     pub(super) resume_after_approval: Option<(ThreadId, String)>,
 +    pub(super) browsing: bool,
      pub(super) live_ids: Vec<String>,
      pub(super) keymap: RuntimeKeymap,
@@ -15824,6 +15973,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
              expanded: HashSet::new(),
 +            collapsed: HashSet::new(),
              focused: None,
+             resume_after_approval: None,
 +            browsing: false,
              live_ids: Vec::new(),
              keymap: RuntimeKeymap::defaults(),
@@ -15834,10 +15984,11 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          }
      }
  }
-@@ -36,23 +50,172 @@
+@@ -38,6 +52,27 @@
+ impl Disclosure {
      pub(super) fn is_expanded(&self, ids: &[String]) -> bool {
          ids.iter().any(|id| self.expanded.contains(id))
-     }
++    }
 +
 +    fn card_expanded(&self, ids: &[String], card: &crate::mycodx_ui::CardStyle) -> bool {
 +        if !card.expandable {
@@ -15858,10 +16009,13 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 +                        })
 +                        .unwrap_or_else(|| card.initially_expanded())
 +                })
-+    }
+     }
  }
  
- impl TranscriptView {
+@@ -50,20 +85,148 @@
+         }
+     }
+ 
 +    /// Update automatic disclosure at turn boundaries, leaving later manual toggles intact.
 +    pub(crate) fn sync_mycodx_turn(&mut self, cells: &[Arc<dyn HistoryCell>], running: bool) {
 +        use crate::mycodx_ui::Section;
@@ -16009,7 +16163,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          // Disclosure follows its activity into history instead of an unrelated next live tail.
          if self.snapshot().is_none()
              && let Position::Reading(anchor) = self.position
-@@ -60,28 +223,67 @@
+@@ -71,28 +234,67 @@
              && let Some(index) = self.canonical_activity_index(cells, &self.disclosure.live_ids)
              && let Some(cell) = cells.get(index)
          {
@@ -16082,7 +16236,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          )
      }
  
-@@ -98,39 +300,14 @@
+@@ -109,39 +311,14 @@
              .unwrap_or_else(|| self.activity_ids(cells, index).into())
      }
  
@@ -16128,7 +16282,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      }
  
      pub(super) fn toggle_disclosure_at(
-@@ -162,57 +339,228 @@
+@@ -173,57 +350,228 @@
          true
      }
  
@@ -16386,7 +16540,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                  }
              }
              ListAction::MoveUp
-@@ -233,23 +581,41 @@
+@@ -244,23 +592,41 @@
                      | ListAction::Accept
                      | ListAction::Cancel => unreachable!(),
                  };
@@ -16436,7 +16590,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                          break;
                      }
                      let candidate = if backwards {
-@@ -262,7 +628,6 @@
+@@ -273,7 +639,6 @@
                  }
              }
          }
@@ -16444,7 +16598,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      }
  
      pub(super) fn canonical_activity_index(
-@@ -272,6 +637,23 @@
+@@ -283,6 +648,23 @@
      ) -> Option<usize> {
          if ids.is_empty() {
              return None;
@@ -16468,7 +16622,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          }
          // A visible immutable cell resolves directly; replaced groups fall back to member IDs.
          if let Some(row) = self.visible.iter().find(|row| {
-@@ -292,18 +674,28 @@
+@@ -303,18 +685,28 @@
          })
      }
  
@@ -16500,7 +16654,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          });
          self.disclosure.focused = Some(ids);
          if !header_visible {
-@@ -313,6 +705,12 @@
+@@ -324,6 +716,12 @@
      }
  
      fn toggle_activity(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) {
@@ -16513,7 +16667,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          let ids = self.activity_ids(cells, index);
          if ids.is_empty() {
              return;
-@@ -338,11 +736,13 @@
+@@ -349,11 +747,13 @@
          }
          // Source offsets only survive an unchanged cell. Regrouped/retired live entries resolve
          // through their member IDs and anchor at their header, never a stale positional index.
@@ -16529,7 +16683,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                  Some(Anchor {
                      key: cells.get(top).map_or(EntryKey::Live, EntryKey::cell),
                      index: top,
-@@ -356,53 +756,60 @@
+@@ -367,53 +767,60 @@
                  offset: 0,
                  row_bias: 0,
              });
@@ -16961,7 +17115,7 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
              && (0..index)
                  .rev()
                  .find(|&previous| {
-@@ -274,6 +347,22 @@
+@@ -274,6 +347,30 @@
          presentation.shares_prompt_background = shares_prompt_background;
          presentation.turn_tip_space = self.turn_tip_key == Some(EntryKey::cell(cell));
          Some(self.cache.get(cell, width, presentation, || {
@@ -16969,12 +17123,20 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
 +                return layout;
 +            }
 +            if let Some(end) = tool_end {
-+                return super::mycodx::tool_layout(
-+                    &cells[index..end],
-+                    width,
-+                    action_count,
-+                    expanded,
-+                );
++                let mut layout =
++                    super::mycodx::tool_layout(&cells[index..end], width, action_count, expanded);
++                if expanded
++                    && let Some(protocol) = presentation.image_protocol
++                    && let Some(path) = cell.image_path()
++                {
++                    layout.image = crate::transcript_image::TranscriptImage::load(
++                        path.as_path(),
++                        width,
++                        protocol,
++                    )
++                    .map(Arc::new);
++                }
++                return layout;
 +            }
 +            if let (Some(section), Some(members)) = (section, &members) {
 +                return super::mycodx::message_group_layout(
@@ -16984,7 +17146,7 @@ diff --git a/codex-rs/tui/src/transcript_view/layout.rs b/codex-rs/tui/src/trans
              let mut layout =
                  cell_content_layout(cell.as_ref(), width, mode, presentation, shortcut);
              if shares_prompt_background {
-@@ -288,7 +377,9 @@
+@@ -288,7 +385,9 @@
      pub(super) fn begin_frame(&mut self) {
          self.frame = self.frame.wrapping_add(/*rhs*/ 1);
          let state = RenderState {
@@ -17025,7 +17187,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx.rs b/codex-rs/tui/src/trans
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx.rs
-@@ -0,0 +1,480 @@
+@@ -0,0 +1,485 @@
 +//! Presentation-only cards. Canonical history, tool execution and persisted source stay upstream.
 +
 +use super::*;
@@ -17122,12 +17284,6 @@ new file mode 100644
 +}
 +
 +fn tool_ids(cell: &Arc<dyn HistoryCell>) -> Vec<String> {
-+    if cell
-+        .as_any()
-+        .is::<crate::history_cell::ViewImageHistoryCell>()
-+    {
-+        return vec![format!("mycodx-image:{:?}", EntryKey::cell(cell))];
-+    }
 +    if let Some(search) = cell
 +        .as_any()
 +        .downcast_ref::<crate::history_cell::WebSearchCell>()
@@ -17139,18 +17295,29 @@ new file mode 100644
 +
 +/// Only adjacent tool cells join. Questions, answers, notices and approvals remain boundaries.
 +pub(super) fn tool_member(cells: &[Arc<dyn HistoryCell>], index: usize) -> bool {
-+    index > 0 && cells.get(index).is_some_and(is_tool) && cells.get(index - 1).is_some_and(is_tool)
++    index > 0
++        && cells
++            .get(index)
++            .is_some_and(|cell| is_tool(cell) && cell.image_path().is_none())
++        && cells
++            .get(index - 1)
++            .is_some_and(|cell| is_tool(cell) && cell.image_path().is_none())
 +}
 +
 +pub(super) fn tool_end(cells: &[Arc<dyn HistoryCell>], index: usize) -> Option<usize> {
 +    if !cells.get(index).is_some_and(is_tool) || tool_member(cells, index) {
 +        return None;
 +    }
++    // Native previews belong to one entry. Keep image tools as individual cards so
++    // adjacent images cannot disappear inside a text-only grouped layout.
++    if cells[index].image_path().is_some() {
++        return Some(index + 1);
++    }
 +    Some(
 +        index
 +            + cells[index..]
 +                .iter()
-+                .take_while(|cell| is_tool(cell))
++                .take_while(|cell| is_tool(cell) && cell.image_path().is_none())
 +                .count(),
 +    )
 +}
@@ -18142,7 +18309,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx_tests.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx_tests.rs
-@@ -0,0 +1,2581 @@
+@@ -0,0 +1,2695 @@
 +use super::*;
 +use crate::history_cell::PlainHistoryCell;
 +use crate::mycodx_ui::{Background, Section, Settings};
@@ -18477,7 +18644,8 @@ new file mode 100644
 +            let mut next = crate::mycodx_ui::current();
 +            next.show_tools = !next.show_tools;
 +            next
-+        }).unwrap();
++        })
++        .unwrap();
 +        assert!(!crate::mycodx_ui::tools_visible());
 +        let Position::Reading(anchor) = view.position else {
 +            panic!("lost reading anchor")
@@ -18491,7 +18659,8 @@ new file mode 100644
 +            let mut next = crate::mycodx_ui::current();
 +            next.show_tools = !next.show_tools;
 +            next
-+        }).unwrap();
++        })
++        .unwrap();
 +        let Position::Reading(anchor) = view.position else {
 +            panic!("lost reading anchor")
 +        };
@@ -18519,7 +18688,13 @@ new file mode 100644
 +    crate::mycodx_ui::with_settings(Settings::default(), || {
 +        let home = tempfile::tempdir().unwrap();
 +        let renders = Arc::new(AtomicUsize::new(0));
-+        let cells = vec![user("question"), progress("progress before"), tool("read", &renders), progress("progress after"), answer("final")];
++        let cells = vec![
++            user("question"),
++            progress("progress before"),
++            tool("read", &renders),
++            progress("progress after"),
++            answer("final"),
++        ];
 +        let mut view = TranscriptView::default();
 +        let area = Rect::new(0, 0, 80, 20);
 +        let mut buf = Buffer::empty(area);
@@ -18528,28 +18703,57 @@ new file mode 100644
 +        view.disclosure.focused = Some(view.activity_ids(&cells, 1));
 +        let progress_ids = view.activity_ids(&cells, 1);
 +        view.disclosure.expanded.extend(progress_ids.clone());
-+        view.position = Position::Reading(Anchor { index: 1, key: EntryKey::cell(&cells[1]), offset: 0, row_bias: 0 });
++        view.position = Position::Reading(Anchor {
++            index: 1,
++            key: EntryKey::cell(&cells[1]),
++            offset: 0,
++            row_bias: 0,
++        });
 +        view.cycle_codux_card_mode(&cells, home.path()).unwrap();
-+        assert_eq!(crate::mycodx_ui::current().card_mode(), crate::mycodx_ui::CardMode::Answers);
++        assert_eq!(
++            crate::mycodx_ui::current().card_mode(),
++            crate::mycodx_ui::CardMode::Answers
++        );
 +        assert_eq!(view.codux_focused_index(&cells), Some(4));
-+        assert!(matches!(view.position, Position::Reading(Anchor { index: 4, .. })));
++        assert!(matches!(
++            view.position,
++            Position::Reading(Anchor { index: 4, .. })
++        ));
 +        view.render(area, &mut buf, &cells);
 +        assert_eq!(renders.load(Ordering::SeqCst), 0);
 +        assert!(view.is_activity_focused());
 +        view.cycle_codux_card_mode(&cells, home.path()).unwrap();
 +        assert!(crate::mycodx_ui::tools_visible());
-+        assert!(progress_ids.iter().all(|id| view.disclosure.expanded.contains(id)));
++        assert!(
++            progress_ids
++                .iter()
++                .all(|id| view.disclosure.expanded.contains(id))
++        );
 +        view.cycle_codux_card_mode(&cells, home.path()).unwrap();
-+        assert_eq!(crate::mycodx_ui::current().card_mode(), crate::mycodx_ui::CardMode::Progress);
++        assert_eq!(
++            crate::mycodx_ui::current().card_mode(),
++            crate::mycodx_ui::CardMode::Progress
++        );
 +        crate::mycodx_ui::load(home.path()).unwrap();
-+        assert_eq!(crate::mycodx_ui::current().card_mode(), crate::mycodx_ui::CardMode::Progress);
++        assert_eq!(
++            crate::mycodx_ui::current().card_mode(),
++            crate::mycodx_ui::CardMode::Progress
++        );
 +
 +        // A hidden live intermediate card must also fall back to a visible card.
 +        view.set_mycodx_stream(true);
 +        view.set_mycodx_stream_section(crate::mycodx_ui::Section::Intermediate);
-+        view.position = Position::Reading(Anchor { index: cells.len(), key: EntryKey::Live, offset: 0, row_bias: 0 });
++        view.position = Position::Reading(Anchor {
++            index: cells.len(),
++            key: EntryKey::Live,
++            offset: 0,
++            row_bias: 0,
++        });
 +        view.cycle_codux_card_mode(&cells, home.path()).unwrap();
-+        assert!(matches!(view.position, Position::Reading(Anchor { index: 4, .. })));
++        assert!(matches!(
++            view.position,
++            Position::Reading(Anchor { index: 4, .. })
++        ));
 +    });
 +}
 +
@@ -19624,8 +19828,11 @@ new file mode 100644
 +        }];
 +        let cell = crate::history_cell::new_user_prompt(
 +            crate::async_question_reply::display_replies(&replies),
-+            vec![], vec![], vec![],
-+        ).with_async_replies(replies, Path::new("."));
++            vec![],
++            vec![],
++            vec![],
++        )
++        .with_async_replies(replies, Path::new("."));
 +        let cell: Arc<dyn HistoryCell> = Arc::new(cell);
 +        assert_eq!(section(&cell), Some(Section::Replies));
 +        let layout = message_layout(&cell, 80, true).unwrap();
@@ -19776,8 +19983,16 @@ new file mode 100644
 +        assert!(
 +            matches!(view.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left), link_x, y), &cells), Some(ViewAction::OpenLink(url)) if url == "https://example.com")
 +        );
-+        view.handle_selection_mouse(mouse(MouseEventKind::Down(MouseButton::Left), x, y), &cells);
-+        view.handle_selection_mouse(mouse(MouseEventKind::Up(MouseButton::Left), x, y), &cells);
++        view.handle_selection_mouse(
++            mouse(MouseEventKind::Down(MouseButton::Left), x, y),
++            &cells,
++            None,
++        );
++        view.handle_selection_mouse(
++            mouse(MouseEventKind::Up(MouseButton::Left), x, y),
++            &cells,
++            None,
++        );
 +        assert!(view.disclosure.focused.is_none());
 +        // The empty space beside a fitted card is not part of that card.
 +        view.handle_mouse(
@@ -20722,6 +20937,72 @@ new file mode 100644
 +            renders.load(Ordering::Relaxed)
 +        );
 +        assert_eq!(renders.load(Ordering::Relaxed), 0);
++    });
++}
++
++#[test]
++fn codux_native_image_tools_keep_each_preview_out_of_hidden_and_search_only_views() {
++    use crate::history_cell::new_view_image_tool_call;
++    use crate::pets::ImageProtocol;
++    use codex_utils_path_uri::LegacyAppPathString;
++
++    let dir = tempfile::tempdir().unwrap();
++    let path = dir.path().join("preview.png");
++    image::RgbaImage::from_pixel(160, 80, image::Rgba([255, 0, 0, 255]))
++        .save(&path)
++        .unwrap();
++    let cells: Vec<Arc<dyn HistoryCell>> = (0..2)
++        .map(|i| {
++            Arc::new(new_view_image_tool_call(
++                format!("image-{i}"),
++                LegacyAppPathString::from_string(path.to_string_lossy().into_owned()),
++            )) as Arc<dyn HistoryCell>
++        })
++        .collect();
++    crate::mycodx_ui::with_settings(Settings::comparison(), || {
++        assert_eq!(tool_end(&cells, 0), Some(1));
++        assert_eq!(tool_end(&cells, 1), Some(2));
++        let mut view = TranscriptView::default();
++        view.image_protocol = Some(ImageProtocol::Kitty);
++        let area = Rect::new(0, 0, 100, 40);
++        view.render(area, &mut Buffer::empty(area), &cells);
++        assert!(view.image_placements().is_empty());
++        for index in 0..2 {
++            let source = view.entry_layout(&cells, index, true).unwrap();
++            assert!(
++                source.image.is_none(),
++                "Search alone must not expand pixels"
++            );
++            let text = source.text().to_owned();
++            let ids = view.activity_ids(&cells, index);
++            view.disclosure.expanded.extend(ids);
++            view.cache.clear();
++            let expanded = view.layout(&cells, index).unwrap();
++            assert!(expanded.visible_image().is_some());
++            assert_eq!(expanded.text(), text);
++            assert!(expanded.rewrap(8).visible_image().is_none());
++            assert!(expanded.rewrap(8).rewrap(100).visible_image().is_some());
++        }
++        view.jump_to_latest();
++        view.render(area, &mut Buffer::empty(area), &cells);
++        assert_eq!(view.image_placements().len(), 2);
++        let inset = Rect::new(7, 5, 16, 3);
++        view.render(inset, &mut Buffer::empty(inset), &cells);
++        let placements = view.image_placements();
++        assert!(!placements.is_empty());
++        assert!(
++            placements
++                .iter()
++                .all(|p| inset.intersection(p.area) == p.area)
++        );
++    });
++    crate::mycodx_ui::with_settings(Settings::default(), || {
++        let mut view = TranscriptView::default();
++        view.image_protocol = Some(ImageProtocol::Kitty);
++        let area = Rect::new(0, 0, 100, 40);
++        view.render(area, &mut Buffer::empty(area), &cells);
++        assert!(view.image_placements().is_empty());
++        assert_eq!(view.layout(&cells, 0).unwrap().row_count(), 0);
 +    });
 +}
 diff --git a/codex-rs/tui/src/transcript_view/prompt_style_tests.rs b/codex-rs/tui/src/transcript_view/prompt_style_tests.rs

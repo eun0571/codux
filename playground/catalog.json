@@ -1,5 +1,5 @@
 {
-  "upstream_commit": "6ff1e1ca3b30fc8b914720681fcf5fe62e95f856",
+  "upstream_commit": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
   "native_sha256": {
     "codex-rs/tui/src/mycodx_ui.rs": "05789e8a20c0bec13be9da3945d9d52f47bc25689232315847fec0ddbd3a55ad",
     "codex-rs/tui/src/mycodx_style.rs": "293f05b9105478b3c74539563cb00d256ff912526436d1de727373bf1f93bc67",

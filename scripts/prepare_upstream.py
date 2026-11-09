@@ -146,6 +146,20 @@ def prepare(root, tag, repository=None, *, fetch_repository=UPSTREAM):
                 patched_sha256={name: digest(data) for name, data in after.items()})
     release["version"] = f"{major}.{minor}.{patch + 1}"
     writes = {patch_path: updated_patch, lock_path: encoded_json(lock), release_path: encoded_json(release)}
+    files = [lock["patch"], "upstream.lock.json", "release.json"]
+    catalog_path = root / "playground/catalog.json"
+    if catalog_path.exists():
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        native_hashes = {name: lock["patched_sha256"].get(name)
+                         for name in catalog["native_sha256"]}
+        if (native_hashes != catalog["native_sha256"]
+                or digest((root / "playground/palettes.js").read_bytes()) != catalog["catalog_sha256"]):
+            raise ValueError("Playground UI inputs changed; export the catalog from the candidate's native tests before publishing")
+        # The catalog is still byte-for-byte backed by the same native UI sources.
+        # Advance its provenance with the pin so the Pages verification remains valid.
+        catalog["upstream_commit"] = commit
+        writes[catalog_path] = encoded_json(catalog)
+        files.append("playground/catalog.json")
     previous = {path: path.read_bytes() for path in writes}
     try:
         for path, data in writes.items():
@@ -156,7 +170,7 @@ def prepare(root, tag, repository=None, *, fetch_repository=UPSTREAM):
         raise
     return {"tag": tag, "commit": commit, "codux_version": release["version"],
             "patch_version": revision, "checkout": str(candidate),
-            "files": [lock["patch"], "upstream.lock.json", "release.json"]}
+            "files": files}
 
 
 def main():
