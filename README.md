@@ -59,6 +59,7 @@ Edit styles by card. Within an element, **Apply to** targets the current card, s
 | F3 | Search, with Tab to switch message types |
 | F4 | Enter or leave conversation browsing |
 | Up/Down in F4 | Scroll |
+| Left in F4 | Open agents from an empty prompt; otherwise move the prompt cursor |
 | Ctrl+arrows in F4 | Select a card |
 | Enter in F4 | Fold or unfold the selected card; reveal it first if off-screen |
 | Shift+F4 | Cycle card display: Progress → Answers only → All cards |

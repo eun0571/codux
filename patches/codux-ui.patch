@@ -1910,7 +1910,7 @@ diff --git a/codex-rs/tui/src/app/codux_navigation.rs b/codex-rs/tui/src/app/cod
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/app/codux_navigation.rs
-@@ -0,0 +1,354 @@
+@@ -0,0 +1,473 @@
 +//! Codux keeps transcript navigation in the card view. Prompt edits are explicit rewinds.
 +use super::*;
 +use crate::bottom_pane::{SelectionItem, SelectionViewParams};
@@ -1990,6 +1990,125 @@ new file mode 100644
 +    use super::*;
 +    use crate::app::owned_transcript::tests::{attach_thread, user_cell};
 +    use crate::app::tests::make_test_app_with_channels;
++
++    #[tokio::test]
++    async fn codux_browsing_left_keeps_composer_agents_and_draft_navigation() -> Result<()> {
++        use crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
++
++        let (mut app, mut events, _ops) = make_test_app_with_channels().await;
++        let mut tui = crate::tui::test_support::make_test_tui()?;
++        tui.set_owned_screen(true)?;
++        let mut app_server = Box::pin(crate::start_embedded_app_server_for_picker(&app.config)).await?;
++        let init = app.chatwidget_init_for_forked_or_resumed_thread(&mut tui, app.config.clone(), None);
++        app.replace_chat_widget(ChatWidget::new_with_app_event(init));
++        attach_thread(&mut app, ThreadId::new());
++        app.transcript_cells = vec![user_cell("Question for navigation")];
++
++        for click_card in [true, false] {
++            app.transcript_view.clear_activity_focus();
++            app.render_owned_transcript(&mut tui, Size::new(80, 24))?;
++            if click_card {
++                let buffer = crate::custom_terminal::test_support::last_rendered_buffer(&tui.terminal);
++                let position = buffer
++                    .area
++                    .positions()
++                    .find(|position| buffer[*position].symbol() == "Q")
++                    .expect("question card");
++                for kind in [
++                    MouseEventKind::Down(MouseButton::Left),
++                    MouseEventKind::Up(MouseButton::Left),
++                ] {
++                    app.handle_tui_event(
++                        &mut tui,
++                        &mut app_server,
++                        TuiEvent::Mouse(MouseEvent {
++                            kind,
++                            column: position.x,
++                            row: position.y,
++                            modifiers: KeyModifiers::NONE,
++                        }),
++                    )
++                    .await?;
++                }
++            } else {
++                app.handle_tui_event(
++                    &mut tui,
++                    &mut app_server,
++                    TuiEvent::Key(KeyCode::F(4).into()),
++                )
++                .await?;
++            }
++            assert!(app.transcript_view.is_activity_focused());
++            let focused = app
++                .transcript_view
++                .codux_focused_index(&app.transcript_cells);
++            assert_eq!(focused, Some(0));
++            assert!(
++                !app.transcript_view
++                    .owns_interaction_key(KeyCode::Left.into())
++            );
++            while events.try_recv().is_ok() {}
++
++            // Key holds and card navigation must not open the agents panel.
++            for key in [
++                KeyEvent::new_with_kind(KeyCode::Left, KeyModifiers::NONE, KeyEventKind::Repeat),
++                KeyEvent::new_with_kind(KeyCode::Left, KeyModifiers::NONE, KeyEventKind::Release),
++                KeyEvent::new(KeyCode::Left, KeyModifiers::CONTROL),
++            ] {
++                app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(key))
++                    .await?;
++            }
++            assert!(
++                !std::iter::from_fn(|| events.try_recv().ok())
++                    .any(|event| matches!(event, AppEvent::OpenAgentsOverview))
++            );
++
++            app.handle_tui_event(
++                &mut tui,
++                &mut app_server,
++                TuiEvent::Key(KeyCode::Left.into()),
++            )
++            .await?;
++            let event = std::iter::from_fn(|| events.try_recv().ok())
++                .find(|event| matches!(event, AppEvent::OpenAgentsOverview))
++                .expect("Left opens agents from card browsing");
++            app.handle_event(&mut tui, &mut app_server, event).await?;
++            assert!(app.chat_widget.active_view_is(AGENTS_OVERVIEW_VIEW_ID));
++            app.handle_tui_event(
++                &mut tui,
++                &mut app_server,
++                TuiEvent::Key(KeyCode::Esc.into()),
++            )
++            .await?;
++            assert!(!app.chat_widget.has_active_modal());
++            assert!(app.transcript_view.is_activity_focused());
++            assert_eq!(
++                app.transcript_view
++                    .codux_focused_index(&app.transcript_cells),
++                focused
++            );
++        }
++
++        // Delegate through the composer, so a nonempty draft still owns cursor movement.
++        while events.try_recv().is_ok() {}
++        app.chat_widget.apply_external_edit("ab".into());
++        app.handle_tui_event(
++            &mut tui,
++            &mut app_server,
++            TuiEvent::Key(KeyCode::Left.into()),
++        )
++        .await?;
++        app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Paste("!".into()))
++            .await?;
++        assert_eq!(app.chat_widget.composer_text_with_pending(), "a!b");
++        assert!(
++            !std::iter::from_fn(|| events.try_recv().ok())
++                .any(|event| matches!(event, AppEvent::OpenAgentsOverview))
++        );
++        app_server.shutdown().await?;
++        tui.set_owned_screen(false)?;
++        Ok(())
++    }
 +
 +    #[tokio::test]
 +    async fn codux_rewind_defaults_to_cancel_preserves_attachments_and_guards_drafts() {
@@ -8614,7 +8733,7 @@ diff --git a/codex-rs/tui/src/app_backtrack.rs b/codex-rs/tui/src/app_backtrack.
 diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transcript_view/input.rs
 --- a/codex-rs/tui/src/transcript_view/input.rs
 +++ b/codex-rs/tui/src/transcript_view/input.rs
-@@ -180,6 +180,34 @@
+@@ -180,6 +180,33 @@
                      ))
                  || (modifiers == KeyModifiers::NONE
                      && matches!(code, KeyCode::PageUp | KeyCode::PageDown));
@@ -8628,7 +8747,6 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
 +                        | KeyCode::Enter
 +                        | KeyCode::Up
 +                        | KeyCode::Down
-+                        | KeyCode::Left
 +                        | KeyCode::Right
 +                        | KeyCode::PageUp
 +                        | KeyCode::PageDown
@@ -8649,7 +8767,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
          }
          self.search.is_active()
              && (code == KeyCode::Esc
-@@ -333,11 +361,17 @@
+@@ -333,11 +360,17 @@
                  .map(ViewAction::OpenLink);
          }
          let inside = self.area.contains(point);
@@ -8668,7 +8786,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
              return None;
          }
          // Wheel navigation supersedes the last drag position. A real drag event can resume it.
-@@ -350,6 +384,7 @@
+@@ -350,6 +383,7 @@
          }
          match event.kind {
              MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
@@ -8676,7 +8794,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  let direction = if event.kind == MouseEventKind::ScrollUp {
                      -1.0
                  } else {
-@@ -380,6 +415,9 @@
+@@ -380,6 +414,9 @@
                  return self.pointer_down(event, cells, mode);
              }
              MouseEventKind::Drag(MouseButton::Left) if dragging => {
@@ -8686,7 +8804,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  self.extend_selection(event.column, event.row);
              }
              MouseEventKind::Up(MouseButton::Left) if dragging => {
-@@ -515,22 +553,21 @@
+@@ -515,22 +552,21 @@
              if was_following && let MouseMode::Selection(Some((thread_id, id))) = mode {
                  self.disclosure.resume_after_approval = Some((thread_id, id.to_owned()));
              }
@@ -8714,7 +8832,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
              self.last_click = None;
              self.extend_selection(event.column, event.row);
              if let Some(selection) = &mut self.selection {
-@@ -541,6 +578,17 @@
+@@ -541,6 +577,17 @@
          }
          let clicks =
              crate::text_selection::click_count(&mut self.last_click, event.column, event.row);
@@ -8732,7 +8850,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
          if clicks >= 2
              && visible
                  .layout
-@@ -552,6 +600,9 @@
+@@ -552,6 +599,9 @@
          let link = (mode == MouseMode::Interactive && clicks == 1 && event.modifiers.is_empty())
              .then(|| self.link_at(event.column, event.row))
              .flatten();
@@ -16566,7 +16684,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      }
  
      pub(super) fn toggle_disclosure_at(
-@@ -173,57 +350,228 @@
+@@ -173,57 +350,231 @@
          true
      }
  
@@ -16691,7 +16809,10 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 +                }
 +                KeyCode::Home => self.jump_to_beginning(cells),
 +                KeyCode::End => self.jump_to_latest(),
-+                KeyCode::Left | KeyCode::Right => {}
++                // Preserve the composer's Left behavior (including "for agents") while
++                // retaining the selected card for when the user returns to the transcript.
++                KeyCode::Left => return None,
++                KeyCode::Right => {}
 +                KeyCode::Enter => {
 +                    if key.kind != KeyEventKind::Repeat {
 +                        if self.disclosure.focused.is_none() {
@@ -16824,7 +16945,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                  }
              }
              ListAction::MoveUp
-@@ -244,23 +592,41 @@
+@@ -244,23 +595,41 @@
                      | ListAction::Accept
                      | ListAction::Cancel => unreachable!(),
                  };
@@ -16874,7 +16995,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                          break;
                      }
                      let candidate = if backwards {
-@@ -273,7 +639,6 @@
+@@ -273,7 +642,6 @@
                  }
              }
          }
@@ -16882,7 +17003,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      }
  
      pub(super) fn canonical_activity_index(
-@@ -283,6 +648,23 @@
+@@ -283,6 +651,23 @@
      ) -> Option<usize> {
          if ids.is_empty() {
              return None;
@@ -16906,7 +17027,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          }
          // A visible immutable cell resolves directly; replaced groups fall back to member IDs.
          if let Some(row) = self.visible.iter().find(|row| {
-@@ -303,18 +685,28 @@
+@@ -303,18 +688,28 @@
          })
      }
  
@@ -16938,7 +17059,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          });
          self.disclosure.focused = Some(ids);
          if !header_visible {
-@@ -324,6 +716,12 @@
+@@ -324,6 +719,12 @@
      }
  
      fn toggle_activity(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) {
@@ -16951,7 +17072,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          let ids = self.activity_ids(cells, index);
          if ids.is_empty() {
              return;
-@@ -349,11 +747,13 @@
+@@ -349,11 +750,13 @@
          }
          // Source offsets only survive an unchanged cell. Regrouped/retired live entries resolve
          // through their member IDs and anchor at their header, never a stale positional index.
@@ -16967,7 +17088,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                  Some(Anchor {
                      key: cells.get(top).map_or(EntryKey::Live, EntryKey::cell),
                      index: top,
-@@ -367,53 +767,60 @@
+@@ -367,53 +770,60 @@
                  offset: 0,
                  row_bias: 0,
              });
@@ -18593,7 +18714,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx_tests.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx_tests.rs
-@@ -0,0 +1,2806 @@
+@@ -0,0 +1,2855 @@
 +use super::*;
 +use crate::history_cell::PlainHistoryCell;
 +use crate::mycodx_ui::{Background, Section, Settings};
@@ -18970,6 +19091,55 @@ new file mode 100644
 +        assert!(view.is_activity_focused());
 +        assert!(view.handle_key(KeyCode::Char('x').into(), &cells).is_none());
 +        assert!(!view.is_activity_focused());
++    });
++}
++
++#[test]
++fn codux_left_yields_to_composer_but_keeps_selection_and_search_ownership() {
++    crate::mycodx_ui::with_settings(Settings::comparison(), || {
++        let cells = vec![user("question"), answer("answer text")];
++        let area = Rect::new(0, 0, 80, 12);
++        let mut view = TranscriptView::default();
++        view.render(area, &mut Buffer::empty(area), &cells);
++        view.handle_key(KeyCode::F(4).into(), &cells);
++        let focused = view.disclosure.focused.clone();
++        let position = view.position;
++        assert!(!view.owns_interaction_key(KeyCode::Left.into()));
++        assert!(view.handle_key(KeyCode::Left.into(), &cells).is_none());
++        assert_eq!(view.disclosure.focused, focused);
++        assert_eq!(view.position, position);
++        let move_card = KeyEvent::new(KeyCode::Left, KeyModifiers::CONTROL);
++        assert!(view.owns_interaction_key(move_card));
++        assert!(view.handle_key(move_card, &cells).is_some());
++
++        // A search edit keeps its own caret; Left must not open agents underneath it.
++        view.begin_search();
++        view.paste_search("answer");
++        assert!(view.handle_key(KeyCode::Left.into(), &cells).is_some());
++        assert!(view.is_search_editing());
++        view.cancel_search();
++
++        // A mouse text selection keeps Left for moving the selection endpoint.
++        view.render(area, &mut Buffer::empty(area), &cells);
++        let (row, visible) = view
++            .visible
++            .iter()
++            .enumerate()
++            .find(|(_, visible)| visible.row == visible.layout.row_for_offset(0))
++            .unwrap();
++        let x = view.area.x + visible.layout.column_for_offset(0);
++        let y = view.area.y + row as u16;
++        view.begin_selection(&cells, x, y, 1);
++        view.extend_selection(x + 4, y);
++        view.end_drag();
++        assert!(view.has_selection_range());
++        assert!(view.owns_interaction_key(KeyCode::Left.into()));
++        assert!(view.handle_key(KeyCode::Left.into(), &cells).is_some());
++        view.end_selection(&cells);
++
++        assert!(view.begin_select_mode(&cells));
++        assert!(view.owns_interaction_key(KeyCode::Left.into()));
++        assert!(view.handle_key(KeyCode::Left.into(), &cells).is_some());
 +    });
 +}
 +
