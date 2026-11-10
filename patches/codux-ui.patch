@@ -1,3 +1,256 @@
+diff --git a/codex-rs/tui/src/custom_terminal.rs b/codex-rs/tui/src/custom_terminal.rs
+--- a/codex-rs/tui/src/custom_terminal.rs
++++ b/codex-rs/tui/src/custom_terminal.rs
+@@ -69,7 +69,7 @@
+ pub struct Frame<'a> {
+     /// Where should the cursor be after drawing this frame?
+     ///
+-    /// If `None`, the cursor is hidden and its position is controlled by the backend. If `Some((x,
++    /// If `None`, the cursor is hidden and kept at its previous input position. If `Some((x,
+     /// y))`, the cursor is shown and placed at `(x, y)` after the call to `Terminal::draw()`.
+     pub(crate) cursor_position: Option<Position>,
+ 
+@@ -388,6 +388,12 @@
+         if screen_size != self.last_known_screen_size {
+             self.resize(screen_size)?;
+         }
++        // IME composition follows the hardware cursor even when it is hidden. Selection
++        // frames must not leave it at the last repainted highlight in the transcript.
++        let parked_cursor = Position {
++            x: self.last_known_cursor_pos.x.min(screen_size.width.saturating_sub(1)),
++            y: self.last_known_cursor_pos.y.min(screen_size.height.saturating_sub(1)),
++        };
+         let mut frame = self.get_frame();
+ 
+         render_callback(&mut frame);
+@@ -429,6 +435,9 @@
+                     }
+                 })
+             });
++        let restore_hidden_cursor = !updates.is_empty()
++            || repaint_images
++            || self.last_known_cursor_pos != parked_cursor;
+         if !updates.is_empty() && !self.hidden_cursor {
+             self.hide_cursor()?;
+         }
+@@ -445,8 +454,14 @@
+         }
+ 
+         match cursor_position {
+-            None if !self.hidden_cursor => self.hide_cursor()?,
+-            None => {}
++            None => {
++                if !self.hidden_cursor {
++                    self.hide_cursor()?;
++                }
++                if restore_hidden_cursor && screen_size.width > 0 && screen_size.height > 0 {
++                    self.set_cursor_position(parked_cursor)?;
++                }
++            }
+             Some(position) => {
+                 self.set_cursor_style_with_repair(cursor_style)?;
+                 self.set_cursor_position(position)?;
+diff --git a/codex-rs/tui/src/custom_terminal/tests/cursor_tests.rs b/codex-rs/tui/src/custom_terminal/tests/cursor_tests.rs
+--- a/codex-rs/tui/src/custom_terminal/tests/cursor_tests.rs
++++ b/codex-rs/tui/src/custom_terminal/tests/cursor_tests.rs
+@@ -1,6 +1,60 @@
+ use super::*;
+ use crate::terminal_palette::rgb_color;
+ use pretty_assertions::assert_eq;
++
++#[test]
++fn codux_hidden_cursor_keeps_ime_anchor_while_transcript_selection_changes() {
++    let mut terminal = Terminal::with_options(CaptureBackend::new(40, 8)).expect("terminal");
++    terminal.set_viewport_area(Rect::new(0, 0, 40, 8));
++    let mut parser = vt100::Parser::new(8, 40, 0);
++    for (index, highlight) in [None, Some(3), Some(18), Some(9), None]
++        .into_iter()
++        .enumerate()
++    {
++        terminal.backend_mut().output.clear();
++        terminal
++            .draw(|frame| {
++                frame
++                    .buffer_mut()
++                    .set_string(0, 6, "draft: \u{d55c}\u{ae00}", Style::default());
++                frame.buffer_mut().set_string(
++                    0,
++                    1,
++                    "select text in the transcript",
++                    Style::default(),
++                );
++                if let Some(column) = highlight {
++                    frame.buffer_mut()[(column, 1)].set_bg(Color::Blue);
++                } else {
++                    frame.set_cursor_position((11, 6));
++                }
++            })
++            .expect("draw");
++        parser.process(&terminal.backend().output);
++        assert_eq!(parser.screen().cursor_position(), (6, 11), "frame {index}");
++        assert_eq!(parser.screen().hide_cursor(), highlight.is_some());
++        assert!(
++            parser
++                .screen()
++                .contents()
++                .contains("draft: \u{d55c}\u{ae00}")
++        );
++    }
++}
++
++#[test]
++fn codux_hidden_cursor_anchor_stays_inside_a_resized_terminal() {
++    let mut terminal = Terminal::with_options(CaptureBackend::new(40, 8)).expect("terminal");
++    terminal.set_viewport_area(Rect::new(0, 0, 40, 8));
++    terminal
++        .draw(|frame| frame.set_cursor_position((30, 6)))
++        .expect("draw");
++    terminal
++        .draw_with_size(Size::new(20, 4), &mut Vec::new(), |_| {})
++        .expect("resize");
++    assert!(terminal.hidden_cursor);
++    assert_eq!(terminal.last_known_cursor_pos, Position::new(19, 3));
++}
+ 
+ #[test]
+ fn terminal_draw_keeps_intermediate_cursor_positions_hidden() {
+diff --git a/codex-rs/tui/src/app/owned_transcript_input_tests.rs b/codex-rs/tui/src/app/owned_transcript_input_tests.rs
+--- a/codex-rs/tui/src/app/owned_transcript_input_tests.rs
++++ b/codex-rs/tui/src/app/owned_transcript_input_tests.rs
+@@ -19,6 +19,133 @@
+ use crossterm::event::MouseEvent;
+ use crossterm::event::MouseEventKind;
+ use pretty_assertions::assert_eq;
++
++#[tokio::test]
++async fn codux_working_body_wheel_reaches_previous_turn_through_composer_routing() -> Result<()> {
++    let mut app = crate::app::test_support::make_test_app().await;
++    let thread_id = ThreadId::new();
++    attach_thread(&mut app, thread_id);
++    app.chat_widget.handle_server_notification(
++        ServerNotification::TurnStarted(TurnStartedNotification {
++            thread_id: thread_id.to_string(),
++            turn: Turn {
++                id: "scrolling-turn".into(),
++                root_turn_id: None,
++                items_view: TurnItemsView::Full,
++                items: vec![],
++                status: TurnStatus::InProgress,
++                error: None,
++                started_at: None,
++                completed_at: None,
++                duration_ms: None,
++            },
++        }),
++        None,
++    );
++    app.transcript_cells = vec![
++        super::tests::user_cell("Oldest visible question"),
++        Arc::new(crate::history_cell::AgentMarkdownCell::new(
++            "previous answer paragraph\n\n".repeat(30),
++            std::path::Path::new("."),
++        )),
++        super::tests::user_cell("Current question"),
++    ];
++    crate::chatwidget::tests::helpers::set_active_cell(
++        &mut app.chat_widget,
++        Box::new(
++            crate::history_cell::AgentMarkdownCell::new(
++                "current intermediate paragraph\n\n".repeat(30),
++                std::path::Path::new("."),
++            )
++            .with_mycodx_final_answer(false)
++            .with_mycodx_id(Some("mycodx-message:working-wheel".into())),
++        ),
++    );
++    let mut server = Box::pin(crate::start_embedded_app_server_for_picker(&app.config)).await?;
++    let mut tui = crate::tui::test_support::make_test_tui()?;
++    tui.set_owned_screen(true)?;
++    let size = Size::new(80, 24);
++    app.render_owned_transcript(&mut tui, size)?;
++    let mut reached_oldest = false;
++    for _ in 0..250 {
++        assert!(app.chat_widget.is_agent_turn_running());
++        app.handle_owned_transcript_event(
++            &mut tui,
++            &mut server,
++            &TuiEvent::Mouse(MouseEvent {
++                kind: MouseEventKind::ScrollUp,
++                column: 30,
++                row: 6,
++                modifiers: KeyModifiers::NONE,
++            }),
++        )?;
++        app.render_owned_transcript(&mut tui, size)?;
++        let buffer = crate::custom_terminal::test_support::last_rendered_buffer(&tui.terminal);
++        if super::tests::buffer_text(buffer).contains("Oldest visible question") {
++            reached_oldest = true;
++            break;
++        }
++    }
++    server.shutdown().await?;
++    tui.set_owned_screen(false)?;
++    assert!(
++        reached_oldest,
++        "working body scroll never reached the previous turn"
++    );
++    Ok(())
++}
++
++#[tokio::test]
++async fn codux_transcript_drag_preserves_hidden_prompt_cursor_and_korean_draft() -> Result<()> {
++    let mut app = crate::app::test_support::make_test_app().await;
++    let mut tui = crate::tui::test_support::make_test_tui()?;
++    tui.set_owned_screen(true)?;
++    let size = Size::new(80, 12);
++    app.transcript_cells = vec![Arc::new(PlainHistoryCell::new(vec![
++        "select this transcript".into(),
++    ]))];
++    app.chat_widget
++        .apply_external_edit("\u{d55c}\u{ae00} \u{c785}\u{b825} \u{c911}".to_owned());
++    app.render_owned_transcript(&mut tui, size)?;
++    let input_cursor = tui.terminal.last_known_cursor_pos;
++    let buffer = crate::custom_terminal::test_support::last_rendered_buffer(&tui.terminal);
++    let start = buffer
++        .area
++        .positions()
++        .find(|pos| buffer[*pos].symbol() == "s")
++        .expect("transcript text");
++    for (kind, column) in [
++        (MouseEventKind::Down(MouseButton::Left), start.x),
++        (MouseEventKind::Drag(MouseButton::Left), start.x + 6),
++        (MouseEventKind::Drag(MouseButton::Left), start.x + 10),
++        (MouseEventKind::Up(MouseButton::Left), start.x + 10),
++    ] {
++        app.transcript_view.handle_mouse(
++            MouseEvent {
++                kind,
++                column,
++                row: start.y,
++                modifiers: KeyModifiers::NONE,
++            },
++            &app.transcript_cells,
++        );
++        app.render_owned_transcript(&mut tui, size)?;
++        assert_eq!(tui.terminal.last_known_cursor_pos, input_cursor, "{kind:?}");
++        assert_eq!(
++            app.chat_widget.composer_text_with_pending(),
++            "\u{d55c}\u{ae00} \u{c785}\u{b825} \u{c911}"
++        );
++    }
++    assert!(tui.terminal.hidden_cursor);
++    assert_eq!(
++        app.transcript_view
++            .selected_text(&app.transcript_cells)
++            .as_deref(),
++        Some("select thi")
++    );
++    tui.set_owned_screen(false)?;
++    Ok(())
++}
+ 
+ async fn select_transcript(
+     app: &mut App,
 diff --git a/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__input_tests__raw_paste_burst_render.snap b/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__input_tests__raw_paste_burst_render.snap
 --- a/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__input_tests__raw_paste_burst_render.snap
 +++ b/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__input_tests__raw_paste_burst_render.snap
@@ -8396,7 +8649,26 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
          }
          self.search.is_active()
              && (code == KeyCode::Esc
-@@ -350,6 +378,7 @@
+@@ -333,11 +361,17 @@
+                 .map(ViewAction::OpenLink);
+         }
+         let inside = self.area.contains(point);
++        // The pinned question is part of the transcript viewport, even though it is
++        // excluded from selectable body rows. Wheel input must cross turn boundaries.
++        let wheel_over_header = matches!(
++            event.kind,
++            MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
++        ) && self.prompt_header_target.is_some_and(|(area, _)| area.contains(point));
+         let dragging = self
+             .selection
+             .as_ref()
+             .is_some_and(|selection| selection.dragging);
+-        if !inside && !dragging {
++        if !inside && !wheel_over_header && !dragging {
+             return None;
+         }
+         // Wheel navigation supersedes the last drag position. A real drag event can resume it.
+@@ -350,6 +384,7 @@
          }
          match event.kind {
              MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
@@ -8404,7 +8676,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  let direction = if event.kind == MouseEventKind::ScrollUp {
                      -1.0
                  } else {
-@@ -380,6 +409,9 @@
+@@ -380,6 +415,9 @@
                  return self.pointer_down(event, cells, mode);
              }
              MouseEventKind::Drag(MouseButton::Left) if dragging => {
@@ -8414,7 +8686,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  self.extend_selection(event.column, event.row);
              }
              MouseEventKind::Up(MouseButton::Left) if dragging => {
-@@ -515,22 +547,21 @@
+@@ -515,22 +553,21 @@
              if was_following && let MouseMode::Selection(Some((thread_id, id))) = mode {
                  self.disclosure.resume_after_approval = Some((thread_id, id.to_owned()));
              }
@@ -8442,7 +8714,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
              self.last_click = None;
              self.extend_selection(event.column, event.row);
              if let Some(selection) = &mut self.selection {
-@@ -541,6 +572,17 @@
+@@ -541,6 +578,17 @@
          }
          let clicks =
              crate::text_selection::click_count(&mut self.last_click, event.column, event.row);
@@ -8460,7 +8732,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
          if clicks >= 2
              && visible
                  .layout
-@@ -552,6 +594,9 @@
+@@ -552,6 +600,9 @@
          let link = (mode == MouseMode::Interactive && clicks == 1 && event.modifiers.is_empty())
              .then(|| self.link_at(event.column, event.row))
              .flatten();
@@ -15611,17 +15883,29 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.composer_tip = None;
          self.prompt_header_target = None;
          self.cache.begin_frame();
-@@ -207,6 +234,9 @@
+@@ -207,6 +234,21 @@
          }
          let initial_start = self.start(cells);
          let initial_position = self.position;
 +        let scroll_projection = self.scroll_projection.take().filter(|projection| {
-+            projection.position == self.position && projection.viewport == area
++            // Working and navigation hints can change the available height between
++            // input and paint. Keep the unobscured scroll origin in that case; deriving
++            // a fresh header from the body anchor can repeatedly trap it at a question.
++            projection.position == self.position
++                && projection.viewport.x == area.x
++                && projection.viewport.y == area.y
++                && projection.viewport.width == area.width
++                && projection.header.as_ref().is_none_or(|(header, _)| {
++                    usize::from(area.height) >= header.row_count() + 3
++                })
++        }).map(|mut projection| {
++            projection.viewport = area;
++            projection
 +        });
          let mut start = initial_start;
          let mut body = area;
          let header_position = prompt_header::SuppressedHeader {
-@@ -214,28 +244,47 @@
+@@ -214,28 +256,47 @@
              key: self.entry_key(cells, start.0),
              row: start.1,
          };
@@ -15680,7 +15964,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
                  self.prompt_header_target = Some((header_area, key));
              } else {
                  body = area;
-@@ -247,6 +296,7 @@
+@@ -247,6 +308,7 @@
                  self.suppressed_prompt_header = Some(header_position);
              }
          }
@@ -15688,7 +15972,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let area = body;
          let (mut index, mut row) = start;
          let mut entry_activity_ids: Option<(usize, Arc<[String]>)> = None;
-@@ -276,8 +326,12 @@
+@@ -276,8 +338,12 @@
                  }
              };
              let row_area = Rect::new(area.x, y, area.width, /*height*/ 1);
@@ -15703,7 +15987,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              if self.highlight == Some(index) && self.selection.is_none() && !self.search.is_active()
              {
                  layout.highlight(0..layout.text().len(), row_area, buf, row);
-@@ -353,6 +407,27 @@
+@@ -353,6 +419,27 @@
          })
      }
  
@@ -15731,7 +16015,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      pub(crate) fn sync_live_activity_tail(
          &mut self,
          width: u16,
-@@ -364,9 +439,51 @@
+@@ -364,9 +451,51 @@
              .disclosure
              .keymap
              .primary_hint(crate::keymap::KeymapContext::Global, "open_transcript");
@@ -15786,7 +16070,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      }
  
      pub(crate) fn sync_live_layout(
-@@ -375,6 +492,15 @@
+@@ -375,6 +504,15 @@
          key: Option<ActiveCellTranscriptKey>,
          layout: impl FnOnce(u16) -> Option<TextLayout>,
      ) -> bool {
@@ -15802,7 +16086,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let next = key.map(|key| (width, key));
          if key.is_some_and(|key| key.cacheable) && self.live_key == next {
              return false;
-@@ -385,6 +511,16 @@
+@@ -385,6 +523,16 @@
          self.live_separated = None;
          self.live_continuation = key.is_some_and(|key| key.is_stream_continuation);
          let live = layout(width).map(Arc::new);
@@ -15819,7 +16103,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          if self.live.as_ref().map(|layout| layout.text())
              != live.as_ref().map(|layout| layout.text())
          {
-@@ -396,6 +532,20 @@
+@@ -396,6 +544,20 @@
          let changed = self.live.is_some() || live.is_some();
          self.live = live;
          changed
@@ -15840,7 +16124,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      }
  
      pub(crate) fn set_presentation(&mut self, detailed: bool, mode: HistoryRenderMode) {
-@@ -408,6 +558,7 @@
+@@ -408,6 +570,7 @@
          self.release_live_reading();
          self.cache.clear();
          self.suppressed_prompt_header = None;
@@ -15848,7 +16132,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.live_key = None;
          // Keep search's origin independent of either presentation's saved position.
          if self.detailed != detailed && !self.search.is_active() {
-@@ -459,6 +610,7 @@
+@@ -459,6 +622,7 @@
  
      pub(crate) fn jump_to_latest(&mut self) {
          self.disclosure.resume_after_approval = None;
@@ -15856,7 +16140,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.cancel_search();
          self.cancel_beginning();
          self.position = Position::Latest;
-@@ -477,6 +629,10 @@
+@@ -477,6 +641,10 @@
              self.cancel_beginning();
          }
          if self.area.is_empty() {
@@ -15867,7 +16151,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              return;
          }
          let current_cells = cells;
-@@ -521,15 +677,19 @@
+@@ -521,15 +689,19 @@
      }
  
      pub(crate) fn jump_to_entry(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) {
@@ -15888,7 +16172,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          });
      }
  
-@@ -608,6 +768,14 @@
+@@ -608,6 +780,14 @@
      }
  
      fn bottom_start(&mut self, cells: &[Arc<dyn HistoryCell>]) -> (usize, usize) {
@@ -15903,7 +16187,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let snapshot = self.snapshot_cells();
          let cells = snapshot.as_deref().unwrap_or(cells);
          let has_live = self.snapshot().map_or(self.live.is_some(), |snapshot| {
-@@ -621,19 +789,14 @@
+@@ -621,19 +801,14 @@
              .layout(cells, last)
              .map_or(/*default*/ 0, |l| l.row_count());
          let recap_gap = usize::from(
@@ -18309,7 +18593,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx_tests.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx_tests.rs
-@@ -0,0 +1,2695 @@
+@@ -0,0 +1,2806 @@
 +use super::*;
 +use crate::history_cell::PlainHistoryCell;
 +use crate::mycodx_ui::{Background, Section, Settings};
@@ -18537,6 +18821,117 @@ new file mode 100644
 +            batched.render(area, &mut actual, &cells);
 +            assert_eq!(actual, expected, "{code:?} restored scroll origin");
 +        }
++    });
++}
++
++#[test]
++fn codux_working_wheel_reaches_old_questions_while_live_progress_grows() {
++    use crossterm::event::{MouseEvent, MouseEventKind};
++    for (joined, changing_height) in [(false, false), (true, false), (false, true), (true, true)] {
++        crate::mycodx_ui::with_settings(Settings::web(), || {
++            let mut cells = vec![
++                user("Oldest question"),
++                answer(&"old answer paragraph\n\n".repeat(25)),
++                user("Current question"),
++            ];
++            if joined {
++                cells.push(progress(&"retained progress paragraph\n\n".repeat(25)));
++            }
++            let mut area = Rect::new(0, 0, 60, 20);
++            let mut view = TranscriptView::default();
++            let mut buf = Buffer::empty(area);
++            view.set_mycodx_stream(true);
++            view.set_mycodx_stream_section(Section::Intermediate);
++            view.set_mycodx_stream_id(Some("mycodx-message:growing".into()));
++            for step in 0..350 {
++                // Working/status rows can grow or shrink while an input-triggered
++                // redraw refreshes the transcript above the composer.
++                area.height = if changing_height && step % 2 == 0 {
++                    16
++                } else {
++                    20
++                };
++                view.sync_mycodx_turn(&cells, true);
++                let expanded = view.sync_live_activity(&cells, vec![]);
++                view.sync_live_activity_tail(
++                    60,
++                    Some(ActiveCellTranscriptKey {
++                        cacheable: true,
++                        revision: step + 1,
++                        is_stream_continuation: false,
++                        animation_tick: None,
++                    }),
++                    expanded,
++                    |_| {
++                        Some(ActivityTranscriptLines {
++                            activity: (0..30 + step as usize / 5)
++                                .map(|n| format!("live progress row {n}").into())
++                                .collect(),
++                            auxiliary: vec![],
++                            disclosure: None,
++                        })
++                    },
++                );
++                view.render(area, &mut buf, &cells);
++                if step > 0 && view.visible.first().is_some_and(|row| row.index == 0) {
++                    return;
++                }
++                view.handle_mouse(
++                    MouseEvent {
++                        kind: MouseEventKind::ScrollUp,
++                        column: 20,
++                        row: 8,
++                        modifiers: KeyModifiers::NONE,
++                    },
++                    &cells,
++                );
++            }
++            let start = view.start(&cells);
++            panic!(
++                "Working wheel stopped before oldest question: joined={joined}, changing_height={changing_height}, position={:?}, start={:?}, held={}",
++                view.position,
++                start,
++                view.held_reading.is_some()
++            );
++        });
++    }
++}
++
++#[test]
++fn codux_wheel_over_pinned_question_can_scroll_to_previous_turn() {
++    use crossterm::event::{MouseEvent, MouseEventKind};
++    crate::mycodx_ui::with_settings(Settings::web(), || {
++        let cells = vec![
++            user("Old question"),
++            answer(&"old paragraph\n\n".repeat(30)),
++            user("Current question"),
++            progress(&"current progress\n\n".repeat(30)),
++        ];
++        let area = Rect::new(0, 0, 60, 16);
++        let mut view = TranscriptView::default();
++        let mut buf = Buffer::empty(area);
++        view.sync_mycodx_turn(&cells, true);
++        view.render(area, &mut buf, &cells);
++        assert!(view.prompt_header_target.is_some());
++        for _ in 0..250 {
++            view.handle_mouse(
++                MouseEvent {
++                    kind: MouseEventKind::ScrollUp,
++                    column: 30,
++                    row: 0,
++                    modifiers: KeyModifiers::NONE,
++                },
++                &cells,
++            );
++            view.render(area, &mut buf, &cells);
++            if view.visible.first().is_some_and(|row| row.index == 0) {
++                return;
++            }
++        }
++        panic!(
++            "Wheel over pinned question cannot reach previous turns: {:?}",
++            view.position
++        );
 +    });
 +}
 +
