@@ -139,6 +139,12 @@ def retry(root=ROOT):
     if any(run["status"] != "completed" for run in records):
         summary("## npm release\n\nA release is already running or queued. No additional run was started.")
         return False
+    if records and records[0].get("conclusion") in ("failure", "cancelled", "timed_out", "action_required"):
+        # Selection/receipt restoration can fail before a new npm status exists.
+        # Never fall back to an older pending status and loop over that failure.
+        summary("## npm release\n\nThe latest release run needs attention. Automatic retry is paused.\n\n"
+                f"[Inspect the run](https://github.com/{repository}/actions/runs/{records[0]['id']})")
+        return False
     context = f"Codux / npm {release['version']}"
     seen = set()
     for run in records:
