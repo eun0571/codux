@@ -1,14 +1,14 @@
 {
   "repository": "https://github.com/openai/codex.git",
-  "version": "0.167.0",
-  "tag": "rust-v0.167.0",
-  "commit": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+  "version": "0.167.1",
+  "tag": "rust-v0.167.1",
+  "commit": "0a94398fa60c4fac0e7659e4213a0a36e613dd46",
   "rust_toolchain": "1.95.0",
-  "patch_version": 61,
-  "package_version": "0.167.0-codux.61",
+  "patch_version": 62,
+  "package_version": "0.167.1-codux.62",
   "windows_sql_newlines": "crlf",
   "patch": "patches/codux-ui.patch",
-  "patch_sha256": "73a305d90233e4837f7827bdf9ba00bf992aefead312b1e9bf01f94d2dfbae8c",
+  "patch_sha256": "0cc1bba9901494e07eb27c838ff590518ec4c787884673ee3157211b24beb7b6",
   "source_sha256": {
     "codex-rs/tui/src/bottom_pane/textarea/mouse.rs": "8e0bf98b2801f698ec067b1512d472f86d75e24caca5ff24333f669d69b70f1d",
     "codex-rs/tui/src/bottom_pane/chat_composer/composer_layout.rs": "a5dbe8d4e4dba445dd836090f9c8e15fad3c9716d61960b24c2f6e5948762d31",
@@ -244,7 +244,7 @@
     "codex-rs/tui/src/app_backtrack.rs": "17b9d23dd34895e37503adb383fb63625015a677428efc92efce473235517e22",
     "codex-rs/tui/src/transcript_view/input.rs": "32630ab4363958245adc014826bb4b80cf327caee91effd372c57c3215ead5bd",
     "codex-rs/tui/src/chatwidget/protocol.rs": "4c5936210719f52a2ed6a22e529d654727a0645750bd8c2e1029983d5d84b692",
-    "codex-rs/Cargo.lock": "55a002023bcad0b44fbed4a8cf7632d964ac08640c1ac6c7dbd5e905206f9392",
+    "codex-rs/Cargo.lock": "9efc26116852723f76540da85d9e4537979014f166c39494bef61e49a9cc0883",
     "codex-rs/tui/src/lib.rs": "e105214826ca0d18945029e8b5566096c38b9fcf1ed2e596960e79ee73d620d6",
     "codex-rs/tui/src/mycodx_ui.rs": "05789e8a20c0bec13be9da3945d9d52f47bc25689232315847fec0ddbd3a55ad",
     "codex-rs/tui/src/mycodx_theme.rs": "8d6a5975a6e1383b533413e1aa0c9d38ed2644a0b18ca7c1a46803ae4fd3a8f6",
@@ -279,5 +279,5 @@
     "codex-rs/tui/src/transcript_view/prompt_style_tests.rs": "8276ef371930b8411dc406bb3818e8e8764a3d623c74beee1815f3d26b4744df",
     "codex-rs/tui/src/transcript_view/text.rs": "bf911b85c8bac9c9f46ed547639aa0708acb8bc532d3bf4b47a62c0a5d4dc706"
   },
-  "source_directory": "upstream-0.167.0"
+  "source_directory": "upstream-0.167.1"
 }

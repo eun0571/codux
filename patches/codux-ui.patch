@@ -9086,7 +9086,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "app_test_support"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
@@ -9095,7 +9095,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-core",
@@ -9104,7 +9104,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-graph-store"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-protocol",
   "codex-state",
@@ -9113,7 +9113,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-identity"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
@@ -9122,7 +9122,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-message-board-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chrono",
@@ -9131,7 +9131,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-message-board-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-extension-api",
   "codex-message-board",
@@ -9140,7 +9140,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-agent-roles"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-config",
   "codex-file-system",
@@ -9149,7 +9149,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-analytics"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-app-server-protocol",
   "codex-git-utils",
@@ -9158,7 +9158,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-ansi-escape"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "ansi-to-tui",
   "pretty_assertions",
@@ -9167,7 +9167,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-api"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "assert_matches",
@@ -9176,7 +9176,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "app_test_support",
@@ -9185,7 +9185,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-app-server",
   "codex-app-server-protocol",
@@ -9194,7 +9194,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-daemon"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "blake3",
@@ -9203,7 +9203,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-protocol"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-app-server-protocol-noop-macros",
@@ -9212,12 +9212,12 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-protocol-noop-macros"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  
  [[package]]
  name = "codex-app-server-test-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "clap",
@@ -9226,7 +9226,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-app-server-transport"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "axum",
   "base64 0.22.1",
@@ -9235,7 +9235,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-apply-patch"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "assert_cmd",
@@ -9244,7 +9244,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-arg0"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-apply-patch",
@@ -9253,7 +9253,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-async-utils"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
   "rand 0.9.3",
@@ -9262,7 +9262,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-attachment-store"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
   "serde",
@@ -9271,7 +9271,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-aws-auth"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "aws-config",
   "aws-credential-types",
@@ -9280,7 +9280,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-backend-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-api",
@@ -9289,7 +9289,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-backend-openapi-models"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "serde",
   "serde_json",
@@ -9298,7 +9298,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-build-info"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-install-context",
   "pretty_assertions",
@@ -9307,7 +9307,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-bwrap"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "cc",
   "libc",
@@ -9316,7 +9316,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-chatgpt"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "clap",
@@ -9325,7 +9325,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cli"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "app_test_support",
@@ -9334,7 +9334,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-http-client",
   "eventsource-stream",
@@ -9343,7 +9343,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "async-stream",
@@ -9352,7 +9352,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-config"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "chrono",
@@ -9361,7 +9361,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-tasks"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chrono",
@@ -9370,7 +9370,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-tasks-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chrono",
@@ -9379,7 +9379,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-cloud-tasks-mock-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "chrono",
   "codex-cloud-tasks-client",
@@ -9388,7 +9388,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-code-mode"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-code-mode-protocol",
   "codex-http-client",
@@ -9397,7 +9397,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-code-mode-host"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "axum",
@@ -9406,7 +9406,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-code-mode-protocol"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-protocol",
   "glob",
@@ -9415,7 +9415,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-code-mode-runtime"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "codex-code-mode-protocol",
@@ -9424,12 +9424,12 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-collaboration-mode-templates"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  
  [[package]]
  name = "codex-config"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
@@ -9438,7 +9438,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-config-schema"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "clap",
@@ -9447,7 +9447,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-connectors"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "arc-swap",
@@ -9456,7 +9456,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-connectors-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-connectors",
   "codex-core-plugins",
@@ -9465,7 +9465,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-context-fragments"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-protocol",
   "codex-protocol-test-support",
@@ -9474,7 +9474,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-core"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "arc-swap",
@@ -9483,7 +9483,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-core-api"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-analytics",
   "codex-app-server-protocol",
@@ -9492,7 +9492,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-core-plugin-common"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-utils-absolute-path",
   "semver",
@@ -9501,7 +9501,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-core-plugins"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chrono",
@@ -9510,7 +9510,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-diagnostics"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "libc",
   "pretty_assertions",
@@ -9519,7 +9519,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-direct-tool-timing"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-utils-critical-path",
   "pretty_assertions",
@@ -9528,7 +9528,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-exec"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "assert_cmd",
@@ -9537,7 +9537,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-exec-server"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "arc-swap",
@@ -9546,7 +9546,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-exec-server-cli"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "assert_matches",
@@ -9555,7 +9555,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-exec-server-protocol"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "codex-file-system",
@@ -9564,7 +9564,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-exec-server-test-support"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-exec-server",
@@ -9573,7 +9573,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-execpolicy"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "caseless",
@@ -9582,7 +9582,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-experimental-api-macros"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "proc-macro2",
   "quote",
@@ -9591,7 +9591,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-extension-api"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-api",
   "codex-config",
@@ -9600,7 +9600,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-extension-items"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-utils-absolute-path",
   "pretty_assertions",
@@ -9609,7 +9609,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-external-agent-migration"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "chrono",
   "codex-analytics",
@@ -9618,7 +9618,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-features"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-network-proxy",
   "codex-protocol",
@@ -9627,7 +9627,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-feedback"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "bytes",
@@ -9636,7 +9636,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-file-search"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "clap",
@@ -9645,7 +9645,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-file-system"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "bytes",
   "codex-protocol",
@@ -9654,7 +9654,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-file-watcher"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "notify",
   "pretty_assertions",
@@ -9663,7 +9663,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-git-attribution"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-backend-client",
   "codex-extension-api",
@@ -9672,7 +9672,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-git-utils"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chrono",
@@ -9681,7 +9681,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-goal-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chrono",
@@ -9690,7 +9690,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-guardian-context"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-context-fragments",
   "codex-history",
@@ -9699,7 +9699,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-guardian-reviewer"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-analytics",
@@ -9708,7 +9708,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-guardian-v2"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-analytics",
@@ -9717,7 +9717,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-guardian-v3"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-message-board",
   "codex-protocol",
@@ -9726,7 +9726,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-history"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-protocol",
@@ -9735,7 +9735,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-history-notes-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-analytics",
   "codex-client",
@@ -9744,7 +9744,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-home"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-extension-api",
   "codex-utils-absolute-path",
@@ -9753,7 +9753,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-hooks"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "async-channel",
@@ -9762,7 +9762,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-http-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "bytes",
   "codex-utils-cargo-bin",
@@ -9771,7 +9771,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-image-generation-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "codex-api",
@@ -9780,7 +9780,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-install-context"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-utils-absolute-path",
   "codex-utils-home-dir",
@@ -9789,7 +9789,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-keyring-store"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "keyring",
   "pretty_assertions",
@@ -9798,7 +9798,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-linux-sandbox"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "clap",
   "codex-core",
@@ -9807,7 +9807,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-lmstudio"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-core",
   "codex-http-client",
@@ -9816,7 +9816,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-login"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
@@ -9825,7 +9825,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-mcp"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "arc-swap",
@@ -9834,7 +9834,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-mcp-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "axum",
@@ -9843,7 +9843,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-memories-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-core",
   "codex-extension-api",
@@ -9852,7 +9852,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-memories-read"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-protocol",
   "codex-shell-command",
@@ -9861,7 +9861,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-memories-write"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chrono",
@@ -9870,7 +9870,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-mermaid"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "insta",
   "pretty_assertions",
@@ -9879,7 +9879,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-message-board"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "caseless",
@@ -9888,7 +9888,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-message-board-mcp"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-attachment-store",
   "codex-message-board",
@@ -9897,7 +9897,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-message-history"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-config",
   "memchr",
@@ -9906,7 +9906,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-model-provider"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "chrono",
@@ -9915,7 +9915,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-model-provider-info"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-client",
   "codex-http-client",
@@ -9924,7 +9924,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-models-manager"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "chrono",
   "codex-http-client",
@@ -9933,7 +9933,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-multi-env-copy-file"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-config",
@@ -9942,7 +9942,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-mxc-sandbox"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-network-proxy",
@@ -9951,7 +9951,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-network-proxy"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "aws-credential-types",
@@ -9960,7 +9960,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-ollama"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "assert_matches",
   "async-stream",
@@ -9969,7 +9969,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-otel"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "bytes",
   "chrono",
@@ -9978,7 +9978,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-otel-trace-websocket"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "axum",
@@ -9987,7 +9987,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-plugin"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-config",
   "codex-core-plugin-common",
@@ -9996,7 +9996,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-plugin-host"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-utils-cargo-bin",
   "codex-utils-process",
@@ -10005,7 +10005,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-process-hardening"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "libc",
   "pretty_assertions",
@@ -10014,7 +10014,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-prompts"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-collaboration-mode-templates",
@@ -10023,7 +10023,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-protocol"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chardetng",
@@ -10032,7 +10032,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-protocol-test-support"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-protocol",
  ]
@@ -10040,7 +10040,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-queue-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-core",
@@ -10049,7 +10049,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-realtime-webrtc"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-build-info",
@@ -10058,7 +10058,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-response-debug-context"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "codex-api",
@@ -10067,7 +10067,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-responses-api-proxy"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "bytes",
@@ -10076,7 +10076,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-rmcp-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "axum",
@@ -10085,7 +10085,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-rollout"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chrono",
@@ -10094,7 +10094,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-rollout-trace"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-code-mode",
@@ -10103,7 +10103,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-runtime-agent-instance"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "codex-agent-identity",
@@ -10112,7 +10112,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-sandboxing"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-mxc-sandbox",
@@ -10121,7 +10121,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-secrets"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "age",
   "anyhow",
@@ -10130,7 +10130,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-shell-command"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
@@ -10139,7 +10139,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-skills"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-protocol",
   "codex-shell-command",
@@ -10148,7 +10148,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-skills-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "assert_matches",
   "blake3",
@@ -10157,7 +10157,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-state"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "chrono",
@@ -10166,7 +10166,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-stdio-to-uds"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-uds",
@@ -10175,7 +10175,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-tcp-tunnel"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "bytes",
@@ -10184,7 +10184,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-terminal-detection"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
   "tracing",
@@ -10193,7 +10193,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-test-binary-support"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-arg0",
   "tempfile",
@@ -10202,7 +10202,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-thread-manager-sample"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "clap",
@@ -10211,7 +10211,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-thread-store"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "chrono",
   "codex-app-server-protocol",
@@ -10220,7 +10220,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-tools"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "bitflags 2.13.1",
   "codex-attachment-store",
@@ -10229,7 +10229,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-tui"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "app_test_support",
@@ -10238,7 +10238,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-uds"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "async-io",
   "libc",
@@ -10247,7 +10247,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-user-verification"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "block2",
@@ -10256,7 +10256,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-absolute-path"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "dirs",
   "dunce",
@@ -10265,7 +10265,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-approval-presets"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-protocol",
  ]
@@ -10273,7 +10273,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-audio"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "codex-protocol",
@@ -10282,7 +10282,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-cache"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "lru",
   "sha1 0.10.6",
@@ -10291,7 +10291,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-cargo-bin"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "assert_cmd",
   "runfiles",
@@ -10300,7 +10300,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-cli"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "clap",
   "codex-protocol",
@@ -10309,7 +10309,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-critical-path"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
  ]
@@ -10317,17 +10317,17 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-elapsed"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  
  [[package]]
  name = "codex-utils-fuzzy-match"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  
  [[package]]
  name = "codex-utils-git-discovery"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-git-utils",
   "codex-utils-absolute-path",
@@ -10336,7 +10336,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-head-tail-buffer"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
  ]
@@ -10344,7 +10344,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-home-dir"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-utils-absolute-path",
   "dirs",
@@ -10353,7 +10353,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-image"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "codex-utils-cache",
@@ -10362,7 +10362,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-json-to-toml"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
   "serde_json",
@@ -10371,7 +10371,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-oss"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-core",
   "codex-lmstudio",
@@ -10380,7 +10380,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-output-truncation"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-protocol",
   "codex-utils-string",
@@ -10389,7 +10389,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-path"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-utils-absolute-path",
   "dunce",
@@ -10398,7 +10398,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-path-uri"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "base64 0.22.1",
   "codex-utils-absolute-path",
@@ -10407,7 +10407,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-plugins"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-exec-server",
   "codex-exec-server-protocol",
@@ -10416,7 +10416,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-process"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
   "tokio",
@@ -10425,7 +10425,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-pty"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-utils-cargo-bin",
@@ -10434,7 +10434,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-readiness"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "assert_matches",
   "thiserror 2.0.18",
@@ -10443,7 +10443,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-redacted-string"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "schemars 0.8.22",
   "serde",
@@ -10452,7 +10452,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-rustls-provider"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "rustls",
  ]
@@ -10460,7 +10460,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-sandbox-summary"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-protocol",
   "codex-utils-absolute-path",
@@ -10469,7 +10469,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-sleep-inhibitor"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "core-foundation 0.9.4",
   "libc",
@@ -10478,7 +10478,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-stream-parser"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
  ]
@@ -10486,7 +10486,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-string"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
   "regex-lite",
@@ -10495,7 +10495,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-utils-template"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
  ]
@@ -10503,7 +10503,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-v8-poc"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "pretty_assertions",
   "v8",
@@ -10512,7 +10512,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-voice-host"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-install-context",
@@ -10521,7 +10521,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-web-search-extension"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-api",
   "codex-core",
@@ -10530,7 +10530,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-websocket-auth"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
@@ -10539,7 +10539,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-websocket-client"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-http-client",
   "codex-utils-rustls-provider",
@@ -10548,7 +10548,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-windows-sandbox"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "base64 0.22.1",
@@ -10557,7 +10557,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-windows-sandbox-service"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-cloud-config",
@@ -10566,7 +10566,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-windows-sandbox-test-support"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "dirs",
  ]
@@ -10574,7 +10574,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-workload-identity"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "codex-http-client",
   "pretty_assertions",
@@ -10583,7 +10583,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "codex-worktree"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "codex-git-utils",
@@ -10592,7 +10592,7 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
  [[package]]
  name = "core_test_support"
 -version = "0.0.0"
-+version = "0.167.0"
++version = "0.167.1"
  dependencies = [
   "anyhow",
   "assert_cmd",
