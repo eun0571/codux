@@ -1,3 +1,135 @@
+diff --git a/codex-rs/tui/src/bottom_pane/textarea/mouse.rs b/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
+--- a/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
++++ b/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
+@@ -67,6 +67,12 @@
+         if let Some(selection) = &mut self.mouse_selection {
+             selection.dragging = false;
+         }
++    }
++
++    pub(in crate::bottom_pane) fn is_mouse_dragging(&self) -> bool {
++        self.mouse_selection
++            .as_ref()
++            .is_some_and(|selection| selection.dragging)
+     }
+ 
+     pub(crate) fn mouse_selection_range(&self) -> Option<Range<usize>> {
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/composer_layout.rs b/codex-rs/tui/src/bottom_pane/chat_composer/composer_layout.rs
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/composer_layout.rs
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/composer_layout.rs
+@@ -185,6 +185,12 @@
+         }
+ 
+         let state = *self.draft.textarea_state.borrow();
++        // Keep the hardware cursor at its previous input position during a pointer
++        // gesture. An uncommitted IME composition otherwise follows every selection
++        // endpoint, even though the draft itself has not changed.
++        if self.draft.textarea.is_mouse_dragging() {
++            return None;
++        }
+         self.draft
+             .textarea
+             .cursor_pos_with_state(layout.textarea, state)
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/mouse_tests.rs b/codex-rs/tui/src/bottom_pane/chat_composer/mouse_tests.rs
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/mouse_tests.rs
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/mouse_tests.rs
+@@ -18,6 +18,34 @@
+     assert!(composer.prepare_mouse(event));
+     composer.render(area, &mut Buffer::empty(area));
+     assert!(composer.handle_mouse(event));
++}
++
++#[test]
++fn codux_prompt_drag_hides_caret_until_release_or_keyboard_input() {
++    let (mut composer, _rx) = new_test_composer();
++    composer.insert_str("\u{d55c}\u{ae00} text");
++    let area = Rect::new(0, 0, 80, 4);
++    composer.render(area, &mut Buffer::empty(area));
++    let (x, y) = composer.cursor_pos(area).unwrap();
++    mouse(&mut composer, area, Down(Left), x - 4, y);
++    assert_eq!(composer.cursor_pos(area), None);
++    mouse(&mut composer, area, MouseEventKind::Drag(Left), x - 2, y);
++    assert_eq!(composer.cursor_pos(area), None);
++    mouse(&mut composer, area, Up(Left), x - 2, y);
++    assert_eq!(composer.cursor_pos(area), Some((x - 2, y)));
++    assert_eq!(composer.current_text(), "\u{d55c}\u{ae00} text");
++    let range = composer.draft.textarea.mouse_selection_range().unwrap();
++    assert_eq!(&composer.draft.textarea.text()[range], "te");
++
++    // An interrupted gesture cannot leave the input cursor permanently hidden.
++    mouse(&mut composer, area, Down(Left), x, y);
++    assert_eq!(composer.cursor_pos(area), None);
++    composer.end_mouse_drag();
++    assert_eq!(composer.cursor_pos(area), Some((x, y)));
++    mouse(&mut composer, area, Down(Left), x - 1, y);
++    assert_eq!(composer.cursor_pos(area), None);
++    composer.handle_key_event(KeyCode::Left.into());
++    assert_eq!(composer.cursor_pos(area), Some((x - 2, y)));
+ }
+ 
+ #[test]
+diff --git a/codex-rs/tui/src/history_cell/async_replies.rs b/codex-rs/tui/src/history_cell/async_replies.rs
+--- a/codex-rs/tui/src/history_cell/async_replies.rs
++++ b/codex-rs/tui/src/history_cell/async_replies.rs
+@@ -14,7 +14,7 @@
+ use crate::terminal_hyperlinks::retain_initial_prefix;
+ use crate::wrapping::RtOptions;
+ use crate::wrapping::adaptive_wrap_line_to_width;
+-use ratatui::style::Stylize;
++use ratatui::style::Style;
+ use std::path::Path;
+ 
+ pub(super) fn render(
+@@ -24,6 +24,33 @@
+ ) -> Vec<HyperlinkLine> {
+     let surface = history_prompt_style();
+     let accent = accent_color_on(surface.bg);
++    render_on_surface(replies, cwd, width, surface, surface.fg(accent).dim())
++}
++
++/// Card colors own the surface; do not embed the upstream prompt background or dim accent.
++pub(super) fn render_card(
++    replies: &[AsyncQuestionReply],
++    cwd: &Path,
++    width: usize,
++) -> Vec<HyperlinkLine> {
++    // Unlike the upstream prompt renderer, card widths already exclude every gutter.
++    // Reserve the reply prefix before wrapping so it cannot create extra one-character rows.
++    render_on_surface(
++        replies,
++        cwd,
++        width.saturating_sub(2).max(1),
++        Style::default(),
++        Style::default().italic(),
++    )
++}
++
++fn render_on_surface(
++    replies: &[AsyncQuestionReply],
++    cwd: &Path,
++    width: usize,
++    surface: Style,
++    caption_style: Style,
++) -> Vec<HyperlinkLine> {
+     let markdown = |text: &str, width| {
+         render_markdown_lines_with_width_cwd_and_hidden_link_destinations(
+             text,
+@@ -58,9 +85,13 @@
+         } else {
+             retain_initial_prefix(&mut caption, "Re: ");
+         }
+-        let caption = prefix_hyperlink_lines(caption, "↪ ".fg(accent).not_dim(), "  ".into());
++        let caption = prefix_hyperlink_lines(
++            caption,
++            ratatui::text::Span::styled("↪ ", caption_style.not_dim()),
++            "  ".into(),
++        );
+         lines.extend(caption.into_iter().map(|row| {
+-            let style = surface.fg(accent).dim().patch(row.line.style);
++            let style = caption_style.patch(row.line.style);
+             row.style(style).resolve_span_styles()
+         }));
+         let text = sanitize_user_text(reply.answer.as_str().into());
 diff --git a/codex-rs/tui/src/custom_terminal.rs b/codex-rs/tui/src/custom_terminal.rs
 --- a/codex-rs/tui/src/custom_terminal.rs
 +++ b/codex-rs/tui/src/custom_terminal.rs
@@ -117,7 +249,7 @@ diff --git a/codex-rs/tui/src/custom_terminal/tests/cursor_tests.rs b/codex-rs/t
 diff --git a/codex-rs/tui/src/app/owned_transcript_input_tests.rs b/codex-rs/tui/src/app/owned_transcript_input_tests.rs
 --- a/codex-rs/tui/src/app/owned_transcript_input_tests.rs
 +++ b/codex-rs/tui/src/app/owned_transcript_input_tests.rs
-@@ -19,6 +19,133 @@
+@@ -19,6 +19,193 @@
  use crossterm::event::MouseEvent;
  use crossterm::event::MouseEventKind;
  use pretty_assertions::assert_eq;
@@ -246,6 +378,66 @@ diff --git a/codex-rs/tui/src/app/owned_transcript_input_tests.rs b/codex-rs/tui
 +        Some("select thi")
 +    );
 +    tui.set_owned_screen(false)?;
++    Ok(())
++}
++
++#[tokio::test]
++async fn codux_prompt_drag_keeps_hardware_cursor_at_input_anchor() -> Result<()> {
++    let mut app = crate::app::test_support::make_test_app().await;
++    let mut server = Box::pin(crate::start_embedded_app_server_for_picker(&app.config)).await?;
++    let mut tui = crate::tui::test_support::make_test_tui()?;
++    tui.set_owned_screen(true)?;
++    let size = Size::new(80, 24);
++    let draft = "\u{d55c}\u{ae00} text";
++    app.chat_widget.apply_external_edit(draft.to_owned());
++    app.render_owned_transcript(&mut tui, size)?;
++    let anchor = tui.terminal.last_known_cursor_pos;
++    for (kind, column) in [
++        (MouseEventKind::Down(MouseButton::Left), anchor.x - 4),
++        (MouseEventKind::Drag(MouseButton::Left), anchor.x - 2),
++        (MouseEventKind::Drag(MouseButton::Left), anchor.x - 1),
++    ] {
++        app.handle_tui_event(
++            &mut tui,
++            &mut server,
++            TuiEvent::Mouse(MouseEvent {
++                kind,
++                column,
++                row: anchor.y,
++                modifiers: KeyModifiers::NONE,
++            }),
++        )
++        .await?;
++        app.render_owned_transcript(&mut tui, size)?;
++        assert!(tui.terminal.hidden_cursor, "{kind:?}");
++        assert_eq!(tui.terminal.last_known_cursor_pos, anchor, "{kind:?}");
++        assert_eq!(app.chat_widget.composer_text_with_pending(), draft);
++    }
++    app.handle_tui_event(
++        &mut tui,
++        &mut server,
++        TuiEvent::Mouse(MouseEvent {
++            kind: MouseEventKind::Up(MouseButton::Left),
++            column: anchor.x - 1,
++            row: anchor.y,
++            modifiers: KeyModifiers::NONE,
++        }),
++    )
++    .await?;
++    app.render_owned_transcript(&mut tui, size)?;
++    assert!(!tui.terminal.hidden_cursor);
++    assert_eq!(
++        tui.terminal.last_known_cursor_pos,
++        ratatui::layout::Position::new(anchor.x - 1, anchor.y)
++    );
++    app.handle_tui_event(&mut tui, &mut server, TuiEvent::Paste("X".into()))
++        .await?;
++    assert_eq!(
++        app.chat_widget.composer_text_with_pending(),
++        "\u{d55c}\u{ae00} Xt"
++    );
++    tui.set_owned_screen(false)?;
++    server.shutdown().await?;
 +    Ok(())
 +}
  
@@ -15050,7 +15242,16 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bo
  //!
  //! Preset submenu hints borrow slots and reflow with the composer.
  //!
-@@ -549,6 +550,7 @@
+@@ -270,6 +271,8 @@
+ //! Mouse edits flush pending typing; selection and copy behavior lives in [`mouse`]. Confirmed
+ //! explicit copies clear the selection while preserving the draft and cursor. Footer text uses a separate
+ //! read-only selection owner over its final rendered cells.
++//! Pointer selection hides the input caret until release, cancellation, or keyboard input;
++//! the terminal keeps its hardware cursor anchored while selection highlights change.
+ //!
+ //! See `codex-rs/tui/src/bottom_pane/paste_burst.rs` for the detailed state machine.
+ //!
+@@ -549,6 +552,7 @@
                  | SlashCommand::Usage
                  | SlashCommand::Ide
                  | SlashCommand::DebugConfig
@@ -15058,7 +15259,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bo
                  | SlashCommand::Theme
                  | SlashCommand::Pets
                  | SlashCommand::Ps
-@@ -4809,6 +4811,11 @@
+@@ -4809,6 +4813,11 @@
                          } else {
                              Some(self.right_footer_line_with_context())
                          };
@@ -15778,7 +15979,7 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
 +        let mut lines =
 +            plain_hyperlink_lines(self.image_labels_not_in_message().map(Line::from).collect());
 +        if let UserMessagePresentation::AsyncReplies { replies, cwd } = &self.presentation {
-+            lines.extend(super::async_replies::render(
++            lines.extend(super::async_replies::render_card(
 +                replies,
 +                cwd,
 +                usize::from(width.max(1)),
@@ -18714,7 +18915,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx_tests.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx_tests.rs
-@@ -0,0 +1,2855 @@
+@@ -0,0 +1,2957 @@
 +use super::*;
 +use crate::history_cell::PlainHistoryCell;
 +use crate::mycodx_ui::{Background, Section, Settings};
@@ -20406,6 +20607,108 @@ new file mode 100644
 +        assert!(!layout.text().contains("**Yes**"));
 +        assert_eq!(layout.rewrap(32).text(), layout.text());
 +    });
++}
++
++#[test]
++fn mycodx_async_reply_caption_reserves_its_prefix_before_wrapping() {
++    use crate::async_question_reply::AsyncQuestionReply;
++    let replies = vec![AsyncQuestionReply {
++        question_item_id: "reply-wrapping".into(),
++        question: "\u{c0c8} \u{addc}\u{ce59}\u{c73c}\u{b85c} CSV \u{ac31}\u{c2e0} ".repeat(20),
++        answer: "Done".into(),
++    }];
++    let cell = crate::history_cell::new_user_prompt(
++        crate::async_question_reply::display_replies(&replies),
++        vec![],
++        vec![],
++        vec![],
++    )
++    .with_async_replies(replies, Path::new("."));
++    for width in [20, 40, 66] {
++        let lines = cell.mycodx_bubble_lines(width);
++        assert_eq!(lines.len(), 4, "two caption rows, separator and answer");
++        for line in lines {
++            assert!(
++                line.width() <= usize::from(width),
++                "reply prefix exceeds {width}: {:?}",
++                line.line
++            );
++        }
++    }
++}
++
++#[test]
++fn mycodx_async_reply_inherits_card_colors_without_a_nested_prompt_background() {
++    use crate::async_question_reply::AsyncQuestionReply;
++    use ratatui::style::{Color, Modifier};
++    for colors in [
++        crate::terminal_probe::DefaultColors {
++            fg: (230, 230, 230),
++            bg: (12, 12, 12),
++        },
++        crate::terminal_probe::DefaultColors {
++            fg: (24, 24, 24),
++            bg: (245, 245, 245),
++        },
++    ] {
++        crate::terminal_palette::with_test_default_colors(colors, || {
++            for background in [
++                Background::None,
++                Background::Auto,
++                Background::Rgb(55, 67, 93),
++            ] {
++                let settings = Settings::default().change_card(Section::Replies, |card| {
++                    card.background = background;
++                    card.title_visible = false;
++                });
++                crate::mycodx_ui::with_settings(settings, || {
++                    let replies = vec![AsyncQuestionReply {
++                        question_item_id: "reply-colors".into(),
++                        question: "Question with `CSV` and [details](https://example.com).".into(),
++                        answer: "Done, **kept bold**.".into(),
++                    }];
++                    let cell: Arc<dyn HistoryCell> = Arc::new(
++                        crate::history_cell::new_user_prompt(
++                            crate::async_question_reply::display_replies(&replies),
++                            vec![],
++                            vec![],
++                            vec![],
++                        )
++                        .with_async_replies(replies, Path::new(".")),
++                    );
++                    for width in [80, 40] {
++                        let layout = message_layout(&cell, width, true).unwrap();
++                        let original = layout.text().to_owned();
++                        assert!(original.contains("Question with CSV"));
++                        assert!(original.contains("Done"));
++                        assert_eq!(layout.rewrap(width / 2).text(), original);
++                        for active in [false, true] {
++                            let body = crate::mycodx_ui::current_card(Section::Replies)
++                                .colors_for(active)
++                                .body();
++                            let area = Rect::new(0, 0, width, layout.row_count() as u16);
++                            let mut buffer = Buffer::empty(area);
++                            layout.render_active(area, &mut buffer, 0, active);
++                            for symbol in ["Q", "D"] {
++                                let position = area
++                                    .positions()
++                                    .find(|pos| buffer[*pos].symbol() == symbol)
++                                    .unwrap();
++                                let painted = &buffer[position];
++                                assert_eq!(
++                                    painted.bg,
++                                    body.bg.unwrap_or(Color::Reset),
++                                    "{symbol}: {background:?}, active {active}"
++                                );
++                                assert_eq!(painted.fg, body.fg.unwrap_or(Color::Reset));
++                                assert!(!painted.modifier.contains(Modifier::DIM));
++                            }
++                        }
++                    }
++                });
++            }
++        });
++    }
 +}
 +
 +fn mouse(

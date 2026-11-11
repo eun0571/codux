@@ -281,6 +281,8 @@ def build(lock: dict, profile: str) -> None:
     run("cargo", "test", *check_options, "--lib", "codux_working_", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "custom_terminal::tests::cursor::", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "codux_transcript_drag_preserves_hidden_prompt_cursor", cwd=rust, env=test_env)
+    run("cargo", "test", *check_options, "--lib", "codux_prompt_drag", cwd=rust, env=test_env)
+    run("cargo", "test", *check_options, "--lib", "bottom_pane::chat_composer::mouse::tests", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "keymap::", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "bottom_pane::shortcut_overlay::tests", cwd=rust, env=test_env)
     run("cargo", "test", *check_options, "--lib", "bottom_pane::footer::tests", cwd=rust, env=test_env)
