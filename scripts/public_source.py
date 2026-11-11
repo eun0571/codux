@@ -15,7 +15,7 @@ SOURCE_FILES = [
     "renderers/mermaid-text/package.json", "renderers/mermaid-text/package-lock.json", "renderers/mermaid-text/worker.mjs",
     "npm/cli.mjs", "npm/update.mjs", "scripts/package_npm.py", "scripts/setup_runtime.py",
     "scripts/npm_smoke.py", "scripts/ci_build.py", ".github/workflows/native-build.yml",
-    "scripts/prepare_upstream.py", "scripts/track_upstream.py", "scripts/publish_npm.py",
+    "scripts/prepare_upstream.py", "scripts/track_upstream.py", "scripts/publish_npm.py", "scripts/release_workflow.py",
     ".github/workflows/track-upstream.yml", ".github/workflows/verify-pr.yml", ".github/workflows/publish-npm.yml",
     ".github/workflows/playground.yml", "scripts/build_playground.py", "scripts/test_playground.cjs",
     "docs/PLAYGROUND.md", "playground/index.html", "playground/style.css", "playground/model.js",

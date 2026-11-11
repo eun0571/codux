@@ -41,7 +41,7 @@ The workflows are included, but automatic npm publication is off until repositor
 
 The publisher verifies `SHA256SUMS.txt`, archive metadata, pinned build inputs, and command dependencies. It uploads native packages first and the command package last. Until the command package is published, users continue to see the previous release. Artifacts and logs remain in Actions; a GitHub Release or ZIP is not needed.
 
-To start a release manually, select **Publish npm release**, choose the default branch, and enter the exact checked-in version. This uses the same build and validation gates. Publication must already be enabled.
+To start a release manually, select **1. Release to npm**, choose the default branch, and enter the exact checked-in version. Leave `resume_run` empty for a new build. This uses the same build and validation gates. Publication must already be enabled.
 
 If a publish step fails, rerun **failed jobs** in the same run to reuse its verified artifacts. An already published archive is skipped only when its version, checksum, and dist-tag match exactly. A rebuilt archive may have different bytes even for the same source; never overwrite an npm version. Bump the release version before rebuilding a partly published release. Fix patch/build failures before retrying; they do not publish any package.
 
@@ -53,7 +53,17 @@ python scripts/publish_npm.py --artifacts <artifact-directory>
 
 This only validates and lists publication order. Adding `--publish` uploads using the current npm identity, so use it only for a deliberate release.
 
-npm may accept an upload before making it publicly available. The publisher waits up to ten minutes for each archive's version, dist-tag, and checksum before publishing the next package. If all uploads completed but processing takes longer, keep the same archives and resume verification without uploading again:
+npm may accept an upload before making it publicly available. The publisher waits up to ten minutes for each archive's version, dist-tag, and checksum before publishing the next package. CI saves a receipt for every accepted upload. If processing takes longer, the result summary says **Waiting for npm - NOT published**, with a warning and a pending `Codux / npm <version>` commit status. This is not a publication failure or a completed release. Authentication, network outages, checksum mismatches, build failures and other errors still fail normally.
+
+The existing six-hour maintenance workflow rechecks pending releases without creating additional polling runs when nothing is pending. To recheck sooner, run **1. Release to npm** with the exact version and the previous run ID in `resume_run`. It restores the verified archives and upload receipt, skips the build, checks accepted uploads without uploading them again, then publishes any remaining packages in dependency order. Receipts must match the exact archive checksums and current release inputs. Expired artifacts or changed release inputs require manual inspection. The automatic retry does not apply retroactively to old runs without upload receipts.
+
+For local publication, retain the upload receipt with the archives:
+
+```sh
+python scripts/publish_npm.py --artifacts <artifact-directory> --publish --state publication.json
+```
+
+Repeat the same command and receipt to resume. If all uploads completed and only verification remains, use:
 
 ```sh
 python scripts/publish_npm.py --artifacts <artifact-directory> --verify-only
@@ -61,7 +71,21 @@ python scripts/publish_npm.py --artifacts <artifact-directory> --verify-only
 
 An unavailable version is reported separately from a checksum mismatch. Do not rebuild or increment the version just to retry a pending registry check.
 
-If publication stopped while waiting for a native package, the command package has not been uploaded yet. Once the native package becomes available, rerun `--publish` with the same artifacts; identical published archives are skipped before the remaining uploads.
+If publication stopped while waiting for a native package, the command package has not been uploaded yet. Resume with the same archives and receipt; identical published archives are skipped before the remaining uploads. `--verify-only` never uploads the remaining command package.
+
+## Read GitHub Actions
+
+Open **1. Release to npm** for the installed application's delivery state. Each run has versioned build jobs and a final **Release result** summary. **Published** means every native package and the command package are public with matching checksums and tags. **Waiting for npm** means the upload was accepted but delivery is incomplete. The workflow may finish green after safely deferring a pending upload; use the result summary and npm commit status, not the green workflow icon alone.
+
+| Workflow | Purpose |
+| --- | --- |
+| 1. Release to npm | Build, verify, publish, or resume a release |
+| 2. Codex updates and release status | Check stable Codex every six hours, prepare an update PR, and recheck pending npm publication |
+| 3. Browser playground | Check and deploy the website independently of npm |
+| Checks - Pull request | Validate proposed changes without publishing |
+| Checks - Native packages | Shared build checks; manual platform verification without publishing |
+
+An update candidate passing checks is not a published release: it still needs review and merge. Playground deployment does not update the installed application. Historical runs are preserved; an old failed run does not describe the current release. Artifacts are build archives, logs and upload receipts, not additional releases, and normally do not need downloading.
 
 ## Update
 

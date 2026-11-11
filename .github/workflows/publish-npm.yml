@@ -1,4 +1,5 @@
-name: Publish npm release
+name: 1. Release to npm
+run-name: ${{ inputs.resume_run && format('Recheck npm {0} - run {1}', inputs.version, inputs.resume_run) || inputs.version && format('Release {0}', inputs.version) || format('Release - {0}', github.event.head_commit.message) }}
 
 on:
   push:
@@ -9,6 +10,10 @@ on:
         description: Exact release.json version to publish from the default branch
         type: string
         required: true
+      resume_run:
+        description: Optional completed release run ID; reuse its archives and upload receipt without rebuilding
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -19,10 +24,20 @@ concurrency:
 
 jobs:
   select:
+    name: Select release or resume verified archives
     if: vars.CODUX_NPM_PUBLISH_ENABLED == 'true' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-22.04
     outputs:
       publish: ${{ steps.release.outputs.publish }}
+      version: ${{ steps.release.outputs.version }}
+      upstream: ${{ steps.release.outputs.upstream }}
+      artifact_run: ${{ steps.release.outputs.artifact_run }}
+      receipt_run: ${{ steps.release.outputs.receipt_run }}
+      source_sha: ${{ steps.release.outputs.source_sha }}
+      resume: ${{ steps.release.outputs.resume }}
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,48 +50,31 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           REQUESTED_VERSION: ${{ inputs.version }}
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          python - <<'PY'
-          import json, os, subprocess
-          from pathlib import Path
-          from scripts.prepare_upstream import version
-          release = json.loads(Path('release.json').read_text())
-          if release.get('repository') != os.environ['GITHUB_REPOSITORY']:
-              raise SystemExit('Set release.json repository to this GitHub repository')
-          current = version(release['version'])
-          if os.environ['EVENT_NAME'] == 'workflow_dispatch':
-              if os.environ['REQUESTED_VERSION'] != release['version']:
-                  raise SystemExit('Requested version differs from the checked-out source')
-              changed = True
-          else:
-              before = os.environ['BEFORE']
-              if not before or set(before) == {'0'}:
-                  raise SystemExit('First publication must be started manually')
-              old = json.loads(subprocess.check_output(['git', 'show', before + ':release.json']))
-              previous = version(old['version'])
-              if current < previous:
-                  raise SystemExit('Release version must not decrease')
-              changed = current > previous
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
-              stream.write('publish=' + str(changed).lower() + '\n')
-          PY
+          RESUME_RUN: ${{ inputs.resume_run }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/release_workflow.py select
 
   build:
+    name: Build Codux ${{ needs.select.outputs.version }} / Codex ${{ needs.select.outputs.upstream }}
     needs: select
-    if: needs.select.outputs.publish == 'true'
+    if: needs.select.outputs.publish == 'true' && needs.select.outputs.resume != 'true'
     uses: ./.github/workflows/native-build.yml
     with:
       platform: windows
       ref: ${{ github.sha }}
 
   publish:
-    needs: build
+    name: Publish or recheck Codux ${{ needs.select.outputs.version }}
+    needs: [select, build]
+    if: ${{ !cancelled() && needs.select.outputs.publish == 'true' && (needs.build.result == 'success' || needs.select.outputs.resume == 'true') }}
     runs-on: ubuntu-22.04
+    timeout-minutes: 45
     environment: npm
     permissions:
       contents: read
       id-token: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -94,5 +92,86 @@ jobs:
         with:
           name: npm-release-candidate
           path: .build/npm-publish
+          run-id: ${{ needs.select.outputs.artifact_run }}
+          github-token: ${{ github.token }}
+      - name: Find the previous upload receipt (including job retries)
+        id: receipt
+        uses: actions/github-script@v7
+        env:
+          RECEIPT_RUN: ${{ needs.select.outputs.receipt_run }}
+          RESUMING: ${{ needs.select.outputs.resume }}
+        with:
+          script: |
+            let run_id = context.runId;
+            let receipt;
+            for (const candidate of [...new Set([context.runId, Number(process.env.RECEIPT_RUN || context.runId)])]) {
+              const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                ...context.repo, run_id: candidate, per_page: 100
+              });
+              receipt = artifacts.find(a => a.name === 'npm-publication-state' && !a.expired);
+              if (receipt) { run_id = candidate; break; }
+            }
+            if (!receipt && process.env.RESUMING === 'true') throw new Error('Required upload receipt is missing');
+            core.setOutput('id', receipt ? String(receipt.id) : '');
+            core.setOutput('run', String(run_id));
+      - uses: actions/download-artifact@v4
+        if: steps.receipt.outputs.id != ''
+        with:
+          artifact-ids: ${{ steps.receipt.outputs.id }}
+          path: .build/npm-state
+          merge-multiple: true
+          run-id: ${{ steps.receipt.outputs.run }}
+          github-token: ${{ github.token }}
+      - name: Retain the same verified archives for another recheck
+        if: needs.select.outputs.resume == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-release-candidate
+          path: .build/npm-publish
+          overwrite: true
+          if-no-files-found: error
       - name: Publish native packages, then command package
-        run: python scripts/publish_npm.py --artifacts .build/npm-publish --publish
+        run: python scripts/publish_npm.py --artifacts .build/npm-publish --publish --state .build/npm-state/publication.json --defer-pending
+      - name: Retain accepted uploads and publication state
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-publication-state
+          path: .build/npm-state/publication.json
+          overwrite: true
+          if-no-files-found: warn
+
+  result:
+    name: Release result - published, waiting, or failed
+    needs: [select, build, publish]
+    if: always() && needs.select.outputs.publish == 'true'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      actions: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read publication receipt if present
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import os, subprocess, sys
+          sys.path.insert(0, 'scripts')
+          from release_workflow import artifact
+          if artifact(os.environ['GITHUB_REPOSITORY'], os.environ['GITHUB_RUN_ID'], 'npm-publication-state'):
+              subprocess.run(['gh', 'run', 'download', os.environ['GITHUB_RUN_ID'], '--name',
+                              'npm-publication-state', '--dir', '.build/npm-state'], check=True)
+          PY
+      - name: Report the actual delivery state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ needs.select.outputs.source_sha }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+        run: python scripts/release_workflow.py report

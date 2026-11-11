@@ -24,7 +24,7 @@ spaces and Unicode. Interactive terminal results must be recorded separately.
 
 ## Other native hosts
 
-The manual **Verify native npm packages** workflow can run on Windows x64, Linux x64 (glibc), and macOS Apple Silicon. Linux and macOS are experimental until the workflow passes on those hosts. macOS Intel packaging is supported by the packaging script but is not in the initial workflow matrix. Alpine/musl and Windows ARM64 are not supported.
+The manual **Checks - Native packages** workflow can run on Windows x64, Linux x64 (glibc), and macOS Apple Silicon. Linux and macOS are experimental until the workflow passes on those hosts. macOS Intel packaging is supported by the packaging script but is not in the initial workflow matrix. Alpine/musl and Windows ARM64 are not supported.
 
 On GitHub, open Actions, select the workflow, choose Run workflow, and select a platform or `all`. Each host builds its own executable, tests it, renders sample diagrams, and installs the result through a disposable local npm registry. The final artifact includes only targets that passed. This manual build does not publish; publication uses a separate workflow. The job needs sufficient memory and disk for two Rust build profiles; a larger runner may be needed if hosted runner limits are reached.
 
@@ -32,7 +32,7 @@ On a native Linux/macOS development host, install the pinned Rust toolchain, Nod
 
 ## Updating the pinned upstream
 
-The **Track Codex upstream** workflow runs every six hours or on manual dispatch. It reads the latest official stable release, ignores older/current versions, and waits if an upstream PR is already open. Enable **Allow GitHub Actions to create and approve pull requests** in the repository's Actions settings so it can open PRs. The workflow creates PRs but does not approve or merge them. Scheduled runs require the workflow on the default branch; GitHub may delay schedules or disable them in inactive public repositories.
+The **2. Codex updates and release status** workflow runs every six hours or on manual dispatch. It reads the latest official stable release, ignores older/current versions, and waits if an upstream PR is already open. Enable **Allow GitHub Actions to create and approve pull requests** in the repository's Actions settings so it can open PRs. The workflow creates PRs but does not approve or merge them. Scheduled runs require the workflow on the default branch; GitHub may delay schedules or disable them in inactive public repositories. A separate job rechecks accepted npm uploads that are still pending, without rebuilding.
 
 Candidate preparation uses a fresh `.build/upstream-port-*` checkout. It resolves the tag to a commit, applies the existing patch, reads the new Rust toolchain, and regenerates the patch and both sets of file hashes. A reverse/reapply check verifies the exact bytes. Only after those checks pass does it update the patch, `upstream.lock.json`, and `release.json`. It increments the internal patch revision and the Codux patch release number. SQL migration newline handling is preserved. No conflict is resolved automatically.
 

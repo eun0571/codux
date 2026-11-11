@@ -1,4 +1,5 @@
-name: Verify pull request
+name: Checks - Pull request
+run-name: PR ${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}
 
 on:
   pull_request:
@@ -13,6 +14,7 @@ concurrency:
 
 jobs:
   verify:
+    name: Validate proposed changes (does not publish)
     # The tracker verifies its own token-created PR; human edits are checked here.
     if: github.actor != 'github-actions[bot]'
     uses: ./.github/workflows/native-build.yml
@@ -21,6 +23,7 @@ jobs:
       ref: ${{ github.event.pull_request.head.sha }}
 
   result:
+    name: PR validation result
     needs: verify
     if: always() && needs.verify.result != 'skipped' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-22.04

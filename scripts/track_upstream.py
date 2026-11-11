@@ -68,22 +68,34 @@ def track(root=ROOT):
 
 
 def main():
+    from release_workflow import summary
+
     report = ROOT / ".build/upstream-report.json"
     report.parent.mkdir(exist_ok=True)
     try:
         result = track()
     except Exception as error:
         report.write_bytes(encoded_json({"changed": False, "error": str(error)}))
+        summary("## Codex update check failed\n\nNo new release was published. "
+                "Inspect the failed step and upstream-report artifact for the conflict or error.")
         raise
+    lock = json.loads((ROOT / "upstream.lock.json").read_bytes())
+    release = json.loads((ROOT / "release.json").read_bytes())
+    result.setdefault("codux_version", release["version"])
+    result.setdefault("upstream_version", lock["version"])
     report.write_bytes(encoded_json(result))
     if os.environ.get("GITHUB_OUTPUT"):
         with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as stream:
-            for key in ("changed", "head_sha", "pr_number"):
+            for key in ("changed", "head_sha", "pr_number", "codux_version", "upstream_version"):
                 value = result.get(key, "")
                 stream.write(f"{key}={str(value).lower() if isinstance(value, bool) else value}\n")
-    if os.environ.get("GITHUB_STEP_SUMMARY"):
-        with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as stream:
-            stream.write(result.get("pr_url", result.get("reason", "")) + "\n")
+    if result["changed"]:
+        summary(f"## Update candidate: Codux {result['codux_version']} / Codex {result['upstream_version']}\n\n"
+                f"[Review the update PR]({result['pr_url']}). The patch applies; Windows verification runs next. "
+                "This candidate is **not published**. Review and merge after verification passes.")
+    else:
+        summary(f"## Codex update check\n\nPinned source: Codex {lock['version']} / Codux {release['version']}.\n\n"
+                f"{result.get('reason', 'No update prepared')}\n\nNo build or publication was started by this check.")
     print(json.dumps(result, indent=2))
 
 

@@ -74,6 +74,8 @@ Mermaid images require Chrome or Edge; renderer libraries are bundled. Choose **
 
 ## Updating upstream
 
+[Release activity](https://github.com/eun0571/codux/actions/workflows/publish-npm.yml) shows application publication. [Update checks](https://github.com/eun0571/codux/actions/workflows/track-upstream.yml) track official Codex; [playground deployment](https://github.com/eun0571/codux/actions/workflows/playground.yml) updates only the website. See [how to read the results](docs/RELEASE.md#read-github-actions), including npm processing delays.
+
 [`upstream.lock.json`](upstream.lock.json) records the exact Codex commit, Rust toolchain, patch, and checksums used by a build. Updating the official `codex` installation does not change Codux's pinned source.
 
 The [upstream tracker](.github/workflows/track-upstream.yml) checks official stable releases every six hours. When the patch applies cleanly, it prepares an update PR with refreshed pins, checksums, and a proposed Codux version. Windows regression tests, a release build, and an isolated npm installation check run against that PR. Patch conflicts require a manual port.

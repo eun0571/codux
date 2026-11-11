@@ -1,4 +1,5 @@
-name: Track Codex upstream
+name: 2. Codex updates and release status
+run-name: Check official Codex updates and pending npm publication
 
 on:
   schedule:
@@ -13,7 +14,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  npm_status:
+    name: Recheck pending npm publication (no rebuild)
+    if: vars.CODUX_NPM_PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      actions: write
+      statuses: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Report or resume the current release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python scripts/release_workflow.py retry
+
   candidate:
+    name: Check stable Codex and prepare an update PR
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     permissions:
@@ -22,6 +46,8 @@ jobs:
     outputs:
       changed: ${{ steps.track.outputs.changed }}
       head_sha: ${{ steps.track.outputs.head_sha }}
+      codux_version: ${{ steps.track.outputs.codux_version }}
+      upstream_version: ${{ steps.track.outputs.upstream_version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,6 +69,7 @@ jobs:
           path: .build/upstream-report.json
 
   pending:
+    name: Mark candidate checks as running
     needs: candidate
     if: needs.candidate.outputs.changed == 'true'
     runs-on: ubuntu-22.04
@@ -62,6 +89,7 @@ jobs:
             });
 
   verify:
+    name: Candidate Codux ${{ needs.candidate.outputs.codux_version }} / Codex ${{ needs.candidate.outputs.upstream_version }}
     needs: [candidate, pending]
     if: needs.candidate.outputs.changed == 'true'
     uses: ./.github/workflows/native-build.yml
@@ -72,6 +100,7 @@ jobs:
       contents: read
 
   result:
+    name: Candidate result - review required before release
     needs: [candidate, verify]
     if: always() && needs.candidate.outputs.changed == 'true'
     runs-on: ubuntu-22.04
@@ -91,3 +120,7 @@ jobs:
               description: ok ? 'Windows build and npm installation passed' : 'Validation did not pass; inspect the workflow logs',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
+            await core.summary.addHeading('Codex update candidate')
+              .addRaw(ok ? 'Windows checks passed. This is an update candidate, not a published release. Review and merge the PR to start publication.'
+                         : 'Candidate verification failed. The installed and published release is unchanged.')
+              .write();
