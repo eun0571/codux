@@ -498,7 +498,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap
-@@ -12,15 +12,17 @@
+@@ -12,15 +12,18 @@
  
    Keyboard shortcuts
  
@@ -512,23 +512,24 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4           Cycle card display
-+  @   Mention files      ⌥,       Less reasoning              f3            Find text
-+  !   Shell command      ⌥.       More reasoning              up / down     Scroll in browsing
-+  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+arrows   Select card
-+  ⌃v  Paste image        f4       Browse cards                enter         Fold selected card
-+  ⌃g  External editor    ⌃c       Quit                        ⌃e            Rewind selected question
-+  ⌃r  Search history                                          pgup / pgdn   Scroll
-+                                                              ⌃space        Start selection
-+                                                              ⌃home / ⌃end  Top / latest
-+                                                              ⇧⌥, / ⇧⌥.     Top / latest
++  /   Commands           tab      Send message                ⇧f4              Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3               Find text
++  !   Shell command      ⌥.       More reasoning              up / down        Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+up/down     Select matching card
++  ⌃v  Paste image        f4       Browse cards                tab / shift+tab  Filter card types
++  ⌃g  External editor    ⌃c       Quit                        enter            Fold selected card
++  ⌃r  Search history                                          ⌃e               Rewind selected question
++                                                              pgup / pgdn      Scroll
++                                                              ⌃space           Start selection
++                                                              ⌃home / ⌃end     Top / latest
++                                                              ⇧⌥, / ⇧⌥.        Top / latest
  
    /keymap customize
  
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap
-@@ -13,26 +13,29 @@
+@@ -13,30 +13,35 @@
    Keyboard shortcuts
  
    Compose
@@ -559,16 +560,27 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
  
 -  Transcript (open first)
 -  ⌃t            Open transcript
+-  f3            Find text
+-  pgup / pgdn   Scroll
+-  ⌃space        Start selection
+-  ⌃home / ⌃end  Top / latest
+-  ⇧⌥, / ⇧⌥.     Top / latest
 +  Transcript / browsing
-+  ⇧f4           Cycle card display
-   f3            Find text
-+  up / down     Scroll in browsing
-+  ctrl+arrows   Select card
-+  enter         Fold selected card
-+  ⌃e            Rewind selected question
-   pgup / pgdn   Scroll
-   ⌃space        Start selection
-   ⌃home / ⌃end  Top / latest
++  ⇧f4              Cycle card display
++  f3               Find text
++  up / down        Scroll in browsing
++  ctrl+up/down     Select matching card
++  tab / shift+tab  Filter card types
++  enter            Fold selected card
++  ⌃e               Rewind selected
++  question
++  pgup / pgdn      Scroll
++  ⌃space           Start selection
++  ⌃home / ⌃end     Top / latest
++  ⇧⌥, / ⇧⌥.        Top / latest
+ 
+   /keymap customize
+ 
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap
@@ -608,7 +620,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap
-@@ -13,15 +13,17 @@
+@@ -13,15 +13,18 @@
  
    Keyboard shortcuts
  
@@ -622,20 +634,21 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4           Cycle card display
-+  @   Mention files      ⌥,       Less reasoning              f3            Find text
-+  !   Shell command      ⌥.       More reasoning              up / down     Scroll in browsing
-+  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+arrows   Select card
-+  ⌃v  Paste image        f4       Browse cards                enter         Fold selected card
-+  ⌃g  External editor    ⌃c       Quit                        ⌃e            Rewind selected question
-+  ⌃r  Search history                                          pgup / pgdn   Scroll
-+                                                              ⌃space        Start selection
-+                                                              ⌃home / ⌃end  Top / latest
-+                                                              ⇧⌥, / ⇧⌥.     Top / latest
++  /   Commands           tab      Send message                ⇧f4              Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3               Find text
++  !   Shell command      ⌥.       More reasoning              up / down        Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+up/down     Select matching card
++  ⌃v  Paste image        f4       Browse cards                tab / shift+tab  Filter card types
++  ⌃g  External editor    ⌃c       Quit                        enter            Fold selected card
++  ⌃r  Search history                                          ⌃e               Rewind selected question
++                                                              pgup / pgdn      Scroll
++                                                              ⌃space           Start selection
++                                                              ⌃home / ⌃end     Top / latest
++                                                              ⇧⌥, / ⇧⌥.        Top / latest
  
    /keymap customize
  
-@@ -41,15 +43,17 @@
+@@ -41,15 +44,18 @@
  
    Keyboard shortcuts
  
@@ -649,20 +662,21 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4           Cycle card display
-+  @   Mention files      ⌥,       Less reasoning              f3            Find text
-+  !   Shell command      ⌥.       More reasoning              up / down     Scroll in browsing
-+  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+arrows   Select card
-+  ⌃v  Paste image        ⌃x t     Browse cards                enter         Fold selected card
-+  ⌃g  External editor    ⌃c       Quit                        ⌃e            Rewind selected question
-+  ⌃r  Search history                                          pgup / pgdn   Scroll
-+                                                              ⌃space        Start selection
-+                                                              ⌃home / ⌃end  Top / latest
-+                                                              ⇧⌥, / ⇧⌥.     Top / latest
++  /   Commands           tab      Send message                ⇧f4              Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3               Find text
++  !   Shell command      ⌥.       More reasoning              up / down        Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+up/down     Select matching card
++  ⌃v  Paste image        ⌃x t     Browse cards                tab / shift+tab  Filter card types
++  ⌃g  External editor    ⌃c       Quit                        enter            Fold selected card
++  ⌃r  Search history                                          ⌃e               Rewind selected question
++                                                              pgup / pgdn      Scroll
++                                                              ⌃space           Start selection
++                                                              ⌃home / ⌃end     Top / latest
++                                                              ⇧⌥, / ⇧⌥.        Top / latest
  
    /keymap customize
  
-@@ -69,15 +73,17 @@
+@@ -69,15 +75,18 @@
  
    Keyboard shortcuts
  
@@ -676,16 +690,17 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4           Cycle card display
-+  @   Mention files      ⌥,       Less reasoning              f3            Find text
-+  !   Shell command      ⌥.       More reasoning              up / down     Scroll in browsing
-+  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+arrows   Select card
-+  ⌃v  Paste image        ⌃c       Quit                        enter         Fold selected card
-+  ⌃g  External editor                                         ⌃e            Rewind selected question
-+  ⌃r  Search history                                          pgup / pgdn   Scroll
-+                                                              ⌃space        Start selection
-+                                                              ⌃home / ⌃end  Top / latest
-+                                                              ⇧⌥, / ⇧⌥.     Top / latest
++  /   Commands           tab      Send message                ⇧f4              Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3               Find text
++  !   Shell command      ⌥.       More reasoning              up / down        Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+up/down     Select matching card
++  ⌃v  Paste image        ⌃c       Quit                        tab / shift+tab  Filter card types
++  ⌃g  External editor                                         enter            Fold selected card
++  ⌃r  Search history                                          ⌃e               Rewind selected question
++                                                              pgup / pgdn      Scroll
++                                                              ⌃space           Start selection
++                                                              ⌃home / ⌃end     Top / latest
++                                                              ⇧⌥, / ⇧⌥.        Top / latest
  
    /keymap customize
  
@@ -1755,7 +1770,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input_tests.rs b/codex-rs/tui/src/
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shortcut_overlay__tests__shortcut_overlay_customized_wsl.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shortcut_overlay__tests__shortcut_overlay_customized_wsl.snap
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shortcut_overlay__tests__shortcut_overlay_customized_wsl.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shortcut_overlay__tests__shortcut_overlay_customized_wsl.snap
-@@ -4,22 +4,26 @@
+@@ -4,22 +4,27 @@
  ---
  "  Keyboard shortcuts                                                            "
  "                                                                                "
@@ -1786,22 +1801,23 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shor
 -"                               ⌃home / ⌃end  Top / latest                       "
 -"                               ⇧⌥, / ⇧⌥.     Top / latest                       "
 +"                             Transcript / browsing                              "
-+"                             ⇧f4           Cycle card display                   "
-+"                             f3            Find text                            "
-+"                             up / down     Scroll in browsing                   "
-+"                             ctrl+arrows   Select card                          "
-+"                             enter         Fold selected card                   "
-+"                             ⌃e            Rewind selected question             "
-+"                             pgup / pgdn   Scroll                               "
-+"                             ⌃space        Start selection                      "
-+"                             ⌃home / ⌃end  Top / latest                         "
-+"                             ⇧⌥, / ⇧⌥.     Top / latest                         "
++"                             ⇧f4              Cycle card display                "
++"                             f3               Find text                         "
++"                             up / down        Scroll in browsing                "
++"                             ctrl+up/down     Select matching card              "
++"                             tab / shift+tab  Filter card types                 "
++"                             enter            Fold selected card                "
++"                             ⌃e               Rewind selected question          "
++"                             pgup / pgdn      Scroll                            "
++"                             ⌃space           Start selection                   "
++"                             ⌃home / ⌃end     Top / latest                      "
++"                             ⇧⌥, / ⇧⌥.        Top / latest                      "
  "                                                                                "
  "  /keymap customize                                                             "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap
-@@ -4,21 +4,25 @@
+@@ -4,21 +4,26 @@
  ---
  "  Keyboard shortcuts                                                            "
  "                                                                                "
@@ -1831,22 +1847,23 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 +"  ⌃r      Search history     ⌃c       Quit                                      "
 +"                                                                                "
 +"                             Transcript / browsing                              "
-+"                             ⇧f4           Cycle card display                   "
-+"                             f3            Find text                            "
-+"                             up / down     Scroll in browsing                   "
-+"                             ctrl+arrows   Select card                          "
-+"                             enter         Fold selected card                   "
-+"                             ⌃e            Rewind selected question             "
-+"                             pgup / pgdn   Scroll                               "
-+"                             ⌃space        Start selection                      "
-+"                             ⌃home / ⌃end  Top / latest                         "
-+"                             ⇧⌥, / ⇧⌥.     Top / latest                         "
++"                             ⇧f4              Cycle card display                "
++"                             f3               Find text                         "
++"                             up / down        Scroll in browsing                "
++"                             ctrl+up/down     Select matching card              "
++"                             tab / shift+tab  Filter card types                 "
++"                             enter            Fold selected card                "
++"                             ⌃e               Rewind selected question          "
++"                             pgup / pgdn      Scroll                            "
++"                             ⌃space           Start selection                   "
++"                             ⌃home / ⌃end     Top / latest                      "
++"                             ⇧⌥, / ⇧⌥.        Top / latest                      "
  "                                                                                "
  "  /keymap customize                                                             "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap
-@@ -4,21 +4,25 @@
+@@ -4,21 +4,26 @@
  ---
  "  Keyboard shortcuts                                                            "
  "                                                                                "
@@ -1876,22 +1893,23 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 +"  ⌃r  Search history     ⌃c       Interrupt                                     "
 +"                                                                                "
 +"                         Transcript / browsing                                  "
-+"                         ⇧f4           Cycle card display                       "
-+"                         f3            Find text                                "
-+"                         up / down     Scroll in browsing                       "
-+"                         ctrl+arrows   Select card                              "
-+"                         enter         Fold selected card                       "
-+"                         ⌃e            Rewind selected question                 "
-+"                         pgup / pgdn   Scroll                                   "
-+"                         ⌃space        Start selection                          "
-+"                         ⌃home / ⌃end  Top / latest                             "
-+"                         ⇧⌥, / ⇧⌥.     Top / latest                             "
++"                         ⇧f4              Cycle card display                    "
++"                         f3               Find text                             "
++"                         up / down        Scroll in browsing                    "
++"                         ctrl+up/down     Select matching card                  "
++"                         tab / shift+tab  Filter card types                     "
++"                         enter            Fold selected card                    "
++"                         ⌃e               Rewind selected question              "
++"                         pgup / pgdn      Scroll                                "
++"                         ⌃space           Start selection                       "
++"                         ⌃home / ⌃end     Top / latest                          "
++"                         ⇧⌥, / ⇧⌥.        Top / latest                          "
  "                                                                                "
  "  /keymap customize                                                             "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_collaboration_modes_enabled.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_collaboration_modes_enabled.snap
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_collaboration_modes_enabled.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_collaboration_modes_enabled.snap
-@@ -4,22 +4,26 @@
+@@ -4,22 +4,27 @@
  ---
  "  Keyboard shortcuts                                                            "
  "                                                                                "
@@ -1922,16 +1940,17 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 -"                                ⌃home / ⌃end  Top / latest                      "
 -"                                ⇧⌥, / ⇧⌥.     Top / latest                      "
 +"                         Transcript / browsing                                  "
-+"                         ⇧f4           Cycle card display                       "
-+"                         f3            Find text                                "
-+"                         up / down     Scroll in browsing                       "
-+"                         ctrl+arrows   Select card                              "
-+"                         enter         Fold selected card                       "
-+"                         ⌃e            Rewind selected question                 "
-+"                         pgup / pgdn   Scroll                                   "
-+"                         ⌃space        Start selection                          "
-+"                         ⌃home / ⌃end  Top / latest                             "
-+"                         ⇧⌥, / ⇧⌥.     Top / latest                             "
++"                         ⇧f4              Cycle card display                    "
++"                         f3               Find text                             "
++"                         up / down        Scroll in browsing                    "
++"                         ctrl+up/down     Select matching card                  "
++"                         tab / shift+tab  Filter card types                     "
++"                         enter            Fold selected card                    "
++"                         ⌃e               Rewind selected question              "
++"                         pgup / pgdn      Scroll                                "
++"                         ⌃space           Start selection                       "
++"                         ⌃home / ⌃end     Top / latest                          "
++"                         ⇧⌥, / ⇧⌥.        Top / latest                          "
  "                                                                                "
  "  /keymap customize                                                             "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_esc_hint_primed.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_esc_hint_primed.snap
@@ -2031,7 +2050,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/shortcut_overlay.rs b/codex-rs/tui/src
      session.entries.push(Shortcut::new(
          key_hint::ctrl(KeyCode::Char('c')),
          if props.is_task_running {
-@@ -96,12 +85,25 @@
+@@ -96,12 +85,29 @@
      ));
  
      let mut transcript = Group {
@@ -2048,8 +2067,12 @@ diff --git a/codex-rs/tui/src/bottom_pane/shortcut_overlay.rs b/codex-rs/tui/src
 +            action: "Scroll in browsing",
 +        },
 +        Shortcut {
-+            key: "ctrl+arrows".into(),
-+            action: "Select card",
++            key: "ctrl+up/down".into(),
++            action: "Select matching card",
++        },
++        Shortcut {
++            key: "tab / shift+tab".into(),
++            action: "Filter card types",
 +        },
 +        Shortcut::new(key_hint::plain(KeyCode::Enter), "Fold selected card"),
 +        Shortcut::new(
@@ -2102,7 +2125,7 @@ diff --git a/codex-rs/tui/src/app/codux_navigation.rs b/codex-rs/tui/src/app/cod
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/app/codux_navigation.rs
-@@ -0,0 +1,473 @@
+@@ -0,0 +1,505 @@
 +//! Codux keeps transcript navigation in the card view. Prompt edits are explicit rewinds.
 +use super::*;
 +use crate::bottom_pane::{SelectionItem, SelectionViewParams};
@@ -2190,8 +2213,10 @@ new file mode 100644
 +        let (mut app, mut events, _ops) = make_test_app_with_channels().await;
 +        let mut tui = crate::tui::test_support::make_test_tui()?;
 +        tui.set_owned_screen(true)?;
-+        let mut app_server = Box::pin(crate::start_embedded_app_server_for_picker(&app.config)).await?;
-+        let init = app.chatwidget_init_for_forked_or_resumed_thread(&mut tui, app.config.clone(), None);
++        let mut app_server =
++            Box::pin(crate::start_embedded_app_server_for_picker(&app.config)).await?;
++        let init =
++            app.chatwidget_init_for_forked_or_resumed_thread(&mut tui, app.config.clone(), None);
 +        app.replace_chat_widget(ChatWidget::new_with_app_event(init));
 +        attach_thread(&mut app, ThreadId::new());
 +        app.transcript_cells = vec![user_cell("Question for navigation")];
@@ -2200,7 +2225,8 @@ new file mode 100644
 +            app.transcript_view.clear_activity_focus();
 +            app.render_owned_transcript(&mut tui, Size::new(80, 24))?;
 +            if click_card {
-+                let buffer = crate::custom_terminal::test_support::last_rendered_buffer(&tui.terminal);
++                let buffer =
++                    crate::custom_terminal::test_support::last_rendered_buffer(&tui.terminal);
 +                let position = buffer
 +                    .area
 +                    .positions()
@@ -2235,6 +2261,24 @@ new file mode 100644
 +                .transcript_view
 +                .codux_focused_index(&app.transcript_cells);
 +            assert_eq!(focused, Some(0));
++            // Tab belongs to browsing, including when the selected type has no cards.
++            for (key, expected) in [
++                (KeyCode::Tab, Some(0)),
++                (KeyCode::Tab, None),
++                (KeyCode::BackTab, Some(0)),
++                (KeyCode::BackTab, Some(0)),
++            ] {
++                app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(key.into()))
++                    .await?;
++                assert!(app.transcript_view.is_activity_focused());
++                assert_eq!(
++                    app.transcript_view
++                        .codux_focused_index(&app.transcript_cells),
++                    expected
++                );
++                assert!(app.chat_widget.composer_text_with_pending().is_empty());
++                assert!(!app.chat_widget.has_active_modal());
++            }
 +            assert!(
 +                !app.transcript_view
 +                    .owns_interaction_key(KeyCode::Left.into())
@@ -2401,14 +2445,25 @@ new file mode 100644
 +        let mut mode = crate::mycodx_ui::current().card_mode();
 +        for _ in 0..3 {
 +            mode = mode.next();
-+            app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(KeyEvent::new(KeyCode::F(4), KeyModifiers::SHIFT))).await?;
++            app.handle_tui_event(
++                &mut tui,
++                &mut app_server,
++                TuiEvent::Key(KeyEvent::new(KeyCode::F(4), KeyModifiers::SHIFT)),
++            )
++            .await?;
 +            assert_eq!(crate::mycodx_ui::current().card_mode(), mode);
 +            let mut repeat = KeyEvent::new(KeyCode::F(4), KeyModifiers::SHIFT);
 +            repeat.kind = KeyEventKind::Repeat;
-+            app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(repeat)).await?;
++            app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(repeat))
++                .await?;
 +            assert_eq!(crate::mycodx_ui::current().card_mode(), mode);
 +        }
-+        app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::CONTROL))).await?;
++        app.handle_tui_event(
++            &mut tui,
++            &mut app_server,
++            TuiEvent::Key(KeyEvent::new(KeyCode::Char('t'), KeyModifiers::CONTROL)),
++        )
++        .await?;
 +        assert_eq!(crate::mycodx_ui::current().card_mode(), mode);
 +        assert!(!app.transcript_view.is_detailed());
 +        app.transcript_cells
@@ -5925,9 +5980,9 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
 -focused, 20 columns: esc back
 -focused, 32 columns: enter details · esc back
 -focused, 80 columns: ↑ previous · ↓ next · enter details · esc back
-+focused, 20 columns: Browsing · esc back
-+focused, 32 columns: Browsing · enter fold · esc back
-+focused, 80 columns: Browsing · ctrl+arrows cards · enter fold · ⇧f4 2: All cards · esc back
++focused, 20 columns: [All] · tab filter
++focused, 32 columns: [All] · tab filter · esc back
++focused, 80 columns: Browsing [All] · tab filter · ctrl+up/down cards · enter fold · esc back
  expanded
  Buffer {
      area: Rect { x: 0, y: 0, width: 32, height: 3 },
@@ -6076,7 +6131,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search.rs b/codex-rs/tui/src/trans
  mod presentation;
 +#[path = "search_scope.rs"]
 +mod scope;
-+use scope::SearchScope;
++pub(super) use scope::SearchScope;
  
  const QUERY_BYTES: usize = 4096;
  const SCAN_BYTES: usize = 16 * 1024;
@@ -6140,7 +6195,7 @@ new file mode 100644
 +use crate::mycodx_ui::Section;
 +
 +#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-+pub(super) enum SearchScope {
++pub(in crate::transcript_view) enum SearchScope {
 +    All,
 +    Questions,
 +    Tools,
@@ -6149,7 +6204,7 @@ new file mode 100644
 +}
 +
 +impl SearchScope {
-+    pub(super) fn cycle(self, backwards: bool) -> Self {
++    pub(in crate::transcript_view) fn cycle(self, backwards: bool) -> Self {
 +        const ORDER: [SearchScope; 5] = [
 +            SearchScope::All,
 +            SearchScope::Questions,
@@ -6161,7 +6216,7 @@ new file mode 100644
 +        ORDER[(index + if backwards { ORDER.len() - 1 } else { 1 }) % ORDER.len()]
 +    }
 +
-+    pub(super) fn label(self) -> &'static str {
++    pub(in crate::transcript_view) fn label(self) -> &'static str {
 +        match self {
 +            Self::All => "All",
 +            Self::Questions => "Questions/replies",
@@ -6171,7 +6226,7 @@ new file mode 100644
 +        }
 +    }
 +
-+    fn includes(self, section: Option<Section>) -> bool {
++    pub(in crate::transcript_view) fn includes(self, section: Option<Section>) -> bool {
 +        match self {
 +            Self::All => true,
 +            Self::Questions => matches!(section, Some(Section::Questions | Section::Replies)),
@@ -8925,26 +8980,28 @@ diff --git a/codex-rs/tui/src/app_backtrack.rs b/codex-rs/tui/src/app_backtrack.
 diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transcript_view/input.rs
 --- a/codex-rs/tui/src/transcript_view/input.rs
 +++ b/codex-rs/tui/src/transcript_view/input.rs
-@@ -180,6 +180,33 @@
+@@ -180,6 +180,35 @@
                      ))
                  || (modifiers == KeyModifiers::NONE
                      && matches!(code, KeyCode::PageUp | KeyCode::PageDown));
 +        }
 +        if self.is_activity_focused()
 +            && self.codux_navigation_shortcuts_available()
-+            && ((modifiers.is_empty()
-+                && matches!(
-+                    code,
-+                    KeyCode::Esc
-+                        | KeyCode::Enter
-+                        | KeyCode::Up
-+                        | KeyCode::Down
-+                        | KeyCode::Right
-+                        | KeyCode::PageUp
-+                        | KeyCode::PageDown
-+                        | KeyCode::Home
-+                        | KeyCode::End
-+                ))
++            && ((matches!(code, KeyCode::Tab | KeyCode::BackTab)
++                && modifiers.difference(KeyModifiers::SHIFT).is_empty())
++                || (modifiers.is_empty()
++                    && matches!(
++                        code,
++                        KeyCode::Esc
++                            | KeyCode::Enter
++                            | KeyCode::Up
++                            | KeyCode::Down
++                            | KeyCode::Right
++                            | KeyCode::PageUp
++                            | KeyCode::PageDown
++                            | KeyCode::Home
++                            | KeyCode::End
++                    ))
 +                || (modifiers == KeyModifiers::CONTROL
 +                    && matches!(
 +                        code,
@@ -8959,7 +9016,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
          }
          self.search.is_active()
              && (code == KeyCode::Esc
-@@ -333,11 +360,17 @@
+@@ -333,11 +362,19 @@
                  .map(ViewAction::OpenLink);
          }
          let inside = self.area.contains(point);
@@ -8968,7 +9025,9 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
 +        let wheel_over_header = matches!(
 +            event.kind,
 +            MouseEventKind::ScrollUp | MouseEventKind::ScrollDown
-+        ) && self.prompt_header_target.is_some_and(|(area, _)| area.contains(point));
++        ) && self
++            .prompt_header_target
++            .is_some_and(|(area, _)| area.contains(point));
          let dragging = self
              .selection
              .as_ref()
@@ -8978,7 +9037,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
              return None;
          }
          // Wheel navigation supersedes the last drag position. A real drag event can resume it.
-@@ -350,6 +383,7 @@
+@@ -350,6 +387,7 @@
          }
          match event.kind {
              MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
@@ -8986,7 +9045,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  let direction = if event.kind == MouseEventKind::ScrollUp {
                      -1.0
                  } else {
-@@ -380,6 +414,9 @@
+@@ -380,6 +418,9 @@
                  return self.pointer_down(event, cells, mode);
              }
              MouseEventKind::Drag(MouseButton::Left) if dragging => {
@@ -8996,7 +9055,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
                  self.extend_selection(event.column, event.row);
              }
              MouseEventKind::Up(MouseButton::Left) if dragging => {
-@@ -515,22 +552,21 @@
+@@ -515,22 +556,21 @@
              if was_following && let MouseMode::Selection(Some((thread_id, id))) = mode {
                  self.disclosure.resume_after_approval = Some((thread_id, id.to_owned()));
              }
@@ -9024,7 +9083,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
              self.last_click = None;
              self.extend_selection(event.column, event.row);
              if let Some(selection) = &mut self.selection {
-@@ -541,6 +577,17 @@
+@@ -541,6 +581,17 @@
          }
          let clicks =
              crate::text_selection::click_count(&mut self.last_click, event.column, event.row);
@@ -9042,7 +9101,7 @@ diff --git a/codex-rs/tui/src/transcript_view/input.rs b/codex-rs/tui/src/transc
          if clicks >= 2
              && visible
                  .layout
-@@ -552,6 +599,9 @@
+@@ -552,6 +603,9 @@
          let link = (mode == MouseMode::Interactive && clicks == 1 && event.modifiers.is_empty())
              .then(|| self.link_at(event.column, event.row))
              .flatten();
@@ -16531,7 +16590,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/transcript_view/disclosure.rs
 --- a/codex-rs/tui/src/transcript_view/disclosure.rs
 +++ b/codex-rs/tui/src/transcript_view/disclosure.rs
-@@ -1,36 +1,50 @@
+@@ -1,36 +1,52 @@
  //! Local activity disclosure keyed by retained tool identities, independent of text selection.
  //! Controls appear only while activity is focused; copied text and full-transcript search remain source based.
  
@@ -16557,6 +16616,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      pub(super) focused: Option<Vec<String>>,
      pub(super) resume_after_approval: Option<(ThreadId, String)>,
 +    pub(super) browsing: bool,
++    pub(super) navigation_scope: super::search::SearchScope,
      pub(super) live_ids: Vec<String>,
      pub(super) keymap: RuntimeKeymap,
 +    restored_answers: Option<RestoredAnswers>,
@@ -16578,6 +16638,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
              focused: None,
              resume_after_approval: None,
 +            browsing: false,
++            navigation_scope: super::search::SearchScope::All,
              live_ids: Vec::new(),
              keymap: RuntimeKeymap::defaults(),
 +            restored_answers: None,
@@ -16587,7 +16648,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          }
      }
  }
-@@ -38,6 +52,27 @@
+@@ -38,6 +54,27 @@
  impl Disclosure {
      pub(super) fn is_expanded(&self, ids: &[String]) -> bool {
          ids.iter().any(|id| self.expanded.contains(id))
@@ -16615,7 +16676,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      }
  }
  
-@@ -50,20 +85,148 @@
+@@ -50,20 +87,149 @@
          }
      }
  
@@ -16693,6 +16754,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      pub(crate) fn clear_activity_focus(&mut self) {
          self.disclosure.focused = None;
 +        self.disclosure.browsing = false;
++        self.disclosure.navigation_scope = super::search::SearchScope::All;
      }
  
      /// Live member identities survive the transition from active widget to committed history.
@@ -16766,7 +16828,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          // Disclosure follows its activity into history instead of an unrelated next live tail.
          if self.snapshot().is_none()
              && let Position::Reading(anchor) = self.position
-@@ -71,28 +234,67 @@
+@@ -71,28 +237,67 @@
              && let Some(index) = self.canonical_activity_index(cells, &self.disclosure.live_ids)
              && let Some(cell) = cells.get(index)
          {
@@ -16839,7 +16901,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          )
      }
  
-@@ -109,39 +311,14 @@
+@@ -109,39 +314,14 @@
              .unwrap_or_else(|| self.activity_ids(cells, index).into())
      }
  
@@ -16885,7 +16947,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      }
  
      pub(super) fn toggle_disclosure_at(
-@@ -173,57 +350,231 @@
+@@ -173,59 +353,230 @@
          true
      }
  
@@ -16914,6 +16976,9 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 +            let ids = self.activity_ids(cells, index);
 +            if !ids.is_empty() {
 +                // Unlike keyboard navigation, clicking a card must not scroll to its heading.
++                if !self.codux_navigation_matches(cells, index) {
++                    self.disclosure.navigation_scope = super::search::SearchScope::All;
++                }
 +                self.disclosure.focused = Some(ids);
 +                self.disclosure.browsing = true;
 +            }
@@ -16997,6 +17062,18 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 +        }
 +        self.disclosure.browsing = true;
 +        let (code, modifiers) = crate::key_hint::normalize_key_parts(key.code, key.modifiers);
++        if matches!(code, KeyCode::Tab | KeyCode::BackTab)
++            && modifiers.difference(KeyModifiers::SHIFT).is_empty()
++            && !self.search.is_active()
++        {
++            if key.kind != KeyEventKind::Repeat {
++                self.cycle_codux_navigation_scope(
++                    cells,
++                    code == KeyCode::BackTab || modifiers.contains(KeyModifiers::SHIFT),
++                );
++            }
++            return Some(ViewAction::Changed);
++        }
 +        if modifiers.is_empty() {
 +            match code {
 +                KeyCode::Esc => self.clear_activity_focus(),
@@ -17063,11 +17140,12 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 +            .visible
 +            .iter()
 +            .rev()
-+            .find_map(|row| self.canonical_activity_index(cells, &row.activity_ids));
++            .filter_map(|row| self.canonical_activity_index(cells, &row.activity_ids))
++            .find(|index| self.codux_navigation_matches(cells, *index));
 +        let index = visible.or_else(|| {
-+            (0..=cells.len())
-+                .rev()
-+                .find(|i| !self.activity_ids(cells, *i).is_empty())
++            (0..=cells.len()).rev().find(|i| {
++                self.codux_navigation_matches(cells, *i) && !self.activity_ids(cells, *i).is_empty()
++            })
 +        });
 +        if let Some(index) = index {
 +            self.disclosure.focused = Some(self.activity_ids(cells, index));
@@ -17119,38 +17197,23 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          match action {
              ListAction::Cancel => self.disclosure.focused = None,
              ListAction::Accept => self.toggle_activity(cells, focused),
-             ListAction::MoveLeft | ListAction::MoveRight => {
+-            ListAction::MoveLeft | ListAction::MoveRight => {
 -                let ids = self.activity_ids(cells, focused);
 -                let expanded = self.disclosure.is_expanded(&ids)
 -                    || self.is_search_expanded(self.entry_key(cells, focused));
 -                if expanded != (action == ListAction::MoveRight) {
 -                    self.toggle_activity(cells, focused);
-+                let right = action == ListAction::MoveRight;
-+                if self.mycodx_right(cells, focused) != right {
-+                    let start = super::mycodx::prompt_start(cells, focused);
-+                    let end = (focused + 1..cells.len())
-+                        .find(|i| {
-+                            super::mycodx::section(&cells[*i])
-+                                == Some(crate::mycodx_ui::Section::Questions)
-+                        })
-+                        .unwrap_or(cells.len() + 1);
-+                    let mut candidates: Vec<_> = (start..end)
-+                        .filter(|i| self.mycodx_right(cells, *i) == right)
-+                        .collect();
-+                    candidates.sort_by_key(|i| i.abs_diff(focused));
-+                    for index in candidates {
-+                        if self.focus_activity(cells, index) {
-+                            break;
-+                        }
-+                    }
-                 }
-             }
+-                }
+-            }
++            // Tab selects card types; horizontal keys no longer switch alignment lanes.
++            ListAction::MoveLeft | ListAction::MoveRight => {}
              ListAction::MoveUp
-@@ -244,23 +595,41 @@
+             | ListAction::MoveDown
+             | ListAction::PageUp
+@@ -244,23 +595,40 @@
                      | ListAction::Accept
                      | ListAction::Cancel => unreachable!(),
                  };
-+                let right = self.mycodx_right(cells, focused);
 +                let current_ids = self.activity_ids(cells, focused);
                  let mut next = focused;
                  for _ in 0..steps {
@@ -17160,7 +17223,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 -                            .rev()
 -                            .find(|index| !self.activity_ids(cells, *index).is_empty())
 +                        range.by_ref().rev().find(|index| {
-+                            self.mycodx_right(cells, *index) == right
++                            self.codux_navigation_matches(cells, *index)
 +                                && !self
 +                                    .activity_ids(cells, *index)
 +                                    .iter()
@@ -17172,7 +17235,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 -                            .by_ref()
 -                            .find(|index| !self.activity_ids(cells, *index).is_empty())
 +                        range.by_ref().find(|index| {
-+                            self.mycodx_right(cells, *index) == right
++                            self.codux_navigation_matches(cells, *index)
 +                                && !self
 +                                    .activity_ids(cells, *index)
 +                                    .iter()
@@ -17185,7 +17248,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                  }
                  loop {
 -                    if self.focus_activity(cells, next) {
-+                    if self.mycodx_right(cells, next) == right
++                    if self.codux_navigation_matches(cells, next)
 +                        && (next == focused
 +                            || !self
 +                                .activity_ids(cells, next)
@@ -17196,7 +17259,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                          break;
                      }
                      let candidate = if backwards {
-@@ -273,7 +642,6 @@
+@@ -273,7 +641,6 @@
                  }
              }
          }
@@ -17204,7 +17267,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
      }
  
      pub(super) fn canonical_activity_index(
-@@ -283,6 +651,23 @@
+@@ -283,6 +650,23 @@
      ) -> Option<usize> {
          if ids.is_empty() {
              return None;
@@ -17228,18 +17291,12 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          }
          // A visible immutable cell resolves directly; replaced groups fall back to member IDs.
          if let Some(row) = self.visible.iter().find(|row| {
-@@ -303,18 +688,28 @@
+@@ -303,18 +687,21 @@
          })
      }
  
-+    fn mycodx_right(&self, cells: &[Arc<dyn HistoryCell>], index: usize) -> bool {
-+        matches!(
-+            super::mycodx::section_at(cells, index),
-+            Some(crate::mycodx_ui::Section::Questions | crate::mycodx_ui::Section::Replies)
-+        )
-+    }
-+
-     fn focus_activity(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) -> bool {
+-    fn focus_activity(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) -> bool {
++    pub(super) fn focus_activity(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) -> bool {
          if self
              .current_layout(cells, index)
 -            .is_none_or(|layout| !layout.disclosure)
@@ -17260,7 +17317,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          });
          self.disclosure.focused = Some(ids);
          if !header_visible {
-@@ -324,6 +719,12 @@
+@@ -324,6 +711,12 @@
      }
  
      fn toggle_activity(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) {
@@ -17273,7 +17330,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          let ids = self.activity_ids(cells, index);
          if ids.is_empty() {
              return;
-@@ -349,11 +750,13 @@
+@@ -349,11 +742,13 @@
          }
          // Source offsets only survive an unchanged cell. Regrouped/retired live entries resolve
          // through their member IDs and anchor at their header, never a stale positional index.
@@ -17289,7 +17346,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                  Some(Anchor {
                      key: cells.get(top).map_or(EntryKey::Live, EntryKey::cell),
                      index: top,
-@@ -367,53 +770,60 @@
+@@ -367,53 +762,63 @@
                  offset: 0,
                  row_bias: 0,
              });
@@ -17345,8 +17402,14 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 +            .map(|key| key.display_label())
 +            .unwrap_or_default();
 +        let mode = crate::mycodx_ui::current().card_mode().label();
++        let scope = self.disclosure.navigation_scope.label();
++        let empty = if self.disclosure.focused.is_none() {
++            " (no visible cards)"
++        } else {
++            ""
++        };
 +        let full = format!(
-+            "Browsing \u{b7} \u{2191}\u{2193} scroll \u{b7} ctrl+arrows cards \u{b7} enter fold \u{b7} ctrl+e edit \u{b7} {shortcut} {mode} \u{b7} esc back"
++            "Browsing [{scope}]{empty} \u{b7} tab filter \u{b7} \u{2191}\u{2193} scroll \u{b7} ctrl+up/down cards \u{b7} enter fold \u{b7} ctrl+e edit \u{b7} {shortcut} {mode} \u{b7} esc back"
 +        );
          let text = crate::footer_hint::first_fitting_line(
 -            (0..hints.len()).map(|start| {
@@ -17362,19 +17425,16 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 +            [
 +                super::footer::navigation_line(&full),
 +                super::footer::navigation_line(&format!(
-+                    "Browsing \u{b7} \u{2191}\u{2193} scroll \u{b7} ctrl+arrows cards \u{b7} enter fold \u{b7} {shortcut} {mode} \u{b7} esc back"
++                    "Browsing [{scope}]{empty} \u{b7} tab filter \u{b7} ctrl+up/down cards \u{b7} enter fold \u{b7} esc back"
 +                )),
 +                super::footer::navigation_line(&format!(
-+                    "Browsing \u{b7} ctrl+arrows cards \u{b7} enter fold \u{b7} {shortcut} {mode} \u{b7} esc back"
++                    "[{scope}]{empty} \u{b7} tab filter \u{b7} ctrl+up/down cards \u{b7} enter fold"
 +                )),
 +                super::footer::navigation_line(&format!(
-+                    "Browsing \u{b7} enter fold \u{b7} {shortcut} {mode} \u{b7} esc back"
++                    "[{scope}]{empty} \u{b7} tab filter \u{b7} esc back"
 +                )),
-+                super::footer::navigation_line(
-+                    "Browsing \u{b7} \u{2191}\u{2193} scroll \u{b7} ctrl+arrows cards \u{b7} enter fold \u{b7} esc back",
-+                ),
-+                super::footer::navigation_line("Browsing \u{b7} enter fold \u{b7} esc back"),
-+                super::footer::navigation_line("Browsing \u{b7} esc back"),
++                super::footer::navigation_line(&format!("[{scope}] \u{b7} tab filter")),
++                super::footer::navigation_line("tab filter \u{b7} esc back"),
 +            ],
              width,
          );
@@ -17383,12 +17443,61 @@ diff --git a/codex-rs/tui/src/transcript_view/codux_navigation.rs b/codex-rs/tui
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/codux_navigation.rs
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,270 @@
 +//! Navigation changes must preserve source positions when hiding tools joins prose cards.
 +use super::*;
 +use crate::mycodx_ui::Section;
 +
 +impl TranscriptView {
++    pub(super) fn codux_navigation_matches(
++        &self,
++        cells: &[Arc<dyn HistoryCell>],
++        index: usize,
++    ) -> bool {
++        let section = if index == cells.len() {
++            Some(self.live_search_section())
++        } else {
++            super::mycodx::section_at(cells, index)
++        };
++        section.is_some_and(|section| crate::mycodx_ui::current().visible(section))
++            && self.disclosure.navigation_scope.includes(section)
++    }
++
++    pub(super) fn cycle_codux_navigation_scope(
++        &mut self,
++        cells: &[Arc<dyn HistoryCell>],
++        backwards: bool,
++    ) {
++        let anchor = self
++            .codux_focused_index(cells)
++            .or_else(|| {
++                self.visible
++                    .iter()
++                    .rev()
++                    .find_map(|row| self.canonical_activity_index(cells, &row.activity_ids))
++            })
++            .unwrap_or(cells.len());
++        self.disclosure.navigation_scope = self.disclosure.navigation_scope.cycle(backwards);
++        if self.disclosure.focused.is_some() && self.codux_navigation_matches(cells, anchor) {
++            return;
++        }
++        self.disclosure.focused = None;
++        // Nearest matching visible card wins, preferring older cards at equal distance.
++        // Filtering changes keyboard targets, never card visibility or disclosure state.
++        for distance in 0..=anchor.max(cells.len().saturating_sub(anchor)) {
++            let before = anchor.checked_sub(distance);
++            let after = (distance > 0)
++                .then(|| anchor + distance)
++                .filter(|i| *i <= cells.len());
++            for index in before.into_iter().chain(after) {
++                if self.codux_navigation_matches(cells, index) && self.focus_activity(cells, index)
++                {
++                    return;
++                }
++            }
++        }
++    }
++
 +    pub(crate) fn codux_navigation_shortcuts_available(&self) -> bool {
 +        !self.search.is_active()
 +            && !self.has_selection_range()
@@ -17498,7 +17607,8 @@ new file mode 100644
 +            let index = self.codux_visible_neighbor(cells, index);
 +            let index = self.codux_group_start(cells, index);
 +            let ids = self.activity_ids(cells, index);
-+            self.disclosure.focused = (!ids.is_empty()).then_some(ids);
++            self.disclosure.focused =
++                (!ids.is_empty() && self.codux_navigation_matches(cells, index)).then_some(ids);
 +        }
 +        self.visible.clear(); // Old hit regions refer to the previous grouping until the next draw.
 +        Ok(())
@@ -17507,7 +17617,11 @@ new file mode 100644
 +    fn codux_visible_neighbor(&self, cells: &[Arc<dyn HistoryCell>], index: usize) -> usize {
 +        let settings = crate::mycodx_ui::current();
 +        let section = if index == cells.len() {
-+            Some(if self.mycodx_stream { self.mycodx_stream_section } else { Section::Tools })
++            Some(if self.mycodx_stream {
++                self.mycodx_stream_section
++            } else {
++                Section::Tools
++            })
 +        } else {
 +            super::mycodx::section_at(cells, index)
 +        };
@@ -17520,8 +17634,7 @@ new file mode 100644
 +            .unwrap_or(cells.len());
 +        (start..end)
 +            .filter(|&i| {
-+                super::mycodx::section_at(cells, i)
-+                    .is_some_and(|s| settings.visible(s))
++                super::mycodx::section_at(cells, i).is_some_and(|s| settings.visible(s))
 +                    && matches!(
 +                        super::mycodx::section_at(cells, i),
 +                        Some(Section::Answers | Section::Intermediate)
@@ -18915,7 +19028,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx_tests.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx_tests.rs
-@@ -0,0 +1,2957 @@
+@@ -0,0 +1,3060 @@
 +use super::*;
 +use crate::history_cell::PlainHistoryCell;
 +use crate::mycodx_ui::{Background, Section, Settings};
@@ -20326,45 +20439,148 @@ new file mode 100644
 +}
 +
 +#[test]
-+fn mycodx_arrow_keys_switch_sides_without_toggling_even_when_expandable_off() {
-+    crate::mycodx_ui::with_settings(
-+        Settings::cards().change_card(Section::Questions, |c| c.expandable = false),
-+        || {
-+            let cells = vec![
-+                user("old"),
-+                answer("old result"),
-+                user("current"),
-+                progress("working"),
-+                answer("done"),
-+            ];
-+            let mut view = TranscriptView::default();
-+            view.area = Rect::new(0, 0, 60, 30);
-+            view.handle_disclosure_key(KeyCode::F(4).into(), &cells);
-+            let focused = |v: &TranscriptView| {
-+                v.canonical_activity_index(&cells, v.disclosure.focused.as_ref().unwrap())
-+            };
-+            assert_eq!(focused(&view), Some(4));
-+            view.handle_disclosure_key(
-+                KeyEvent::new(KeyCode::Right, KeyModifiers::CONTROL),
-+                &cells,
-+            );
-+            assert_eq!(focused(&view), Some(2));
-+            view.handle_disclosure_key(KeyEvent::new(KeyCode::Left, KeyModifiers::CONTROL), &cells);
-+            assert_eq!(focused(&view), Some(3));
-+            view.handle_disclosure_key(KeyEvent::new(KeyCode::Down, KeyModifiers::CONTROL), &cells);
-+            assert_eq!(focused(&view), Some(4));
-+            assert!(view.disclosure.collapsed.is_empty());
++fn codux_browsing_tab_filters_types_without_changing_visibility_or_folding() {
++    use crate::transcript_view::search::SearchScope;
++
++    crate::mycodx_ui::with_settings(Settings::cards(), || {
++        let renders = Arc::new(AtomicUsize::new(0));
++        let mut reply =
++            crate::history_cell::new_user_prompt("reply".into(), vec![], vec![], vec![]);
++        reply.mycodx_reply = true;
++        let cells = vec![
++            user("old"),
++            answer("old final"),
++            user("current"),
++            progress("first"),
++            tool("read", &renders),
++            Arc::new(reply),
++            progress("second"),
++            answer("done"),
++        ];
++        let mut view = TranscriptView::default();
++        view.area = Rect::new(0, 0, 100, 40);
++        view.handle_key(KeyCode::F(4).into(), &cells);
++        assert_eq!(view.codux_focused_index(&cells), Some(7));
++        let original = crate::mycodx_ui::current();
++        for (scope, index) in [
++            (SearchScope::Questions, 5),
++            (SearchScope::Tools, 4),
++            (SearchScope::Intermediate, 3),
++            (SearchScope::Answers, 1),
++            (SearchScope::All, 1),
++        ] {
++            let tab = KeyEvent::from(KeyCode::Tab);
++            assert!(view.owns_interaction_key(tab));
++            assert!(view.handle_key(tab, &cells).is_some());
++            assert_eq!(view.disclosure.navigation_scope, scope);
++            assert_eq!(view.codux_focused_index(&cells), Some(index));
++            assert_eq!(crate::mycodx_ui::current(), original);
 +            assert!(view.disclosure.expanded.is_empty());
-+            view.handle_disclosure_key(
-+                KeyEvent::new(KeyCode::Right, KeyModifiers::CONTROL),
-+                &cells,
-+            );
-+            view.handle_disclosure_key(KeyEvent::new(KeyCode::Up, KeyModifiers::CONTROL), &cells);
-+            assert_eq!(focused(&view), Some(0));
-+            view.handle_disclosure_key(KeyEvent::new(KeyCode::Left, KeyModifiers::CONTROL), &cells);
-+            assert_eq!(focused(&view), Some(1));
-+        },
-+    );
++            assert!(view.disclosure.collapsed.is_empty());
++        }
++        // All crosses the old left/right alignment lanes; horizontal keys do not move cards.
++        view.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::CONTROL), &cells);
++        assert_eq!(view.codux_focused_index(&cells), Some(2));
++        for key in [KeyCode::Left, KeyCode::Right] {
++            view.handle_key(KeyEvent::new(key, KeyModifiers::CONTROL), &cells);
++            assert_eq!(view.codux_focused_index(&cells), Some(2));
++        }
++        view.handle_key(KeyCode::Tab.into(), &cells);
++        view.handle_key(KeyEvent::new(KeyCode::Down, KeyModifiers::CONTROL), &cells);
++        assert_eq!(view.codux_focused_index(&cells), Some(5)); // Replies belong with questions.
++        view.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::CONTROL), &cells);
++        assert_eq!(view.codux_focused_index(&cells), Some(2));
++        view.handle_key(KeyCode::Esc.into(), &cells);
++        assert_eq!(view.disclosure.navigation_scope, SearchScope::All);
++    });
++}
++
++#[test]
++fn codux_browsing_empty_filter_keeps_viewport_and_accepts_reverse_tab() {
++    use crate::transcript_view::search::SearchScope;
++    use crossterm::event::KeyEventKind;
++
++    crate::mycodx_ui::with_settings(Settings::web(), || {
++        let renders = Arc::new(AtomicUsize::new(0));
++        let cells = vec![
++            user("question"),
++            progress("progress"),
++            tool("hidden", &renders),
++            answer("final"),
++        ];
++        let area = Rect::new(0, 0, 90, 20);
++        let mut view = TranscriptView::default();
++        view.render(area, &mut Buffer::empty(area), &cells);
++        view.handle_key(KeyCode::F(4).into(), &cells);
++        view.handle_key(KeyCode::Tab.into(), &cells);
++        let position = view.position;
++        view.handle_key(KeyCode::Tab.into(), &cells);
++        assert_eq!(view.disclosure.navigation_scope, SearchScope::Tools);
++        assert_eq!(view.codux_focused_index(&cells), None);
++        assert!(view.is_activity_focused());
++        assert_eq!(view.position, position);
++        let footer = view.disclosure_footer(120).unwrap().text.to_string();
++        assert!(footer.contains("Tools"));
++        assert!(footer.contains("no visible cards"));
++        for key in [
++            KeyCode::Enter.into(),
++            KeyEvent::new(KeyCode::Down, KeyModifiers::CONTROL),
++            KeyEvent::new_with_kind(KeyCode::Tab, KeyModifiers::NONE, KeyEventKind::Repeat),
++        ] {
++            view.handle_key(key, &cells);
++            assert_eq!(view.codux_focused_index(&cells), None);
++            assert_eq!(view.disclosure.navigation_scope, SearchScope::Tools);
++        }
++        assert!(!crate::mycodx_ui::current().show_tools);
++        assert!(view.owns_interaction_key(KeyCode::BackTab.into()));
++        view.handle_key(KeyCode::BackTab.into(), &cells);
++        assert_eq!(view.disclosure.navigation_scope, SearchScope::Questions);
++        assert_eq!(view.codux_focused_index(&cells), Some(0));
++        view.handle_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::SHIFT), &cells);
++        assert_eq!(view.disclosure.navigation_scope, SearchScope::All);
++        view.handle_key(KeyCode::BackTab.into(), &cells);
++        assert_eq!(view.disclosure.navigation_scope, SearchScope::Answers);
++        assert_eq!(view.codux_focused_index(&cells), Some(3));
++        assert!(view.disclosure.expanded.is_empty());
++        assert!(view.disclosure.collapsed.is_empty());
++    });
++}
++
++#[test]
++fn codux_browsing_filter_is_independent_of_find_and_mouse_selection() {
++    use crate::transcript_view::search::SearchScope;
++
++    crate::mycodx_ui::with_settings(Settings::comparison(), || {
++        let cells = vec![user("question"), answer("final answer")];
++        let area = Rect::new(0, 0, 80, 16);
++        let mut view = TranscriptView::default();
++        view.render(area, &mut Buffer::empty(area), &cells);
++        view.handle_key(KeyCode::F(4).into(), &cells);
++        view.handle_key(KeyCode::BackTab.into(), &cells);
++        assert_eq!(view.disclosure.navigation_scope, SearchScope::Answers);
++        view.begin_search();
++        view.paste_search("question");
++        view.handle_key(KeyCode::Tab.into(), &cells);
++        assert!(
++            view.search
++                .status_line(120, view.history)
++                .to_string()
++                .contains("Questions/replies")
++        );
++        assert_eq!(view.disclosure.navigation_scope, SearchScope::Answers);
++        view.cancel_search();
++        view.render(area, &mut Buffer::empty(area), &cells);
++        let (row, visible) = view
++            .visible
++            .iter()
++            .enumerate()
++            .find(|(_, row)| row.index == 0 && row.layout.mycodx_focus_row() == Some(row.row))
++            .unwrap();
++        let x = view.area.x + visible.layout.column_for_offset(0);
++        view.focus_mycodx_at(&cells, x, view.area.y + row as u16);
++        assert_eq!(view.codux_focused_index(&cells), Some(0));
++        assert_eq!(view.disclosure.navigation_scope, SearchScope::All);
++    });
 +}
 +
 +#[test]
