@@ -66,6 +66,10 @@
     function reveal(id){const box=boxes.get(id);if(!box)return;const area=host.getBoundingClientRect(),rect=box.getBoundingClientRect();
       if(rect.top<area.top+8||rect.bottom>area.bottom-8){host.scrollTop+=rect.top-area.top-12;return true;}return false;
     }
+    function alignCardBottom(id){const box=boxes.get(id);if(!box)return;
+      host.scrollTop+=box.getBoundingClientRect().bottom-host.getBoundingClientRect().bottom+12;
+      updateScroll();
+    }
     function isExpanded(item){const style=M.card(getSettings(),item.role);return !style.expandable||(hasSearch()&&item.members.includes(matches[matchIndex]))||(manual.get(item.id)??restored.get(item.id)??style.default_expanded);}
     function toggle(id,keyboard=false){const item=rendered.find(i=>i.id===id);if(!item||!M.roles.includes(item.role)||!M.card(getSettings(),item.role).expandable)return;
       if(keyboard&&reveal(id))return;
@@ -142,7 +146,7 @@
     function cycleNavigationFilter(backwards){
       const previous=active,anchor=active||visibleCard();navigationFilter=M.nextFilter(navigationFilter,backwards);
       const next=M.nearestCard(rendered,anchor,navigationFilter);select(next,true);
-      if(next&&next!==previous)reveal(next);else if(!next)host.focus({preventScroll:true});
+      if(next&&next!==previous)alignCardBottom(next);else if(!next)host.focus({preventScroll:true});
       say(`Card selection: ${M.filterLabels[navigationFilter]}${next?'':'. No visible cards of this type'}.`);
     }
     function displayMode(){
@@ -360,7 +364,7 @@
       else if(action==='card-mode')displayMode();
       else if(action==='accept-search')acceptSearch();
       else if(action==='fold')toggle(active,true);
-      else if(action.startsWith('card-')){select(M.navigate(rendered,active,action.slice(5),navigationFilter),true);reveal(active);}
+      else if(action.startsWith('card-')){select(M.navigate(rendered,active,action.slice(5),navigationFilter),true);alignCardBottom(active);}
       else if(action.startsWith('scroll-')){
         const key=action.slice(7);if(key==='Home')host.scrollTop=0;else if(key==='End')bottom();else host.scrollBy({top:(key.includes('Up')?-1:1)*(key.startsWith('Page')?host.clientHeight*.85:28),behavior:'instant'});
       }

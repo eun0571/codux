@@ -61,7 +61,7 @@ Edit styles by card. Within an element, **Apply to** targets the current card, s
 | Up/Down in F4 | Scroll |
 | Left in F4 | Open agents from an empty prompt; otherwise move the prompt cursor |
 | Tab / Shift+Tab in F4 | Filter selectable card types |
-| Ctrl+Up/Down in F4 | Select a matching card |
+| Ctrl+Up/Down in F4 | Select a matching card and align its bottom above the prompt |
 | Enter in F4 | Fold or unfold the selected card; reveal it first if off-screen |
 | Shift+F4 | Cycle card display: Progress → Answers only → All cards |
 | Ctrl+End | Return to the latest message |
@@ -70,6 +70,8 @@ Edit styles by card. Within an element, **Apply to** targets the current card, s
 Card display modes keep questions, replies, final answers and notices visible. **Progress** hides tools (the default); **Answers only** also hides intermediate answers; **All cards** shows both. Shift+F4 saves the mode without changing styles or folding. Per-card Display settings remain available in `/custom`. Explicit custom keybindings are preserved; `tui.keymap.global.open_transcript` now controls card display.
 
 In F4, Tab cycles All, Questions/replies, Tools, Intermediate, and Final answers; Shift+Tab cycles backward. This filters keyboard selection without hiding or folding cards. Ctrl+Up/Down moves through visible cards of the selected type. F3 search uses its own independent filter.
+
+Ctrl+E edits the selected original question in an idle, writable session with an empty prompt. It asks before removing that turn and later turns; files on disk are unchanged. If editing is unavailable, a dialog explains why and keeps your draft.
 
 Esc closes menus, search, or F4 browsing; from a scrolled composer it returns to the latest message. It does not interrupt a task by default. Use Ctrl+C for task controls. Double Esc no longer enters transcript browsing. An explicit `tui.keymap.chat.interrupt_turn` setting can still assign a dedicated interrupt key.
 

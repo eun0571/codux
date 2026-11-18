@@ -2125,7 +2125,7 @@ diff --git a/codex-rs/tui/src/app/codux_navigation.rs b/codex-rs/tui/src/app/cod
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/app/codux_navigation.rs
-@@ -0,0 +1,505 @@
+@@ -0,0 +1,613 @@
 +//! Codux keeps transcript navigation in the card view. Prompt edits are explicit rewinds.
 +use super::*;
 +use crate::bottom_pane::{SelectionItem, SelectionViewParams};
@@ -2154,7 +2154,7 @@ new file mode 100644
 +
 +    pub(super) fn open_codux_prompt_edit(&mut self) {
 +        if !self.codux_prompt_edit_allowed() {
-+            self.chat_widget.add_error_message(
++            self.show_codux_prompt_edit_unavailable(
 +                "Rewind is available in an idle, writable session with an empty composer. Your draft has been kept.".into(),
 +            );
 +            return;
@@ -2163,19 +2163,23 @@ new file mode 100644
 +            .transcript_view
 +            .codux_focused_index(&self.transcript_cells)
 +        else {
++            self.show_codux_prompt_edit_unavailable(
++                "Select an original question with Ctrl+Up/Down before editing.".into(),
++            );
 +            return;
 +        };
 +        let Some(prompt) = self.codux_prompt_at(index) else {
-+            self.chat_widget.add_error_message("Select an original question to rewind and edit. Replies cannot be rewound independently.".into());
++            self.show_codux_prompt_edit_unavailable("Select an original question to rewind and edit. Replies cannot be rewound independently.".into());
 +            return;
 +        };
-+        if !self
-+            .transcript_view
-+            .reveal_codux_focus(&self.transcript_cells, index)
-+        {
-+            return;
-+        }
++        // The confirmation identifies the action before any history changes. Revealing
++        // an off-screen question must not swallow the first Ctrl+E silently.
++        self.transcript_view
++            .reveal_codux_focus(&self.transcript_cells, index);
 +        let Some(thread_id) = self.chat_widget.thread_id() else {
++            self.show_codux_prompt_edit_unavailable(
++                "Wait for the session to connect before editing this question.".into(),
++            );
 +            return;
 +        };
 +        let selected_cell = Arc::clone(&self.transcript_cells[index]);
@@ -2195,6 +2199,22 @@ new file mode 100644
 +                    ..Default::default()
 +                },
 +            ],
++            ..SelectionViewParams::confirmation()
++        });
++    }
++
++    fn show_codux_prompt_edit_unavailable(&mut self, reason: String) {
++        // Browsing intentionally pauses the transcript. Appending an error there can
++        // leave it below the viewport, making a blocked shortcut look unresponsive.
++        self.chat_widget.show_selection_view(SelectionViewParams {
++            view_id: Some("codux-rewind-unavailable"),
++            title: Some("Cannot edit question".into()),
++            subtitle: Some(reason),
++            items: vec![SelectionItem {
++                name: "Back".into(),
++                dismiss_on_select: true,
++                ..Default::default()
++            }],
 +            ..SelectionViewParams::confirmation()
 +        });
 +    }
@@ -2261,6 +2281,23 @@ new file mode 100644
 +                .transcript_view
 +                .codux_focused_index(&app.transcript_cells);
 +            assert_eq!(focused, Some(0));
++            app.handle_tui_event(
++                &mut tui,
++                &mut app_server,
++                TuiEvent::Key(KeyEvent::new(KeyCode::Char('e'), KeyModifiers::CONTROL)),
++            )
++            .await?;
++            assert!(
++                app.chat_widget.active_view_is("codux-rewind"),
++                "Ctrl+E after click={click_card}"
++            );
++            app.handle_tui_event(
++                &mut tui,
++                &mut app_server,
++                TuiEvent::Key(KeyCode::Esc.into()),
++            )
++            .await?;
++            assert!(!app.chat_widget.has_active_modal());
 +            // Tab belongs to browsing, including when the selected type has no cards.
 +            for (key, expected) in [
 +                (KeyCode::Tab, Some(0)),
@@ -2347,6 +2384,77 @@ new file mode 100644
 +    }
 +
 +    #[tokio::test]
++    async fn codux_ctrl_e_reveals_and_confirms_in_one_press_and_reports_blocked_edits() -> Result<()>
++    {
++        let (mut app, mut events, _ops) = make_test_app_with_channels().await;
++        let mut tui = crate::tui::test_support::make_test_tui()?;
++        tui.set_owned_screen(true)?;
++        let mut app_server =
++            Box::pin(crate::start_embedded_app_server_for_picker(&app.config)).await?;
++        let init =
++            app.chatwidget_init_for_forked_or_resumed_thread(&mut tui, app.config.clone(), None);
++        app.replace_chat_widget(ChatWidget::new_with_app_event(init));
++        attach_thread(&mut app, ThreadId::new());
++        app.transcript_cells = vec![user_cell("Original question")];
++        app.render_owned_transcript(&mut tui, Size::new(80, 24))?;
++        app.handle_tui_event(
++            &mut tui,
++            &mut app_server,
++            TuiEvent::Key(KeyCode::F(4).into()),
++        )
++        .await?;
++        app.transcript_cells
++            .push(user_cell(&"Later question\n".repeat(80)));
++        app.transcript_view.jump_to_entry(&app.transcript_cells, 1);
++        app.render_owned_transcript(&mut tui, Size::new(80, 24))?;
++        assert_eq!(
++            app.transcript_view
++                .codux_focused_index(&app.transcript_cells),
++            Some(0)
++        );
++        while events.try_recv().is_ok() {}
++        app.handle_tui_event(
++            &mut tui,
++            &mut app_server,
++            TuiEvent::Key(KeyEvent::new(KeyCode::Char('e'), KeyModifiers::CONTROL)),
++        )
++        .await?;
++        assert!(app.chat_widget.active_view_is("codux-rewind"));
++        assert_eq!(
++            app.chat_widget
++                .selected_index_for_present_view("codux-rewind"),
++            Some(0)
++        );
++        app.handle_tui_event(
++            &mut tui,
++            &mut app_server,
++            TuiEvent::Key(KeyCode::Enter.into()),
++        )
++        .await?;
++        assert!(!app.chat_widget.has_active_modal());
++        assert!(
++            !std::iter::from_fn(|| events.try_recv().ok())
++                .any(|event| matches!(event, AppEvent::RevertSessionForPromptEdit { .. }))
++        );
++
++        app.chat_widget.apply_external_edit("keep my draft".into());
++        app.handle_tui_event(
++            &mut tui,
++            &mut app_server,
++            TuiEvent::Key(KeyEvent::new(KeyCode::Char('e'), KeyModifiers::CONTROL)),
++        )
++        .await?;
++        assert!(app.chat_widget.active_view_is("codux-rewind-unavailable"));
++        assert_eq!(
++            app.chat_widget.composer_text_with_pending(),
++            "keep my draft"
++        );
++        app_server.shutdown().await?;
++        tui.set_owned_screen(false)?;
++        Ok(())
++    }
++
++    #[tokio::test]
 +    async fn codux_rewind_defaults_to_cancel_preserves_attachments_and_guards_drafts() {
 +        let (mut app, mut events, _ops) = make_test_app_with_channels().await;
 +        attach_thread(&mut app, ThreadId::new());
@@ -2400,7 +2508,7 @@ new file mode 100644
 +            .apply_external_edit("keep this draft".into());
 +        assert!(!app.codux_prompt_edit_allowed());
 +        app.open_codux_prompt_edit();
-+        assert!(!app.chat_widget.has_active_modal());
++        assert!(app.chat_widget.active_view_is("codux-rewind-unavailable"));
 +        assert_eq!(
 +            app.chat_widget.composer_text_with_pending(),
 +            "keep this draft"
@@ -17182,7 +17290,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 +                .iter()
 +                .any(|row| row.activity_ids.iter().any(|id| ids.contains(id)))
 +        {
-+            self.jump_to_entry(cells, index);
++            self.align_codux_card_bottom(cells, index);
 +            return false;
 +        }
 +        true
@@ -17291,7 +17399,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          }
          // A visible immutable cell resolves directly; replaced groups fall back to member IDs.
          if let Some(row) = self.visible.iter().find(|row| {
-@@ -303,18 +687,21 @@
+@@ -303,27 +687,71 @@
          })
      }
  
@@ -17305,21 +17413,64 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
              return false;
          }
          let ids = self.activity_ids(cells, index);
+-        let header_visible = self.visible.iter().any(|row| {
+-            row.layout.disclosure
+-                && row.activity_ids.iter().any(|id| ids.contains(id))
+-                && row.row == usize::from(row.layout.separated)
+-        });
 +        if ids.is_empty() {
 +            return false;
 +        }
-         let header_visible = self.visible.iter().any(|row| {
--            row.layout.disclosure
-+            row.layout.mycodx_focusable()
-                 && row.activity_ids.iter().any(|id| ids.contains(id))
--                && row.row == usize::from(row.layout.separated)
-+                && row.layout.mycodx_focus_row() == Some(row.row)
-         });
          self.disclosure.focused = Some(ids);
-         if !header_visible {
-@@ -324,6 +711,12 @@
+-        if !header_visible {
+-            self.jump_to_entry(cells, index);
+-        }
++        self.align_codux_card_bottom(cells, index);
+         true
      }
  
++    /// Keyboard card navigation keeps the selected card's bottom above the composer.
++    /// Mouse focus and search retain their own viewport behavior.
++    fn align_codux_card_bottom(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) {
++        let header_height = self.prompt_header_target.map_or(0, |(area, _)| area.height);
++        let viewport = Rect::new(
++            self.area.x,
++            self.area.y.saturating_sub(header_height),
++            self.area.width,
++            self.area.height.saturating_add(header_height),
++        );
++        if viewport.is_empty() {
++            return;
++        }
++        self.cancel_beginning();
++        self.release_live_reading();
++        self.scroll_projection = None;
++        let Some(card) = self.current_layout(cells, index) else {
++            return;
++        };
++        let (index, row) =
++            self.move_rows(cells, index, card.row_count(), -(viewport.height as isize));
++        let header = super::prompt_header::layout(cells, index, viewport.width, self.detailed)
++            .filter(|(header, _)| usize::from(viewport.height) >= header.row_count() + 3);
++        let height = header.as_ref().map_or(0, |(header, _)| header.row_count());
++        let (index, row) = self.move_rows(cells, index, row, height as isize);
++        if let Some(layout) = self.layout(cells, index) {
++            let offset = layout.position_at(row, 0);
++            self.position = Position::Reading(Anchor {
++                key: self.entry_key(cells, index),
++                index,
++                offset,
++                row_bias: layout.row_for_offset(offset) as isize - row as isize,
++            });
++            self.hold_live_reading(cells, layout);
++            self.scroll_projection = Some(super::prompt_header::ScrollProjection {
++                position: self.position,
++                viewport,
++                header: header.map(|(layout, key)| (Arc::new(layout), key)),
++            });
++        }
++    }
++
      fn toggle_activity(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) {
 +        if self
 +            .current_layout(cells, index)
@@ -17330,7 +17481,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
          let ids = self.activity_ids(cells, index);
          if ids.is_empty() {
              return;
-@@ -349,11 +742,13 @@
+@@ -349,11 +777,13 @@
          }
          // Source offsets only survive an unchanged cell. Regrouped/retired live entries resolve
          // through their member IDs and anchor at their header, never a stale positional index.
@@ -17346,7 +17497,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
                  Some(Anchor {
                      key: cells.get(top).map_or(EntryKey::Live, EntryKey::cell),
                      index: top,
-@@ -367,53 +762,63 @@
+@@ -367,53 +797,63 @@
                  offset: 0,
                  row_bias: 0,
              });
@@ -19028,7 +19179,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx_tests.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx_tests.rs
-@@ -0,0 +1,3060 @@
+@@ -0,0 +1,3100 @@
 +use super::*;
 +use crate::history_cell::PlainHistoryCell;
 +use crate::mycodx_ui::{Background, Section, Settings};
@@ -21951,6 +22102,46 @@ new file mode 100644
 +        );
 +        view.handle_disclosure_key(KeyCode::Enter.into(), &cells);
 +    }
++}
++
++#[test]
++fn codux_keyboard_card_navigation_aligns_bottom_with_pinned_prompt() {
++    crate::mycodx_ui::with_settings(Settings::default(), || {
++        let cells = vec![
++            user("First question"),
++            answer(&"Earlier context\n".repeat(40)),
++            user("Second question"),
++            answer("Short final answer"),
++            user("Third question"),
++            answer(&"Long final answer\n".repeat(40)),
++            user("Last question"),
++            answer("Last answer"),
++        ];
++        let mut view = TranscriptView::default();
++        for (width, height) in [(80, 18), (40, 10), (80, 18)] {
++            crate::transcript_view::tests::render(&mut view, &cells, width, height);
++            for index in [5, 4, 3, 2, 3, 4, 5] {
++                assert!(view.focus_activity(&cells, index));
++                crate::transcript_view::tests::render(&mut view, &cells, width, height);
++                let last = view.visible.last().expect("selected card remains visible");
++                assert_eq!(last.index, index);
++                assert_eq!(last.row + 1, last.layout.row_count());
++                assert_eq!(view.visible.len(), usize::from(view.area.height));
++                assert_eq!(view.codux_focused_index(&cells), Some(index));
++                let position = view.position;
++                crate::transcript_view::tests::render(&mut view, &cells, width, height);
++                assert_eq!(
++                    view.position, position,
++                    "repaint must not move the viewport"
++                );
++            }
++            // Beginning-of-history clamps naturally without blank space or lost focus.
++            assert!(view.focus_activity(&cells, 0));
++            crate::transcript_view::tests::render(&mut view, &cells, width, height);
++            assert_eq!(view.codux_focused_index(&cells), Some(0));
++            assert!(view.visible.iter().any(|row| row.index == 0));
++        }
++    });
 +}
 +
 +#[test]
