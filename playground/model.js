@@ -124,7 +124,7 @@
     if(event.key==='Tab'||event.key==='Enter')return event.repeat?'ignore':event.key==='Tab'?'complete':'submit';
     return null;
   }
-  function footer({columns=120,browsing=false,searchMode='closed',query='',matches=0,filter='all',hasDraft=false,working=false,help=false,scrolled=false,mode='0: Progress'}={}){
+  function footer({columns=120,browsing=false,navigationFilter='all',navigationEmpty=false,searchMode='closed',query='',matches=0,filter='all',hasDraft=false,working=false,help=false,scrolled=false,mode='0: Progress'}={}){
     const fit=lines=>lines.find(line=>Array.from(line).length<=columns)||lines.at(-1);
     if(help)return '? or esc close';
     if(searchMode==='editing'){
@@ -132,10 +132,11 @@
       return fit([`${status} · ${filterLabels[filter]} · tab filter · esc cancel`,`${status} · tab filter · esc cancel`,`${matches?'enter accept':status} · esc cancel`,'esc cancel']);
     }
     if(searchMode==='reading')return fit([`Find${filter==='all'?'':` [${filterLabels[filter]}]`} · ctrl+p older · ctrl+n newer · esc latest`,'ctrl+p older · ctrl+n newer · esc latest','esc latest']);
-    if(browsing)return fit([
-      `Browsing · ↑↓ scroll · ctrl+arrows cards · enter fold · shift+f4 ${mode} · esc back`,
-      `Browsing · ctrl+arrows cards · enter fold · shift+f4 ${mode} · esc back`,
-      'Browsing · ctrl+arrows cards · enter fold · esc back','Browsing · enter fold · esc back','Browsing · esc back']);
+    if(browsing){const label=filterLabels[navigationFilter],empty=navigationEmpty?' (no visible cards)':'';return fit([
+      `Browsing [${label}]${empty} · tab filter · ↑↓ scroll · ctrl+up/down cards · enter fold · shift+f4 ${mode} · esc back`,
+      `Browsing [${label}]${empty} · tab filter · ctrl+up/down cards · enter fold · esc back`,
+      `[${label}]${empty} · tab filter · ctrl+up/down cards · enter fold`,
+      `[${label}]${empty} · tab filter · esc back`,`[${label}] · tab filter`,'tab filter · esc back']);}
     if(scrolled)return fit(['Back to bottom · ctrl+end latest','ctrl+end latest']);
     if(working)return 'ctrl+c stop preview';
     return hasDraft?'':'? for shortcuts';
@@ -155,14 +156,19 @@
     const value=query.trim().toLocaleLowerCase();if(!value)return [];
     return items.filter(item=>roles.includes(item.role)&&(filter==='all'||(filter==='questions'?['question','reply'].includes(item.role):item.role===filter))&&item.text.toLocaleLowerCase().includes(value)).map(i=>i.id);
   }
-  const right = item => ['question','reply'].includes(item.role);
-  function navigate(items,id,direction){
-    const cards=items.filter(i=>roles.includes(i.role));if(!cards.length)return null;
-    const index=Math.max(0,cards.findIndex(i=>i.id===id));
-    if(direction==='up'||direction==='down')return cards[Math.max(0,Math.min(cards.length-1,index+(direction==='up'?-1:1)))].id;
-    const desired=direction==='right';if(right(cards[index])===desired)return cards[index].id;
-    const before=cards.slice(0,index).reverse().find(i=>right(i)===desired),after=cards.slice(index+1).find(i=>right(i)===desired);
-    return (desired?before||after:after||before)?.id||cards[index].id;
+  const matchesFilter = (item,filter='all') => !!item&&roles.includes(item.role)&&(filter==='all'||(filter==='questions'?['question','reply'].includes(item.role):item.role===filter));
+  const nextFilter = (filter,backwards=false) => filters[(filters.indexOf(filter)+(backwards?filters.length-1:1))%filters.length];
+  function nearestCard(items,id,filter='all'){
+    const anchor=items.findIndex(i=>i.id===id),origin=anchor<0?items.length-1:anchor;
+    return items.map((item,index)=>({item,index})).filter(({item})=>matchesFilter(item,filter))
+      .sort((a,b)=>Math.abs(a.index-origin)-Math.abs(b.index-origin)||a.index-b.index)[0]?.item.id||null;
+  }
+  function navigate(items,id,direction,filter='all'){
+    if(!['up','down'].includes(direction))return id;
+    const index=items.findIndex(i=>i.id===id);
+    if(index<0)return nearestCard(items,id,filter);
+    const candidates=direction==='up'?items.slice(0,index).reverse():items.slice(index+1);
+    return candidates.find(i=>matchesFilter(i,filter))?.id||(matchesFilter(items[index],filter)?id:null);
   }
   function keyAction(event,{browsing=false,searchOpen=false,searchReading=false,matches=0,searchInput=false,editable=false,card=false,button=false,selection=false}={}){
     const {key,ctrlKey,altKey,metaKey,shiftKey}=event;
@@ -179,7 +185,9 @@
     if(key==='F4')return ctrlKey?null:'browse';
     if(ctrlKey&&key==='End')return 'bottom';
     if(editable)return null;
-    if(browsing&&ctrlKey&&key.startsWith('Arrow'))return 'card-'+key.slice(5).toLowerCase();
+    if(browsing&&!searchOpen&&!searchReading&&!selection&&key==='Tab'&&!ctrlKey)return event.repeat?'ignore':shiftKey?'previous-card-filter':'next-card-filter';
+    if(browsing&&ctrlKey&&['ArrowUp','ArrowDown'].includes(key))return 'card-'+key.slice(5).toLowerCase();
+    if(browsing&&ctrlKey&&['ArrowLeft','ArrowRight'].includes(key))return 'ignore';
     if(ctrlKey)return null;
     if(browsing){
       if(['ArrowUp','ArrowDown','PageUp','PageDown','Home','End'].includes(key))return 'scroll-'+key;
@@ -187,6 +195,6 @@
     if(key==='Enter'&&!button&&(browsing||card))return 'fold';
     return null;
   }
-  root.PlaygroundModel = {copy, roles, roleLabels, sharedCardKeys, applyCardValue, targetLabel, colors, card, cardMode, nextCardMode, applyPalette, validSettings, brighten, surface, migrate, restoredAnswers, foreground, contrast, groups, excerpt, search, filters, filterLabels, navigate, keyAction, workingPreview, statusFrame, composerAction, commandSuggestion, commandSuggestionAction, footer};
+  root.PlaygroundModel = {copy, roles, roleLabels, sharedCardKeys, applyCardValue, targetLabel, colors, card, cardMode, nextCardMode, applyPalette, validSettings, brighten, surface, migrate, restoredAnswers, foreground, contrast, groups, excerpt, search, filters, filterLabels, matchesFilter, nextFilter, nearestCard, navigate, keyAction, workingPreview, statusFrame, composerAction, commandSuggestion, commandSuggestionAction, footer};
   if (typeof module !== 'undefined') module.exports = root.PlaygroundModel;
 })(globalThis);

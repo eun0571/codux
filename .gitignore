@@ -66,6 +66,7 @@
 !/scripts/public_source.py
 !/scripts/publish_npm.py
 !/scripts/release_info.py
+!/scripts/release_workflow.py
 !/scripts/serve_playground.py
 !/scripts/setup-runtime.ps1
 !/scripts/setup-windows.ps1

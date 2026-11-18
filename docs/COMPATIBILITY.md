@@ -44,7 +44,7 @@ it does not import the developer's settings or require a project-local launcher.
 
 This table describes fallback policy, not certification of every terminal version.
 The build checks below do not replace an interactive test in each terminal.
-Shift+F4, F3, F4 and Ctrl+arrows must reach the application; some terminal/editor shortcuts
+Shift+F4, F3, F4, Tab/Shift+Tab and Ctrl+Up/Down must reach the application; some terminal/editor shortcuts
 take precedence. See the [README controls](../README.md#customize-and-navigate).
 
 Image support is optional. Codux uses the bounded startup terminal probe to read
@@ -74,8 +74,9 @@ version, terminal version, shell, theme, font/zoom, and these results:
    intermediate answers folded. Tools must obey the saved visibility choice.
 3. Paste a multiline numbered list once. It must remain one draft and send only
    after an explicit submission. Include non-ASCII text and a long wrapped line.
-4. In F4, scroll up/down past the pinned question, resize narrow/wide, select cards
-   with Ctrl+arrows, and toggle them with Enter. Rows must not jump backward.
+4. In F4, scroll up/down past the pinned question and resize narrow/wide. Use
+   Tab/Shift+Tab to filter selectable types, Ctrl+Up/Down to select a matching card,
+   and Enter to fold it. Filtering must not hide cards; rows must not jump backward.
 5. Drag through wrapped question and answer text. The highlighted range and copied
    text must agree; single-click focus must not collapse a card.
 6. Check light and dark terminal themes, large fonts, and display scaling. Plain

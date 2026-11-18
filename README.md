@@ -60,7 +60,8 @@ Edit styles by card. Within an element, **Apply to** targets the current card, s
 | F4 | Enter or leave conversation browsing |
 | Up/Down in F4 | Scroll |
 | Left in F4 | Open agents from an empty prompt; otherwise move the prompt cursor |
-| Ctrl+arrows in F4 | Select a card |
+| Tab / Shift+Tab in F4 | Filter selectable card types |
+| Ctrl+Up/Down in F4 | Select a matching card |
 | Enter in F4 | Fold or unfold the selected card; reveal it first if off-screen |
 | Shift+F4 | Cycle card display: Progress → Answers only → All cards |
 | Ctrl+End | Return to the latest message |
@@ -68,11 +69,15 @@ Edit styles by card. Within an element, **Apply to** targets the current card, s
 
 Card display modes keep questions, replies, final answers and notices visible. **Progress** hides tools (the default); **Answers only** also hides intermediate answers; **All cards** shows both. Shift+F4 saves the mode without changing styles or folding. Per-card Display settings remain available in `/custom`. Explicit custom keybindings are preserved; `tui.keymap.global.open_transcript` now controls card display.
 
+In F4, Tab cycles All, Questions/replies, Tools, Intermediate, and Final answers; Shift+Tab cycles backward. This filters keyboard selection without hiding or folding cards. Ctrl+Up/Down moves through visible cards of the selected type. F3 search uses its own independent filter.
+
 Esc closes menus, search, or F4 browsing; from a scrolled composer it returns to the latest message. It does not interrupt a task by default. Use Ctrl+C for task controls. Double Esc no longer enters transcript browsing. An explicit `tui.keymap.chat.interrupt_turn` setting can still assign a dedicated interrupt key.
 
 Mermaid images require Chrome or Edge; renderer libraries are bundled. Choose **Auto** or **Codex text** in `/custom`. See [Mermaid rendering](docs/MERMAID.md) for terminal support and caching.
 
 ## Updating upstream
+
+[Release activity](https://github.com/eun0571/codux/actions/workflows/publish-npm.yml) shows application publication. [Update checks](https://github.com/eun0571/codux/actions/workflows/track-upstream.yml) track official Codex; [playground deployment](https://github.com/eun0571/codux/actions/workflows/playground.yml) updates only the website. See [how to read the results](docs/RELEASE.md#read-github-actions), including npm processing delays.
 
 [`upstream.lock.json`](upstream.lock.json) records the exact Codex commit, Rust toolchain, patch, and checksums used by a build. Updating the official `codex` installation does not change Codux's pinned source.
 

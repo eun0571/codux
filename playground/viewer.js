@@ -14,6 +14,7 @@
     }
     let session={items:[]},files=[],selectedFile=null,loadGeneration=0,active=null,browsing=false,rendered=[],boxes=new Map();
     let matches=[],matchIndex=0,filter='all',query='',searchOpen=false,searchReading=false,helpOpen=false;
+    let navigationFilter='all';
     const hasSearch=()=>searchOpen||searchReading;
     const preview=M.workingPreview();let previewTimer=null,lastRemaining=null;
     let dismissedCommand=null,composingCommand=false;
@@ -77,6 +78,7 @@
       rendered=M.groups(session.items,getSettings(),hasSearch()?matches[matchIndex]:null);
       if(!session.items.length)cardsHost.append(empty.cloneNode(true));
       if(active&&!rendered.some(i=>i.id===active))active=null;
+      if(browsing&&!hasSearch()&&active&&!M.matchesFilter(rendered.find(i=>i.id===active),navigationFilter))active=null;
       for(const item of rendered){
         if(item.role==='notice'){const notice=el('div','session-notice',item.text);cardsHost.append(notice);continue;}
         const style=M.card(getSettings(),item.role),right=['question','reply'].includes(item.role),opened=isExpanded(item);
@@ -85,7 +87,10 @@
         if(style.expandable)box.setAttribute('aria-expanded',String(opened));
         box.style.maxWidth=`${style.max_width}%`;if(!right)box.style.width=`${style.max_width}%`;
         box.style.padding=`${style.padding_y*.5*1.7}em ${style.padding_x}ch`;decorate(box,item.role,active===item.id);
-        box.addEventListener('focus',()=>select(item.id));box.addEventListener('click',()=>select(item.id));
+        box.addEventListener('focus',()=>select(item.id));box.addEventListener('click',()=>{
+          if(!hasSearch()){browsing=true;if(!M.matchesFilter(item,navigationFilter))navigationFilter='all';}
+          select(item.id);
+        });
         box.addEventListener('dblclick',event=>{if(event.target===box&&!window.getSelection()?.toString())toggle(item.id);});
         const content=el('div','card-content');
         if(item.role==='tools'){
@@ -108,11 +113,11 @@
       version.hidden=false;
       if(footer.clientWidth-$('#footer-right').offsetWidth-24<(browsing||hasSearch()?32:18)*cell)version.hidden=true;
       const columns=Math.max(12,Math.floor((footer.clientWidth-$('#footer-right').offsetWidth-24)/cell));
-      const hint=M.footer({columns,browsing,searchMode:searchOpen?'editing':searchReading?'reading':'closed',query,matches:matches.length,filter,
+      const hint=M.footer({columns,browsing,navigationFilter,navigationEmpty:!active,searchMode:searchOpen?'editing':searchReading?'reading':'closed',query,matches:matches.length,filter,
         hasDraft:!!$('#command-input').value,working:!!preview.remaining(),help:helpOpen,
         scrolled:host.scrollHeight-host.scrollTop-host.clientHeight>50,mode:M.cardMode(getSettings())});
       const label=$('#mode-label');label.replaceChildren();
-      for(const part of hint.split(/(ctrl\+arrows|ctrl\+end|ctrl\+p|ctrl\+n|ctrl\+c|shift\+f4|enter|esc|tab|↑↓|\?)/g)){
+      for(const part of hint.split(/(ctrl\+up\/down|ctrl\+end|ctrl\+p|ctrl\+n|ctrl\+c|shift\+f4|enter|esc|tab|↑↓|\?)/g)){
         if(part==='?'){const button=el('button','footer-key',part);button.type='button';button.setAttribute('aria-label','Keyboard shortcuts');button.addEventListener('click',toggleHelp);label.append(button);}
         else label.append(el('span',/^(ctrl\+|shift\+|enter$|esc$|tab$|↑↓$)/.test(part)?'footer-key':'',part));
       }
@@ -127,16 +132,24 @@
       updateMode();
     }
     function bottom(){host.scrollTop=host.scrollHeight;updateScroll();}
-    function browse(){helpOpen=false;if(hasSearch())closeSearch();browsing=!browsing;if(browsing){
-      if(!active){const top=host.getBoundingClientRect().top;active=rendered.find(i=>boxes.get(i.id)?.getBoundingClientRect().bottom>=top)?.id||rendered.find(i=>M.roles.includes(i.role))?.id;}
+    function visibleCard(){const area=host.getBoundingClientRect();return rendered.filter(i=>{
+      const rect=boxes.get(i.id)?.getBoundingClientRect();return rect&&rect.bottom>area.top&&rect.top<area.bottom;
+    }).at(-1)?.id||null;}
+    function browse(){helpOpen=false;if(hasSearch())closeSearch();browsing=!browsing;navigationFilter='all';if(browsing){
+      if(!active)active=visibleCard()||M.nearestCard(rendered,null);
       if(active)select(active,true);else host.focus();
     }else $('#command-input').focus();updateMode();}
+    function cycleNavigationFilter(backwards){
+      const previous=active,anchor=active||visibleCard();navigationFilter=M.nextFilter(navigationFilter,backwards);
+      const next=M.nearestCard(rendered,anchor,navigationFilter);select(next,true);
+      if(next&&next!==previous)reveal(next);else if(!next)host.focus({preventScroll:true});
+      say(`Card selection: ${M.filterLabels[navigationFilter]}${next?'':'. No visible cards of this type'}.`);
+    }
     function displayMode(){
       if(hasSearch()||!$('#menu').hidden){say('Close search or /custom before changing card display.');return;}
       const focused=document.activeElement,previous=rendered.find(item=>item.id===active);
       changeSettings(M.nextCardMode(getSettings()));render();
-      if(previous&&!active)select(rendered.find(item=>item.turn===previous.turn&&item.role==='answer')?.id
-        ||rendered.find(item=>item.turn===previous.turn&&item.role==='question')?.id||null);
+      if(previous&&!active)select(M.nearestCard(rendered,previous.id,navigationFilter));
       if(focused?.isConnected&&focused.matches('input,textarea,select'))focused.focus({preventScroll:true});
       else if(browsing&&active)select(active,true);else host.focus({preventScroll:true});
       updateMode();say(`Cards: ${M.cardMode(getSettings())}.`);
@@ -222,7 +235,7 @@
         pageWindow=page.window;pageCursor=before;pageHistory=history;
         if(limited.discarded&&Number.isInteger(limited.items[0]?.sourceOffset)){pageWindow.before=limited.items[0].sourceOffset;pageWindow.has_older=pageWindow.before>0;}
         searchOpen=false;searchReading=false;helpOpen=false;$('#search-panel').hidden=true;query='';matches=[];matchIndex=0;$('#search-input').value='';
-        session={...parsed,items:limited.items};selectedFile=file;active=null;browsing=false;manual.clear();restored.clear();for(const [key,value] of M.restoredAnswers(session.items))restored.set(key,value);
+        session={...parsed,items:limited.items};selectedFile=file;active=null;browsing=false;navigationFilter='all';manual.clear();restored.clear();for(const [key,value] of M.restoredAnswers(session.items))restored.set(key,value);
         empty.querySelector('p').textContent='No conversation messages in this excerpt. Use Earlier to move back.';
         $('#excerpt-note').textContent=`${limited.characters.toLocaleString()} characters${limited.shortened||pageWindow.shortened?' · some text shortened':''}${pageWindow.skipped||parsed.stats.malformed?' · some records omitted':''}`;
         $('#reload-session').disabled=false;updatePageControls();listFiles();render();bottom();host.focus({preventScroll:true});
@@ -237,7 +250,7 @@
         // List the new library immediately. Title metadata is read separately;
         // only selecting a session opens its transcript excerpt.
         ++libraryGeneration;++loadGeneration;loadController?.abort();stopPreview();
-        files=incoming;selectedFile=null;session={items:[]};active=null;browsing=false;listLimit=100;
+        files=incoming;selectedFile=null;session={items:[]};active=null;browsing=false;navigationFilter='all';listLimit=100;
         pageCursor=null;pageHistory=[];pageWindow=null;manual.clear();restored.clear();
         searchOpen=false;searchReading=false;helpOpen=false;query='';matches=[];matchIndex=0;
         $('#search-panel').hidden=true;$('#search-input').value='';$('#session-filter').value='';
@@ -340,13 +353,14 @@
       if(action==='escape'){if(searchOpen)closeSearch();else if(searchReading){closeSearch();bottom();}else if(browsing)browse();else bottom();}
       else if(action==='search')openSearch();
       else if(action.endsWith('-match'))nextMatch(action==='previous-match'?-1:1);
-      else if(action.endsWith('-filter')){filter=M.filters[(M.filters.indexOf(filter)+(action==='previous-filter'?4:1))%M.filters.length];find();}
+      else if(action.endsWith('-card-filter'))cycleNavigationFilter(action==='previous-card-filter');
+      else if(action.endsWith('-filter')){filter=M.nextFilter(filter,action==='previous-filter');find();}
       else if(action==='browse')browse();
       else if(action==='bottom')bottom();
       else if(action==='card-mode')displayMode();
       else if(action==='accept-search')acceptSearch();
       else if(action==='fold')toggle(active,true);
-      else if(action.startsWith('card-')){select(M.navigate(rendered,active,action.slice(5)),true);reveal(active);}
+      else if(action.startsWith('card-')){select(M.navigate(rendered,active,action.slice(5),navigationFilter),true);reveal(active);}
       else if(action.startsWith('scroll-')){
         const key=action.slice(7);if(key==='Home')host.scrollTop=0;else if(key==='End')bottom();else host.scrollBy({top:(key.includes('Up')?-1:1)*(key.startsWith('Page')?host.clientHeight*.85:28),behavior:'instant'});
       }

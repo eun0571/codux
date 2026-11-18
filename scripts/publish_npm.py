@@ -21,6 +21,44 @@ TARGETS = {"x86_64-pc-windows-msvc": "win32-x64", "x86_64-unknown-linux-gnu": "l
            "aarch64-apple-darwin": "darwin-arm64", "x86_64-apple-darwin": "darwin-x64"}
 
 
+class PublicationPending(TimeoutError):
+    """An accepted archive is still missing public registry metadata."""
+
+
+def integrity(package):
+    return "sha512-" + base64.b64encode(file_hash(package["path"], "sha512").digest()).decode()
+
+
+class PublicationState:
+    """A durable upload receipt tied to the exact validated release archives."""
+
+    def __init__(self, path, release, packages):
+        self.path = path
+        identity = {"schema": 1, "repository": release["repository"], "version": release["version"],
+                    "tag": release.get("npm_tag", "latest"),
+                    "archives": {p["name"]: integrity(p) for p in packages}}
+        self.data = {**identity, "accepted": [], "status": "ready"}
+        if path.exists():
+            saved = json.loads(path.read_bytes())
+            if any(saved.get(k) != v for k, v in identity.items()):
+                raise ValueError("Publication receipt does not match these release archives")
+            if not isinstance(saved.get("accepted"), list) or any(n not in identity["archives"] for n in saved["accepted"]):
+                raise ValueError("Invalid accepted-upload receipt")
+            self.data = saved
+
+    def save(self, status, detail=""):
+        self.data.update(status=status, detail=detail)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(".tmp")
+        temporary.write_text(json.dumps(self.data, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(self.path)
+
+    def accepted(self, package):
+        if package["name"] not in self.data["accepted"]:
+            self.data["accepted"].append(package["name"])
+        self.save("checking", f"Checking {package['name']} public visibility")
+
+
 def file_hash(path, algorithm="sha256"):
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, algorithm)
@@ -40,15 +78,19 @@ def registry_package(name):
 def wait_for_published(package, tag, *, lookup=registry_package, timeout=600,
                        clock=time.monotonic, sleep=time.sleep):
     """Wait for npm's accepted upload to become public; never republish it."""
-    expected = "sha512-" + base64.b64encode(file_hash(package["path"], "sha512").digest()).decode()
+    expected = integrity(package)
     deadline = clock() + timeout
     name, release_version = package["name"], package["version"]
     while True:
+        registry_responded = False
         try:
             data = lookup(name)
+            registry_responded = True
             published = data.get("versions", {}).get(release_version)
             actual = (published or {}).get("dist", {}).get("integrity")
             current = data.get("dist-tags", {}).get(tag)
+            if current and version(current) > version(release_version):
+                raise ValueError(f"Refusing to wait for a downgrade of {name}@{tag}")
             if actual and actual != expected:
                 raise ValueError(f"Published checksum mismatch for {name}@{release_version}: expected {expected}, got {actual}")
             if actual == expected and current == release_version:
@@ -65,8 +107,9 @@ def wait_for_published(package, tag, *, lookup=registry_package, timeout=600,
             reason = f"registry lookup failed: {error}"
         remaining = deadline - clock()
         if remaining <= 0:
-            raise TimeoutError(f"Could not verify {name}@{release_version}: {reason}. "
-                               "The upload may still be processing. Retry with --verify-only; do not rebuild or republish.")
+            error = PublicationPending if registry_responded else TimeoutError
+            raise error(f"Could not verify {name}@{release_version}: {reason}. "
+                        "Keep the upload receipt and archives; resume publication or use --verify-only. Do not rebuild.")
         print(f"Waiting for npm: {name}: {reason}", flush=True)
         sleep(min(10, remaining))
 
@@ -160,7 +203,8 @@ def validate(artifacts, root=ROOT):
     return release, packages
 
 
-def publish(release, packages, *, lookup=registry_package, run=subprocess.run, wait=wait_for_published):
+def publish(release, packages, *, lookup=registry_package, run=subprocess.run, wait=wait_for_published,
+            state=None):
     pending = []
     tag = release.get("npm_tag", "latest")
     for package in packages:
@@ -175,9 +219,15 @@ def publish(release, packages, *, lookup=registry_package, run=subprocess.run, w
                 raise ValueError("Refusing to drop previously published platforms; build all supported targets")
         existing = data.get("versions", {}).get(package["version"])
         if existing:
-            integrity = "sha512-" + base64.b64encode(file_hash(package["path"], "sha512").digest()).decode()
-            if existing.get("dist", {}).get("integrity") != integrity:
+            actual = existing.get("dist", {}).get("integrity")
+            accepted = state is not None and package["name"] in state.data["accepted"]
+            if actual and actual != integrity(package):
                 raise ValueError(f"Immutable version already contains different bytes: {package['name']}@{package['version']}")
+            if accepted and (not actual or current != package["version"]):
+                pending.append(package)
+                continue
+            if not actual:
+                raise ValueError(f"Existing version has no verifiable integrity: {package['name']}")
             if current != package["version"]:
                 raise ValueError(f"Existing version is not tagged {tag}; inspect npm dist-tags before retrying")
             print(f"Already published identical archive: {package['name']}")
@@ -188,8 +238,13 @@ def publish(release, packages, *, lookup=registry_package, run=subprocess.run, w
         raise ValueError("npm is required")
     # Preflight every archive/version before publishing the first package.
     for package in pending:
-        run([npm, "publish", str(package["path"].resolve()), "--access", "public", "--tag", tag,
-             "--registry", REGISTRY], check=True)
+        if state is None or package["name"] not in state.data["accepted"]:
+            run([npm, "publish", str(package["path"].resolve()), "--access", "public", "--tag", tag,
+                 "--registry", REGISTRY], check=True)
+            if state is not None:
+                state.accepted(package)
+        else:
+            print(f"Upload already accepted; checking without re-upload: {package['name']}", flush=True)
         # npm can return HTTP 202 before the archive is downloadable. Make each
         # native dependency public before exposing its command package.
         wait(package, tag, lookup=lookup)
@@ -201,12 +256,31 @@ def main():
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--publish", action="store_true")
     mode.add_argument("--verify-only", action="store_true", help="Wait for public versions, tags and checksums without uploading")
+    parser.add_argument("--state", type=Path, help="Durable upload receipt; retain it with the original archives")
+    parser.add_argument("--defer-pending", action="store_true", help="Report accepted npm processing as pending, not a failed CI step")
     args = parser.parse_args()
+    if args.defer_pending and (not args.state or not args.publish):
+        parser.error("--defer-pending requires --publish and --state")
     release, packages = validate(args.artifacts)
     for package in packages:
         print(f"{package['name']}@{package['version']}: {package['path']}")
     if args.publish:
-        publish(release, packages)
+        state = PublicationState(args.state, release, packages) if args.state else None
+        try:
+            publish(release, packages, state=state)
+        except PublicationPending as error:
+            if state:
+                state.save("pending", str(error))
+            if not args.defer_pending:
+                raise
+            print(f"::warning title=Waiting for npm::Codux {release['version']} upload accepted; publication is NOT complete.")
+            return
+        except Exception as error:
+            if state:
+                state.save("failed", str(error))
+            raise
+        if state:
+            state.save("published", "All package versions, checksums, and dist-tags verified")
     elif args.verify_only:
         verify_published(release, packages)
     else:

@@ -1,4 +1,5 @@
-name: Verify native npm packages
+name: Checks - Native packages
+run-name: Build and test ${{ inputs.platform || 'windows' }} packages (does not publish)
 
 on:
   workflow_dispatch:
@@ -23,6 +24,7 @@ permissions:
 
 jobs:
   select:
+    name: Select build platforms
     runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.targets.outputs.matrix }}
@@ -46,6 +48,7 @@ jobs:
           PY
 
   native:
+    name: Build and test ${{ matrix.platform }}
     needs: select
     strategy:
       fail-fast: false
@@ -92,6 +95,7 @@ jobs:
           path: .build/logs/
 
   assemble:
+    name: Assemble verified npm archives (not published)
     needs: native
     runs-on: ubuntu-22.04
     steps:
@@ -126,3 +130,15 @@ jobs:
           overwrite: true
           path: dist/npm/
           if-no-files-found: error
+      - name: Summarize verified build inputs
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          release = json.loads(Path('release.json').read_bytes())
+          lock = json.loads(Path('upstream.lock.json').read_bytes())
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+              summary.write(f"## Verified build: Codux {release['version']} / Codex {lock['version']}\n\n"
+                            "Native regression tests, renderer checks and isolated npm installation passed. "
+                            "Archives are ready. **This result alone does not mean npm publication is complete.**\n")
+          PY

@@ -17,7 +17,7 @@ card, language heading, or nested scroll area.
 | --- | --- |
 | Separate question, reply, tool, intermediate, and final-answer styles | Open a local conversation and inspect its cards |
 | Tool and intermediate-answer visibility | Change Display in /custom; cycle Progress, Answers only, and All cards with Shift+F4 |
-| Folding and card navigation | F4, Ctrl+arrows, Enter, or double-click empty card background |
+| Folding and card navigation | F4, Tab to filter card types, Ctrl+Up/Down to select, Enter to fold, or double-click empty card background |
 | Search filters by message type | F3, then Tab in the search box |
 | Card colors, padding, width, titles, and initial fold state | /custom; changes preview on the loaded excerpt |
 | Working animation speed | /custom > Answer > Working animation |
@@ -129,7 +129,8 @@ Click inside the terminal before using shortcuts:
 | /, then Tab | Complete /custom in the prompt; Enter opens settings |
 | F4 | Enter or leave card browsing |
 | Up / Down, Page Up / Page Down | Scroll while browsing |
-| Ctrl+arrows | Select another card |
+| Tab / Shift+Tab | Cycle selectable card types |
+| Ctrl+Up/Down | Select another matching card |
 | Enter | Reveal the selected card, then fold or unfold it |
 | F3 | Search this excerpt |
 | Tab / Shift+Tab in search | Switch message type |
