@@ -1,5 +1,5 @@
 name: 2. Codex updates and release status
-run-name: Check official Codex updates and pending npm publication
+run-name: "Maintenance | current | Codux 0.1.13 | Codex 0.167.1 | patch 64"
 
 on:
   schedule:
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -48,10 +48,11 @@ jobs:
       head_sha: ${{ steps.track.outputs.head_sha }}
       codux_version: ${{ steps.track.outputs.codux_version }}
       upstream_version: ${{ steps.track.outputs.upstream_version }}
+      label: ${{ steps.track.outputs.label }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -60,7 +61,9 @@ jobs:
         name: Prepare patch and update PR
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/track_upstream.py
+        run: |
+          python scripts/workflow_labels.py --check
+          python scripts/track_upstream.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -69,7 +72,7 @@ jobs:
           path: .build/upstream-report.json
 
   pending:
-    name: Mark candidate checks as running
+    name: Start candidate check | ${{ needs.candidate.outputs.label || 'no candidate prepared' }}
     needs: candidate
     if: needs.candidate.outputs.changed == 'true'
     runs-on: ubuntu-22.04
@@ -89,7 +92,7 @@ jobs:
             });
 
   verify:
-    name: Candidate Codux ${{ needs.candidate.outputs.codux_version }} / Codex ${{ needs.candidate.outputs.upstream_version }}
+    name: Candidate check (not published) | ${{ needs.candidate.outputs.label || 'no candidate prepared' }}
     needs: [candidate, pending]
     if: needs.candidate.outputs.changed == 'true'
     uses: ./.github/workflows/native-build.yml
@@ -100,7 +103,7 @@ jobs:
       contents: read
 
   result:
-    name: Candidate result - review required before release
+    name: Candidate result (not published) | ${{ needs.candidate.outputs.label || 'no candidate prepared' }}
     needs: [candidate, verify]
     if: always() && needs.candidate.outputs.changed == 'true'
     runs-on: ubuntu-22.04
@@ -111,6 +114,7 @@ jobs:
         env:
           HEAD_SHA: ${{ needs.candidate.outputs.head_sha }}
           RESULT: ${{ needs.verify.result }}
+          RELEASE_LABEL: ${{ needs.candidate.outputs.label }}
         with:
           script: |
             const ok = process.env.RESULT === 'success';
@@ -121,6 +125,7 @@ jobs:
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
             await core.summary.addHeading('Codex update candidate')
+              .addRaw(`${process.env.RELEASE_LABEL}\n\nSource commit: \`${process.env.HEAD_SHA}\`\n\n`)
               .addRaw(ok ? 'Windows checks passed. This is an update candidate, not a published release. Review and merge the PR to start publication.'
                          : 'Candidate verification failed. The installed and published release is unchanged.')
               .write();

@@ -1,5 +1,5 @@
 name: Checks - Pull request
-run-name: PR ${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}
+run-name: "PR #${{ github.event.pull_request.number }} check (not published) | Codux 0.1.13 | Codex 0.167.1 | patch 64"
 
 on:
   pull_request:
@@ -23,7 +23,7 @@ jobs:
       ref: ${{ github.event.pull_request.head.sha }}
 
   result:
-    name: PR validation result
+    name: PR check result (not published) | ${{ needs.verify.outputs.label || 'source check failed' }}
     needs: verify
     if: always() && needs.verify.result != 'skipped' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-22.04
@@ -34,6 +34,7 @@ jobs:
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           RESULT: ${{ needs.verify.result }}
+          RELEASE_LABEL: ${{ needs.verify.outputs.label }}
         with:
           script: |
             const ok = process.env.RESULT === 'success';
@@ -43,3 +44,8 @@ jobs:
               description: ok ? 'Windows build and npm installation passed' : 'Validation did not pass; inspect the workflow logs',
               target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });
+            await core.summary.addHeading('Pull request check (not published)')
+              .addRaw(`${process.env.RELEASE_LABEL}\n\nSource commit: \`${process.env.HEAD_SHA}\`\n\n`)
+              .addRaw(ok ? 'Windows checks passed. Review and merge before starting a release.'
+                         : 'Windows checks did not pass. No release was published by this check.')
+              .write();

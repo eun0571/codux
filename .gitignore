@@ -74,4 +74,5 @@
 !/scripts/test_playground.cjs
 !/scripts/test_playground_server.py
 !/scripts/track_upstream.py
+!/scripts/workflow_labels.py
 !/upstream.lock.json

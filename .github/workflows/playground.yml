@@ -1,11 +1,12 @@
 name: 3. Browser playground
-run-name: Playground - ${{ github.event_name == 'pull_request' && format('PR {0} preview check', github.event.pull_request.number) || format('{0} deployment', github.ref_name) }}
+run-name: "${{ github.event_name == 'pull_request' && format('Playground check PR #{0}', github.event.pull_request.number) || github.ref_name == github.event.repository.default_branch && 'Playground deploy' || 'Playground check' }} | Codux 0.1.13 | Codex 0.167.1 | patch 64"
 
 on:
   push:
-    paths: ['playground/**', 'scripts/build_playground.py', 'scripts/test_playground.cjs', 'scripts/serve_playground.py', 'scripts/test_playground_server.py', 'release.json', 'upstream.lock.json', '.github/workflows/playground.yml']
+    branches: [main]
+    paths: ['playground/**', 'scripts/build_playground.py', 'scripts/test_playground.cjs', 'scripts/serve_playground.py', 'scripts/test_playground_server.py', 'scripts/workflow_labels.py', 'release.json', 'upstream.lock.json', '.github/workflows/playground.yml']
   pull_request:
-    paths: ['playground/**', 'scripts/build_playground.py', 'scripts/test_playground.cjs', 'scripts/serve_playground.py', 'scripts/test_playground_server.py', 'release.json', 'upstream.lock.json', '.github/workflows/playground.yml']
+    paths: ['playground/**', 'scripts/build_playground.py', 'scripts/test_playground.cjs', 'scripts/serve_playground.py', 'scripts/test_playground_server.py', 'scripts/workflow_labels.py', 'release.json', 'upstream.lock.json', '.github/workflows/playground.yml']
   workflow_dispatch:
 
 permissions:
@@ -19,6 +20,8 @@ jobs:
   build:
     name: Test and build browser preview
     runs-on: ubuntu-22.04
+    outputs:
+      label: ${{ steps.identity.outputs.label }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,13 +33,17 @@ jobs:
         with:
           python-version: '3.12'
       - name: Validate and build the static demo
-        run: python scripts/build_playground.py
+        id: identity
+        run: |
+          python scripts/workflow_labels.py --check
+          python scripts/workflow_labels.py --describe --purpose "Browser playground check (does not publish npm)"
+          python scripts/build_playground.py
       - uses: actions/upload-pages-artifact@v4
         with:
           path: .build/playground
 
   deploy:
-    name: Deploy browser preview (separate from npm)
+    name: Playground deploy | ${{ needs.build.outputs.label }}
     needs: build
     if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-22.04
@@ -54,5 +61,6 @@ jobs:
       - name: Show the deployed preview
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          RELEASE_LABEL: ${{ needs.build.outputs.label }}
         run: |
-          printf '## Browser playground deployed\n\n[Open the preview](%s)\n\nThis updates the website, not the npm application.\n' "$PAGE_URL" >> "$GITHUB_STEP_SUMMARY"
+          printf '## Playground deployed\n\n%s\n\n[Open the preview](%s)\n\nThis updates the website, not the npm application.\n' "$RELEASE_LABEL" "$PAGE_URL" >> "$GITHUB_STEP_SUMMARY"

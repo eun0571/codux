@@ -1,8 +1,9 @@
 name: 1. Release to npm
-run-name: ${{ inputs.resume_run && format('Recheck npm {0} - run {1}', inputs.version, inputs.resume_run) || inputs.version && format('Release {0}', inputs.version) || format('Release - {0}', github.event.head_commit.message) }}
+run-name: "${{ inputs.resume_run && 'npm recheck' || 'npm release' }} | Codux 0.1.13 | Codex 0.167.1 | patch 64${{ inputs.resume_run && format(' | reuse run {0}', inputs.resume_run) || '' }}"
 
 on:
   push:
+    branches: [main]
     paths: [release.json]
   workflow_dispatch:
     inputs:
@@ -31,6 +32,7 @@ jobs:
       publish: ${{ steps.release.outputs.publish }}
       version: ${{ steps.release.outputs.version }}
       upstream: ${{ steps.release.outputs.upstream }}
+      label: ${{ steps.release.outputs.label }}
       artifact_run: ${{ steps.release.outputs.artifact_run }}
       receipt_run: ${{ steps.release.outputs.receipt_run }}
       source_sha: ${{ steps.release.outputs.source_sha }}
@@ -53,10 +55,12 @@ jobs:
           RESUME_RUN: ${{ inputs.resume_run }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GH_TOKEN: ${{ github.token }}
-        run: python scripts/release_workflow.py select
+        run: |
+          python scripts/workflow_labels.py --check
+          python scripts/release_workflow.py select
 
   build:
-    name: Build Codux ${{ needs.select.outputs.version }} / Codex ${{ needs.select.outputs.upstream }}
+    name: Windows build | ${{ needs.select.outputs.label || 'release not selected' }}
     needs: select
     if: needs.select.outputs.publish == 'true' && needs.select.outputs.resume != 'true'
     uses: ./.github/workflows/native-build.yml
@@ -65,7 +69,7 @@ jobs:
       ref: ${{ github.sha }}
 
   publish:
-    name: Publish or recheck Codux ${{ needs.select.outputs.version }}
+    name: ${{ needs.select.outputs.resume == 'true' && 'npm recheck' || 'npm publish' }} | ${{ needs.select.outputs.label || 'release not selected' }}
     needs: [select, build]
     if: ${{ !cancelled() && needs.select.outputs.publish == 'true' && (needs.build.result == 'success' || needs.select.outputs.resume == 'true') }}
     runs-on: ubuntu-22.04
@@ -142,7 +146,7 @@ jobs:
           if-no-files-found: warn
 
   result:
-    name: Release result - published, waiting, or failed
+    name: npm result | ${{ needs.select.outputs.label || 'release not selected' }}
     needs: [select, build, publish]
     if: always() && needs.select.outputs.publish == 'true'
     runs-on: ubuntu-22.04

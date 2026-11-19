@@ -1,5 +1,5 @@
 name: Checks - Native packages
-run-name: Build and test ${{ inputs.platform || 'windows' }} packages (does not publish)
+run-name: "Native ${{ inputs.platform || 'windows' }} check (not published) | Codux 0.1.13 | Codex 0.167.1 | patch 64"
 
 on:
   workflow_dispatch:
@@ -10,6 +10,10 @@ on:
         default: windows
         options: [windows, linux, macos, all]
   workflow_call:
+    outputs:
+      label:
+        description: Versions read from the exact source commit being checked
+        value: ${{ jobs.select.outputs.label }}
     inputs:
       platform:
         type: string
@@ -28,7 +32,20 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.targets.outputs.matrix }}
+      label: ${{ steps.identity.outputs.label }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Identify the exact build source
+        id: identity
+        run: |
+          python scripts/workflow_labels.py --check
+          python scripts/workflow_labels.py --describe --purpose "Native build inputs (not published)"
       - id: targets
         env:
           PLATFORM: ${{ inputs.platform }}
@@ -48,7 +65,7 @@ jobs:
           PY
 
   native:
-    name: Build and test ${{ matrix.platform }}
+    name: ${{ matrix.platform }} build + tests | ${{ needs.select.outputs.label }}
     needs: select
     strategy:
       fail-fast: false
@@ -95,8 +112,8 @@ jobs:
           path: .build/logs/
 
   assemble:
-    name: Assemble verified npm archives (not published)
-    needs: native
+    name: Package (not published) | ${{ needs.select.outputs.label }}
+    needs: [select, native]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -133,12 +150,12 @@ jobs:
       - name: Summarize verified build inputs
         run: |
           python - <<'PY'
-          import json, os
-          from pathlib import Path
-          release = json.loads(Path('release.json').read_bytes())
-          lock = json.loads(Path('upstream.lock.json').read_bytes())
+          import os
+          import sys
+          sys.path.insert(0, 'scripts')
+          from workflow_labels import describe
+          describe(purpose='Native build verified (not published)')
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
-              summary.write(f"## Verified build: Codux {release['version']} / Codex {lock['version']}\n\n"
-                            "Native regression tests, renderer checks and isolated npm installation passed. "
+              summary.write("Native regression tests, renderer checks and isolated npm installation passed. "
                             "Archives are ready. **This result alone does not mean npm publication is complete.**\n")
           PY

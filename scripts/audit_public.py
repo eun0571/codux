@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 
 from public_source import ROOT, source_files
+from workflow_labels import sync as check_workflow_labels
 
 
 def ignore_text(names):
@@ -27,6 +28,7 @@ def audit(root=ROOT, write_ignore=False):
     files = source_files(root)
     names = {p.relative_to(root).as_posix() for p in files}
     lock = json.loads((root / "upstream.lock.json").read_text(encoding="utf-8"))
+    check_workflow_labels(root)
     expected_ignore = ignore_text(names)
     if write_ignore:
         (root / ".gitignore").write_text(expected_ignore, encoding="utf-8")

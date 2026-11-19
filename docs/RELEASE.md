@@ -75,7 +75,7 @@ If publication stopped while waiting for a native package, the command package h
 
 ## Read GitHub Actions
 
-Open **1. Release to npm** for the installed application's delivery state. Each run has versioned build jobs and a final **Release result** summary. **Published** means every native package and the command package are public with matching checksums and tags. **Waiting for npm** means the upload was accepted but delivery is incomplete. The workflow may finish green after safely deferring a pending upload; use the result summary and npm commit status, not the green workflow icon alone.
+Open **1. Release to npm** for the installed application's delivery state. Run titles show the action, Codux version, pinned Codex version, and patch revision. For example: `npm release | Codux 0.1.13 | Codex 0.167.1 | patch 64`. `npm recheck` reuses an earlier run's archives. Each run has versioned build jobs and a final **npm result** summary. **Published** means every native package and the command package are public with matching checksums and tags. **Waiting for npm** means the upload was accepted but delivery is incomplete. The workflow may finish green after safely deferring a pending upload; use the result summary and npm commit status, not the green workflow icon alone.
 
 | Workflow | Purpose |
 | --- | --- |
@@ -86,6 +86,10 @@ Open **1. Release to npm** for the installed application's delivery state. Each 
 | Checks - Native packages | Shared build checks; manual platform verification without publishing |
 
 An update candidate passing checks is not a published release: it still needs review and merge. Playground deployment does not update the installed application. Historical runs are preserved; an old failed run does not describe the current release. Artifacts are build archives, logs and upload receipts, not additional releases, and normally do not need downloading.
+
+Maintenance titles identify the **current** pinned source. The summary shows the latest Codex version it checked, and candidate build jobs identify the proposed versions. A failed upstream patch preparation is separate from the npm status check in the same run. PR and native checks explicitly say **not published**. Playground titles distinguish **check** from **deploy**; only default-branch pushes deploy, avoiding duplicate branch-push runs alongside PR checks.
+
+Actions cannot read release files when evaluating a run title. The titles are generated and committed with the version inputs. Upstream preparation refreshes them automatically. After a manual version change, run `python scripts/workflow_labels.py --write`; the public-source audit rejects stale titles. Existing completed runs retain their original names.
 
 ## Update
 

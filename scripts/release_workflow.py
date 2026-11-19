@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 
 from prepare_upstream import ROOT, version
+from workflow_labels import identity
 
 
 def api(endpoint, data=None):
@@ -82,12 +83,14 @@ def select(root=ROOT):
     elif int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")) > 1:
         if artifact(repository, os.environ["GITHUB_RUN_ID"], "npm-publication-state"):
             receipt_run = os.environ["GITHUB_RUN_ID"]
-    result = {"publish": changed, "version": release["version"], "upstream": lock["version"],
+    result = {"publish": changed, **identity(root, release, lock),
               "artifact_run": resume or os.environ["GITHUB_RUN_ID"], "receipt_run": receipt_run,
               "source_sha": source_sha, "resume": bool(resume)}
     output(result)
-    summary(f"## Codux {release['version']} / Codex {lock['version']}\n\n"
-            f"{'Resume verified archives; no rebuild.' if resume else 'Build and verify before publishing.'}\n\n"
+    action = 'Resume verified archives; no rebuild.' if resume else (
+        'Build and verify before publishing.' if changed else 'Version unchanged; no build or publication.')
+    summary(f"## {'npm recheck' if resume else 'npm release'} | {result['label']}\n\n"
+            f"{action}\n\nSource commit: `{source_sha}`. Archive run: `{result['artifact_run']}`.\n\n"
             "The release is complete only when the publication summary says **Published**.")
     return result
 
@@ -121,6 +124,7 @@ def report(root=ROOT):
     detail = result.get("detail", "See the failed build or publication step.")
     summary(f"## Codux {release['version']}: {label}\n\n"
             f"| Item | Result |\n| --- | --- |\n| Codex source | {lock['version']} |\n"
+            f"| UI patch | {lock['patch_version']} |\n| Source commit | `{os.environ['SOURCE_SHA']}` |\n"
             f"| npm publication | **{label}** |\n| Build | {'Verified artifacts' if job == 'success' else 'See job results'} |\n\n"
             f"{detail}\n\n"
             + ("The workflow handled the delay successfully; that does **not** mean the release is published. "
@@ -133,16 +137,17 @@ def report(root=ROOT):
 def retry(root=ROOT):
     """Reuse the existing maintenance schedule; never retry real publication failures."""
     release = json.loads((root / "release.json").read_bytes())
+    heading = f"## npm status | {identity(root)['label']}\n\n"
     repository = os.environ["GITHUB_REPOSITORY"]
     branch = os.environ["DEFAULT_BRANCH"]
     records = api(f"repos/{repository}/actions/workflows/publish-npm.yml/runs?branch={branch}&per_page=30")["workflow_runs"]
     if any(run["status"] != "completed" for run in records):
-        summary("## npm release\n\nA release is already running or queued. No additional run was started.")
+        summary(heading + "A release is already running or queued. No additional run was started.")
         return False
     if records and records[0].get("conclusion") in ("failure", "cancelled", "timed_out", "action_required"):
         # Selection/receipt restoration can fail before a new npm status exists.
         # Never fall back to an older pending status and loop over that failure.
-        summary("## npm release\n\nThe latest release run needs attention. Automatic retry is paused.\n\n"
+        summary(heading + "The latest release run needs attention. Automatic retry is paused.\n\n"
                 f"[Inspect the run](https://github.com/{repository}/actions/runs/{records[0]['id']})")
         return False
     context = f"Codux / npm {release['version']}"
@@ -156,7 +161,7 @@ def retry(root=ROOT):
         if status is None:
             continue
         if status["state"] != "pending" or not status["description"].startswith("Waiting for npm;"):
-            summary(f"## npm release\n\n{status['description']}\n\n[Release details]({status['target_url']})")
+            summary(heading + f"{status['description']}\n\n[Release details]({status['target_url']})")
             return False
         receipt_run = status["target_url"].removeprefix(f"https://github.com/{repository}/actions/runs/")
         if not receipt_run.isdecimal() or not artifact(repository, receipt_run, "npm-publication-state"):
@@ -164,10 +169,10 @@ def retry(root=ROOT):
         api(f"repos/{repository}/actions/workflows/publish-npm.yml/dispatches", {
             "ref": branch, "inputs": {"version": release["version"], "resume_run": receipt_run},
         })
-        summary(f"## npm release\n\nRechecking Codux {release['version']} using the accepted upload receipt "
+        summary(heading + f"Rechecking Codux {release['version']} using the accepted upload receipt "
                 f"from run {receipt_run}. No rebuild or duplicate upload was requested.")
         return True
-    summary("## npm release\n\nNo pending npm receipt for the current version. No release was started.")
+    summary(heading + "No pending npm receipt for the current version. No release was started.")
     return False
 
 

@@ -147,6 +147,10 @@ def prepare(root, tag, repository=None, *, fetch_repository=UPSTREAM):
     release["version"] = f"{major}.{minor}.{patch + 1}"
     writes = {patch_path: updated_patch, lock_path: encoded_json(lock), release_path: encoded_json(release)}
     files = [lock["patch"], "upstream.lock.json", "release.json"]
+    from workflow_labels import updates as workflow_label_updates
+    labels = workflow_label_updates(root, release, lock)
+    writes.update(labels)
+    files.extend(path.relative_to(root).as_posix() for path in labels)
     catalog_path = root / "playground/catalog.json"
     if catalog_path.exists():
         catalog = json.loads(catalog_path.read_text(encoding="utf-8"))

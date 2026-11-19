@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 
 from prepare_upstream import ROOT, encoded_json, git, prepare, version
+from workflow_labels import describe, identity
 
 
 def api(endpoint, data=None):
@@ -18,7 +19,7 @@ def api(endpoint, data=None):
     return json.loads(result.stdout)
 
 
-def track(root=ROOT):
+def track(root=ROOT, attempt=None):
     repository = os.environ["GITHUB_REPOSITORY"]
     upstream = api("repos/openai/codex/releases/latest")
     tag = upstream["tag_name"]
@@ -26,6 +27,10 @@ def track(root=ROOT):
         raise ValueError("Latest upstream release is not an official stable Codex tag")
     lock = json.loads((root / "upstream.lock.json").read_bytes())
     candidate = tag.removeprefix("rust-v")
+    version(candidate)
+    if attempt is not None:
+        attempt["target_upstream"] = candidate
+    print(f"Pinned Codex {lock['version']}; latest stable Codex {candidate}", flush=True)
     if version(candidate) <= version(lock["version"]):
         return {"changed": False, "reason": "Pinned Codex is current"}
     opened = api(f"repos/{repository}/pulls?state=open&per_page=100")
@@ -50,7 +55,7 @@ def track(root=ROOT):
                   "content": (root / name).read_bytes().decode("utf-8")} for name in result["files"]],
     })
     commit = api(f"repos/{repository}/git/commits", {
-        "message": f"Update Codex to {candidate}", "tree": tree["sha"], "parents": [base],
+        "message": f"Prepare Codux {result['codux_version']} for Codex {candidate}", "tree": tree["sha"], "parents": [base],
     })
     api(f"repos/{repository}/git/refs", {"ref": "refs/heads/" + branch, "sha": commit["sha"]})
     run_url = f"https://github.com/{repository}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
@@ -61,40 +66,47 @@ def track(root=ROOT):
             "run against this PR's exact commit. Review that result and test the UI before merging. "
             "Merging a release version change starts the npm release workflow when publication is enabled.")
     pr = api(f"repos/{repository}/pulls", {
-        "title": f"Update Codex to {candidate}", "head": branch, "base": default, "body": body,
+        "title": f"Codux {result['codux_version']} / Codex {candidate}: update candidate", "head": branch, "base": default, "body": body,
     })
     return {**result, "changed": True, "head_sha": commit["sha"], "pr_number": pr["number"],
             "pr_url": pr["html_url"], "branch": branch}
 
 
-def main():
+def main(root=ROOT):
     from release_workflow import summary
 
-    report = ROOT / ".build/upstream-report.json"
+    report = root / ".build/upstream-report.json"
     report.parent.mkdir(exist_ok=True)
+    current = describe(root, purpose="Current source for Codex update check (not a release)", outputs=False)
+    attempt = {"current": current, "target_upstream": "not resolved"}
     try:
-        result = track()
+        result = track(root, attempt)
     except Exception as error:
-        report.write_bytes(encoded_json({"changed": False, "error": str(error)}))
-        summary("## Codex update check failed\n\nNo new release was published. "
+        report.write_bytes(encoded_json({**attempt, "changed": False, "error": str(error)}))
+        summary(f"## Codex update preparation failed\n\nCurrent: {current['label']}\n\n"
+                f"Target Codex: **{attempt['target_upstream']}**\n\n"
+                "This job did not publish a release. npm delivery is reported by the separate npm status job.\n\n"
                 "Inspect the failed step and upstream-report artifact for the conflict or error.")
         raise
-    lock = json.loads((ROOT / "upstream.lock.json").read_bytes())
-    release = json.loads((ROOT / "release.json").read_bytes())
+    lock = json.loads((root / "upstream.lock.json").read_bytes())
+    release = json.loads((root / "release.json").read_bytes())
+    result.update(attempt)
     result.setdefault("codux_version", release["version"])
     result.setdefault("upstream_version", lock["version"])
+    result.setdefault("patch_version", lock["patch_version"])
+    result["label"] = identity(root)["label"] if result["changed"] else ""
     report.write_bytes(encoded_json(result))
     if os.environ.get("GITHUB_OUTPUT"):
         with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as stream:
-            for key in ("changed", "head_sha", "pr_number", "codux_version", "upstream_version"):
+            for key in ("changed", "head_sha", "pr_number", "codux_version", "upstream_version", "patch_version", "label"):
                 value = result.get(key, "")
                 stream.write(f"{key}={str(value).lower() if isinstance(value, bool) else value}\n")
     if result["changed"]:
-        summary(f"## Update candidate: Codux {result['codux_version']} / Codex {result['upstream_version']}\n\n"
+        summary(f"## Update candidate | {result['label']}\n\n"
                 f"[Review the update PR]({result['pr_url']}). The patch applies; Windows verification runs next. "
                 "This candidate is **not published**. Review and merge after verification passes.")
     else:
-        summary(f"## Codex update check\n\nPinned source: Codex {lock['version']} / Codux {release['version']}.\n\n"
+        summary(f"## Codex update check | {current['label']}\n\nLatest stable Codex: {attempt['target_upstream']}.\n\n"
                 f"{result.get('reason', 'No update prepared')}\n\nNo build or publication was started by this check.")
     print(json.dumps(result, indent=2))
 
