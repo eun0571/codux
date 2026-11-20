@@ -16745,7 +16745,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx_tests.rs b/codex-rs/tui/src
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx_tests.rs
-@@ -0,0 +1,3131 @@
+@@ -0,0 +1,3132 @@
 +use super::*;
 +use crate::history_cell::PlainHistoryCell;
 +use crate::mycodx_ui::{Background, Section, Settings};
@@ -17981,6 +17981,7 @@ new file mode 100644
 +                phase,
 +                memory_citation: None,
 +                delivery: None,
++                moderation: None,
 +                questions: Some(vec![codex_protocol::items::AsyncUserInputQuestion {
 +                    title: "Continue?".into(),
 +                    options: None,
@@ -21546,13 +21547,10 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
              layout = layout.with_control(control.label.clone(), control.anchor);
          }
          layout.image = self.image.clone();
-@@ -221,6 +236,45 @@
-             layout.with_leading_separator()
-         } else {
-             layout
-+        }
-+    }
-+
+@@ -224,6 +239,45 @@
+         }
+     }
+ 
 +    /// Borders and the clickable heading have no source range, so copying omits decoration.
 +    pub(super) fn with_mycodx_auxiliary(self, lines: Vec<HyperlinkLine>, width: u16) -> Self {
 +        self.append_mycodx_auxiliary(Self::new(lines, width))
@@ -21589,10 +21587,26 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
 +            first_column: 0,
 +            prefix_columns: 0,
 +            tabs: tabs::TabStops::default(),
-         }
++        }
++    }
++
+     /// Append a clipped interaction row outside the copied and searched source text.
+     pub(super) fn with_disclosure_control(self, label: String) -> Self {
+         let source_offset = self.text.len();
+@@ -237,12 +291,6 @@
+ 
+     pub(super) fn with_turn_disclosure(self, label: String) -> Self {
+         self.with_control(label, DisclosureAnchor::Turn)
+-    }
+-
+-    pub(super) fn is_turn_disclosure(&self) -> bool {
+-        self.disclosure_control
+-            .as_ref()
+-            .is_some_and(|control| control.anchor == DisclosureAnchor::Turn)
      }
  
-@@ -330,6 +384,7 @@
+     fn with_control(mut self, label: String, anchor: DisclosureAnchor) -> Self {
+@@ -330,6 +378,7 @@
              if let Some(control) = &mut self.disclosure_control {
                  control.row += 1;
              }
@@ -21600,7 +21614,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
          }
          self
      }
-@@ -344,6 +399,9 @@
+@@ -344,6 +393,9 @@
          self.rows.insert(
              index,
              TextRow {
@@ -21610,7 +21624,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
                  line: HyperlinkLine::from(line),
                  source: offset..offset,
                  line_end: None,
-@@ -670,26 +728,72 @@
+@@ -670,26 +722,72 @@
          self.disclosure_control.as_ref().map(|control| control.row)
      }
  
@@ -21697,7 +21711,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
      pub(super) fn position_at(&self, row: usize, column: u16) -> usize {
          let Some(row) = self.rows.get(row) else {
              return self.text.len();
-@@ -757,6 +861,15 @@
+@@ -757,6 +855,15 @@
      pub(super) fn row_for_offset(&self, offset: usize) -> usize {
          if self.visible_image().is_some() && offset >= self.text.len() {
              return self.row_count().saturating_sub(1);
@@ -21713,7 +21727,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
          }
          let before_control = if let Some(control_row) = self.disclosure_row() {
              let after_control = &self.rows[control_row + 1..];
-@@ -802,6 +915,9 @@
+@@ -802,6 +909,9 @@
          start_row: usize,
      ) {
          for (screen_row, row) in self.visible_rows(area, start_row) {
@@ -21723,7 +21737,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
              let mut column = row.first_column;
              for (offset, grapheme) in
                  self.text[row.source.clone()].grapheme_indices(/*is_extended*/ true)
-@@ -809,9 +925,7 @@
+@@ -809,9 +919,7 @@
                  let start = row.source.start + offset;
                  let width = row.tabs.grapheme_width(offset, grapheme);
                  if start < range.end && start + grapheme.len() > range.start {
@@ -21734,7 +21748,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
                          buf[(area.x + selected_column as u16, area.y + screen_row)]
                              .set_style(Style::default().add_modifier(Modifier::REVERSED));
                      }
-@@ -908,6 +1022,12 @@
+@@ -908,6 +1016,12 @@
          stops
      }
  
@@ -21747,7 +21761,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
      /// Resolve an OSC-8 destination or a document target when the workspace enables previews.
      #[cfg(test)]
      pub(super) fn reader_link_at(
-@@ -962,7 +1082,7 @@
+@@ -962,7 +1076,7 @@
                  row.line_end = Some(text.len());
              }
          }
@@ -21756,7 +21770,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
              image: None,
              image_left_aligned: false,
              logical,
-@@ -973,7 +1093,10 @@
+@@ -973,7 +1087,10 @@
              disclosure: false,
              leading_blank_hidden: false,
              disclosure_control: None,
@@ -21768,7 +21782,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text.rs b/codex-rs/tui/src/transcr
      }
  }
  
-@@ -1054,10 +1177,13 @@
+@@ -1054,10 +1171,13 @@
              };
              let range = text_start + source.start..text_start + source.end;
              TextRow {
