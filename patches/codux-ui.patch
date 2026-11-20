@@ -2454,7 +2454,18 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          let detailed = view.is_detailed();
          let search_changed = view.sync_search_live_tail(transcript_width, active_key, |width| {
              chat_widget.active_cell_transcript_hyperlink_lines(width)
-@@ -646,6 +657,7 @@
+@@ -231,10 +242,6 @@
+         let changed = if detailed {
+             view.sync_live_tail(transcript_width, active_key, |width| {
+                 chat_widget.active_cell_transcript_hyperlink_lines(width)
+-            })
+-        } else if let Some(row) = live_summary {
+-            view.sync_live_layout(transcript_width, active_key, |width| {
+-                Some(row.layout(width, expanded, chat_widget.active_auxiliary_lines(width)))
+             })
+         } else {
+             view.sync_live_activity_tail(transcript_width, active_key, expanded, |width| {
+@@ -646,6 +653,7 @@
              self.transcript_view
                  .rebind_observed_live_revision(previous, reflowed);
          }
@@ -2462,7 +2473,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          self.chat_widget.sync_warnings(&self.transcript_cells);
          let motion = MotionMode::from_animations_enabled(
              self.local_settings.tui.animations && self.local_settings.tui.effects.shimmer,
-@@ -878,6 +890,7 @@
+@@ -878,6 +886,7 @@
          );
          let first_image = frame.image_placements.len();
          prepared.paint_foreground(frame, chat_widget, view, &bottom, bottom_area);
@@ -2470,7 +2481,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          let animating =
              view.is_following() && active_key.is_some_and(|key| key.animation_tick.is_some());
          let loading = view.is_loading_history() && motion == MotionMode::Animated;
-@@ -1074,6 +1087,7 @@
+@@ -1074,6 +1083,7 @@
              );
          }
          dialog.render(area, frame.buffer);
@@ -2478,7 +2489,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          frame.cursor_position = dialog.cursor_pos(area).map(Into::into);
          frame.set_cursor_style(dialog.cursor_style(area));
      }
-@@ -1239,11 +1253,36 @@
+@@ -1239,11 +1249,36 @@
                  return Ok(false);
              }
          }
@@ -2515,7 +2526,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
              && (!self.chat_widget.is_in_paste_burst()
                  || self.transcript_view.is_search_editing()
                  || self.transcript_view.is_activity_focused()
-@@ -1282,6 +1321,15 @@
+@@ -1282,6 +1317,15 @@
              tui.frame_requester().schedule_frame();
              return Ok(true);
          }
@@ -2531,7 +2542,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          // Read-only Escape belongs to session navigation, even when the transcript is scrolled.
          // Search and selection still consume Escape first to dismiss their interaction.
          if let TuiEvent::Key(key) = event
-@@ -1313,25 +1361,6 @@
+@@ -1313,25 +1357,6 @@
              && self.handle_owned_backtrack_event(tui, event)?
          {
              self.request_owned_history(tui, app_server);

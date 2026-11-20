@@ -8,7 +8,7 @@
   "package_version": "0.171.0-codux.65",
   "windows_sql_newlines": "crlf",
   "patch": "patches/codux-ui.patch",
-  "patch_sha256": "d35356f19efbe5daa2365207e23b24aa3490211b43949ca9e189c84be83b60a9",
+  "patch_sha256": "f8a9e4417fc9d9406a6661e543eb1796964b00dc4ffd88796f5fb5fe3d719bb8",
   "source_sha256": {
     "codex-rs/Cargo.lock": "22addd65bdcf713e570e3e48fa852dda6f3e66cebb0682e029a606239a4fa262",
     "codex-rs/app-server/src/lib.rs": "0c82d2343d9ebd4dc0d443eaddb13744c241be13ee301b7a083f0e0457be1877",
@@ -141,7 +141,7 @@
     "codex-rs/tui/src/app/event_dispatch.rs": "fbce9d59f495713e2df004ee9f512523bbe1107f91966ab053b6baa57edd9fa7",
     "codex-rs/tui/src/app/history_pagination_tests.rs": "ba0076b1164e7d671024b95dc6d9a38d3ea8b13f92a1be4441ea03fab50284a2",
     "codex-rs/tui/src/app/input.rs": "c6a675c735b1ab8ca36df0f77657ea51aeae6d10e307023e91b1c7135bed6d69",
-    "codex-rs/tui/src/app/owned_transcript.rs": "daaca8e0d489992e27dd7008487891a9392f0531a3852f27287355c9df66b1fc",
+    "codex-rs/tui/src/app/owned_transcript.rs": "974712c0e225f882455e00e1c423adb125ae1ae64690d5e52c2b483c82f326f1",
     "codex-rs/tui/src/app/owned_transcript_input_tests.rs": "107ecb4b9d8d0505da15767b3e12610f1a523bd88a1c1fa28555aa9a211cc6db",
     "codex-rs/tui/src/app/owned_transcript_tests.rs": "4b926874cb8dacf79f006038fa7a9d8aa4cf6be8a38fd991345d2622ec2c4084",
     "codex-rs/tui/src/app/recap_tests.rs": "4c462d2f84597b3bf073d67266dbad4b5d42cc100e093c5a1e6c6c482d0740f2",
