@@ -2785,6 +2785,17 @@ diff --git a/codex-rs/tui/src/app/owned_transcript_tests.rs b/codex-rs/tui/src/a
          presentation: Default::default(),
          message: message.to_string(),
          text_elements: Vec::new(),
+@@ -1776,8 +1778,8 @@
+         &tui.terminal,
+     ));
+     assert!(
+-        summary.contains("Running")
+-            && summary.contains("printf visible")
++        summary.contains("TOOLS")
++            && summary.contains("[+] 1 action")
+             && !summary.contains("needle"),
+         "{summary}"
+     );
 diff --git a/codex-rs/tui/src/app/recap_tests.rs b/codex-rs/tui/src/app/recap_tests.rs
 --- a/codex-rs/tui/src/app/recap_tests.rs
 +++ b/codex-rs/tui/src/app/recap_tests.rs
@@ -3229,6 +3240,44 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/mouse_tests.rs b/codex-r
  }
  
  #[test]
+diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/passive_hints.rs b/codex-rs/tui/src/bottom_pane/chat_composer/passive_hints.rs
+--- a/codex-rs/tui/src/bottom_pane/chat_composer/passive_hints.rs
++++ b/codex-rs/tui/src/bottom_pane/chat_composer/passive_hints.rs
+@@ -28,6 +28,7 @@
+     Ide,
+     Context,
+     Warning,
++    CoduxVersion,
+ }
+ 
+ use Kind::*;
+@@ -140,6 +141,7 @@
+     fn fit(&mut self, width: usize, two: bool) -> [Row; 2] {
+         let mut p = self.placement(two);
+         for (kind, form) in [
++            (CoduxVersion, None),
+             (Shortcuts, None),
+             (Plan, Some(1)),
+             (Warning, Some(1)),
+@@ -177,7 +179,7 @@
+         }
+         for kind in [
+             Action, Side, Shell, Vim, Plan, Goal, Ide, Warning, Context, SideNav, AgentName,
+-            Agents, Shortcuts,
++            Agents, Shortcuts, CoduxVersion,
+         ] {
+             if !overflow[kind.row(two)] {
+                 continue;
+@@ -257,6 +259,9 @@
+             return None;
+         }
+         let mut hints = Hints::default();
++        // Keep the build identity at the far right without displacing controls.
++        // It is the first label dropped on narrow terminals and the last refilled.
++        hints.add(CoduxVersion, [crate::bottom_pane::footer::codux_version_line()]);
+         hints.add(Shell, self.shell_mode_footer_line());
+         hints.add(Vim, self.vim_mode_indicator_span().map(Line::from));
+         let can_navigate = self.has_focus && self.draft.input_enabled && !self.popup_active();
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap
@@ -3984,6 +4033,24 @@ diff --git a/codex-rs/tui/src/bottom_pane/shortcut_overlay_tests.rs b/codex-rs/t
      props.key_hints.external_editor = Some(ShortcutHint::Chord {
          prefix: key_hint::ctrl(KeyCode::Char('x')),
          completion: key_hint::ctrl(KeyCode::Char('e')),
+@@ -178,7 +176,7 @@
+             let bound = rendered
+                 .iter()
+                 .flat_map(|line| &line.spans)
+-                .find(|span| span.content.trim() == "Esc")
++                .find(|span| span.content.trim() == "F4")
+                 .unwrap()
+                 .style;
+             if colors.is_some() {
+@@ -225,7 +223,7 @@
+     );
+     assert!(
+         list.lines()
+-            .any(|row| row.contains('é') && row.contains("Open transcript"))
++            .any(|row| row.contains('é') && row.contains("Cycle card display"))
+     );
+ }
+ 
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_esc_hint_idle.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_esc_hint_idle.snap
 --- a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_esc_hint_idle.snap
 +++ b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_esc_hint_idle.snap

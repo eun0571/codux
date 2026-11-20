@@ -275,12 +275,27 @@ def run_tui_regressions(options, cwd, env):
         "raw_multiline_paste_defers_rendering_and_submits_once",
         "accepted_find_defers_paste_rendering_but_keeps_enter",
     ]
+    review = os.environ.get("CODUX_SNAPSHOT_REVIEW") == "1"
+    if review:
+        env = {**env, "INSTA_UPDATE": "always"}
+        snapshot_root = Path(cwd) / "tui" / "src"
+        snapshots = {p: p.read_bytes() for p in snapshot_root.rglob("*.snap")}
     failed = []
     for selector in selectors:
         try:
             run("cargo", "test", *options, "--lib", selector, cwd=cwd, env=env)
         except subprocess.CalledProcessError:
             failed.append(selector)
+    if review:
+        import base64
+        for path in sorted(snapshot_root.rglob("*.snap")):
+            content = path.read_bytes()
+            if snapshots.get(path) != content:
+                print("CODUX_SNAPSHOT_CANDIDATE " + json.dumps({
+                    "path": path.relative_to(Path(cwd).parent).as_posix(),
+                    "content": base64.b64encode(content).decode("ascii")
+                }), flush=True)
+        raise RuntimeError("Snapshot review only; packaging was not started. Behavioral failures: " + ", ".join(failed))
     if failed:
         raise RuntimeError("TUI regression groups failed; packaging was not started: " + ", ".join(failed))
 
