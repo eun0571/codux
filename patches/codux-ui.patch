@@ -2816,7 +2816,7 @@ diff --git a/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__in
  
    GPT-5.6-Sol default · /tmp/project
 -  ? for shortcuts
-+  ? for shortcuts                                                  Codux 0.0.0
++  ? for shortcuts                                                   Codux 0.0.0
  
  After flush:
  After paste
@@ -2824,7 +2824,7 @@ diff --git a/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__in
  › [Pasted Content 2084 chars]
  
    GPT-5.6-Sol default · /tmp/project
-+                                                                   Codux 0.0.0
++                                                                    Codux 0.0.0
 diff --git a/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__tests__compact_overlay_finds_hidden_live_text.snap b/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__tests__compact_overlay_finds_hidden_live_text.snap
 --- a/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__tests__compact_overlay_finds_hidden_live_text.snap
 +++ b/codex-rs/tui/src/app/snapshots/codex_tui__app__owned_transcript__tests__compact_overlay_finds_hidden_live_text.snap
@@ -3251,7 +3251,19 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/passive_hints.rs b/codex
  }
  
  use Kind::*;
-@@ -140,6 +141,7 @@
+@@ -104,6 +105,11 @@
+         let mut compact = Row::default();
+         let mut any_fits = false;
+         for label in &self.labels {
++            // Identity may use a spare row allocated by the composer, but must
++            // never take height from status content, the draft, or suggestions.
++            if label.kind == CoduxVersion {
++                continue;
++            }
+             let Some(&(cells, _)) = label.forms.last() else {
+                 continue;
+             };
+@@ -140,6 +146,7 @@
      fn fit(&mut self, width: usize, two: bool) -> [Row; 2] {
          let mut p = self.placement(two);
          for (kind, form) in [
@@ -3259,7 +3271,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/passive_hints.rs b/codex
              (Shortcuts, None),
              (Plan, Some(1)),
              (Warning, Some(1)),
-@@ -177,7 +179,7 @@
+@@ -177,7 +184,7 @@
          }
          for kind in [
              Action, Side, Shell, Vim, Plan, Goal, Ide, Warning, Context, SideNav, AgentName,
@@ -3268,7 +3280,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/passive_hints.rs b/codex
          ] {
              if !overflow[kind.row(two)] {
                  continue;
-@@ -257,6 +259,9 @@
+@@ -257,6 +264,9 @@
              return None;
          }
          let mut hints = Hints::default();
@@ -3278,6 +3290,15 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/passive_hints.rs b/codex
          hints.add(Shell, self.shell_mode_footer_line());
          hints.add(Vim, self.vim_mode_indicator_span().map(Line::from));
          let can_navigate = self.has_focus && self.draft.input_enabled && !self.popup_active();
+@@ -333,7 +343,7 @@
+             && self.footer.side_conversation_context_label.is_none()
+             && !self.is_bang_shell_command()
+         {
+-            if hints.labels.is_empty() && !show_warning {
++            if hints.labels.iter().all(|label| label.kind == CoduxVersion) && !show_warning {
+                 // A lone context meter retains its existing inset and narrow-width clipping.
+                 return None;
+             }
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__footer_state__tests__find_hides_retained_command_suggestions.snap
@@ -3314,7 +3335,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
  "                                                            "
  "                                                            "
 -"  tab to queue message                   100% context left  "
-+"  tab to queue message     100% context left · Codux 0.0.0  "
++"  tab to queue message      100% context left · Codux 0.0.0 "
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__activity_shortcut_help_follows_runtime_binding.snap
@@ -3332,17 +3353,17 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4              Cycle card display
-+  @   Mention files      ⌥,       Less reasoning              f3               Find text
-+  !   Shell command      ⌥.       More reasoning              up / down        Scroll in browsing
-+  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+up/down     Select matching card
-+  ⌃v  Paste image        f4       Browse cards                tab / shift+tab  Filter card types
-+  ⌃g  External editor    ⌃c       Quit                        enter            Fold selected card
-+  ⌃r  Search history                                          ⌃e               Rewind selected question
-+                                                              pgup / pgdn      Scroll
-+                                                              ⌃space           Start selection
-+                                                              ⌃home / ⌃end     Top / latest
-+                                                              ⇧⌥, / ⇧⌥.        Top / latest
++  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3            Find text
++  !   Shell command      ⌥.       More reasoning              ↑ / ↓         Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ⌃↑ / ⌃↓       Select matching card
++  ⌃v  Paste image        f4       Browse cards                tab / ⇧tab    Filter card types
++  ⌃g  External editor    ⌃c       Quit                        enter         Fold selected card
++  ⌃r  Search history                                          ⌃e            Rewind selected question
++                                                              pgup / pgdn   Scroll
++                                                              ⌃space        Start selection
++                                                              ⌃home / ⌃end  Top / latest
++                                                              ⇧⌥, / ⇧⌥.     Top / latest
  
    /keymap customize
  
@@ -3360,17 +3381,17 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4              Cycle card display
-+  @   Mention files      ⌥,       Less reasoning              f3               Find text
-+  !   Shell command      ⌥.       More reasoning              up / down        Scroll in browsing
-+  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+up/down     Select matching card
-+  ⌃v  Paste image        ⌃x t     Browse cards                tab / shift+tab  Filter card types
-+  ⌃g  External editor    ⌃c       Quit                        enter            Fold selected card
-+  ⌃r  Search history                                          ⌃e               Rewind selected question
-+                                                              pgup / pgdn      Scroll
-+                                                              ⌃space           Start selection
-+                                                              ⌃home / ⌃end     Top / latest
-+                                                              ⇧⌥, / ⇧⌥.        Top / latest
++  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3            Find text
++  !   Shell command      ⌥.       More reasoning              ↑ / ↓         Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ⌃↑ / ⌃↓       Select matching card
++  ⌃v  Paste image        ⌃x t     Browse cards                tab / ⇧tab    Filter card types
++  ⌃g  External editor    ⌃c       Quit                        enter         Fold selected card
++  ⌃r  Search history                                          ⌃e            Rewind selected question
++                                                              pgup / pgdn   Scroll
++                                                              ⌃space        Start selection
++                                                              ⌃home / ⌃end  Top / latest
++                                                              ⇧⌥, / ⇧⌥.     Top / latest
  
    /keymap customize
  
@@ -3388,68 +3409,60 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4              Cycle card display
-+  @   Mention files      ⌥,       Less reasoning              f3               Find text
-+  !   Shell command      ⌥.       More reasoning              up / down        Scroll in browsing
-+  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+up/down     Select matching card
-+  ⌃v  Paste image        ⌃c       Quit                        tab / shift+tab  Filter card types
-+  ⌃g  External editor                                         enter            Fold selected card
-+  ⌃r  Search history                                          ⌃e               Rewind selected question
-+                                                              pgup / pgdn      Scroll
-+                                                              ⌃space           Start selection
-+                                                              ⌃home / ⌃end     Top / latest
-+                                                              ⇧⌥, / ⇧⌥.        Top / latest
++  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3            Find text
++  !   Shell command      ⌥.       More reasoning              ↑ / ↓         Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ⌃↑ / ⌃↓       Select matching card
++  ⌃v  Paste image        ⌃c       Quit                        tab / ⇧tab    Filter card types
++  ⌃g  External editor                                         enter         Fold selected card
++  ⌃r  Search history                                          ⌃e            Rewind selected question
++                                                              pgup / pgdn   Scroll
++                                                              ⌃space        Start selection
++                                                              ⌃home / ⌃end  Top / latest
++                                                              ⇧⌥, / ⇧⌥.     Top / latest
  
    /keymap customize
  
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__fullscreen_plan_cycle_hint.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__fullscreen_plan_cycle_hint.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__fullscreen_plan_cycle_hint.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__fullscreen_plan_cycle_hint.snap
-@@ -13,5 +13,5 @@
- 
+@@ -14,4 +14,4 @@
  › Ask Codex
  
--  MODEL · ~/project · Context 20% used
+   MODEL · ~/project · Context 20% used
 -  ? for shortcuts                                                         Plan mode (⇧tab to cycle)
-+  MODEL · ~/project · Context 20% used                                   Plan mode (⇧tab to cycle)
-+  ? for shortcuts                                                                      Codux 0.0.0
++  ? for shortcuts                                           Plan mode (⇧tab to cycle) · Codux 0.0.0
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__persistent_status_and_messages.snap
-@@ -13,8 +13,8 @@
- 
+@@ -14,7 +14,7 @@
  › Ask Codex
  
--  MODEL · ~/project · Context 20% used
+   MODEL · ~/project · Context 20% used
 -  ? for shortcuts                     Plan mode (⇧tab to cycle)
-+  MODEL · ~/project · Context 20% used               Plan mode
-+  ? for shortcuts                                  Codux 0.0.0
++  ? for shortcuts       Plan mode (⇧tab to cycle) · Codux 0.0.0
  ---
  
  
-@@ -41,8 +41,8 @@
- 
+@@ -28,7 +28,7 @@
  › Ask Codex
  
--  MODEL · ~/project · Context 20% used
--  Ctrl+X waiting for chord           Plan mode (⇧tab to cycle)
-+  MODEL · ~/project · Context 20% used               Plan mode
-+  Ctrl+X waiting for chord                         Codux 0.0.0
+   MODEL · ~/project · Context 20% used
+-  Copied selection                   Plan mode (⇧tab to cycle)
++  Copied selection     Plan mode (⇧tab to cycle) · Codux 0.0.0
  ---
  
  
-@@ -55,5 +55,5 @@
- 
+@@ -56,4 +56,4 @@
  › Continue the task
  
--  MODEL · ~/project · Context 20% used
+   MODEL · ~/project · Context 20% used
 -  tab to queue message                                Plan mode
-+  MODEL · ~/project · Context 20% used               Plan mode
-+  tab to queue message                             Codux 0.0.0
++  tab to queue message                  Plan mode · Codux 0.0.0
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_narrow.snap
-@@ -13,30 +13,35 @@
+@@ -13,26 +13,30 @@
    Keyboard shortcuts
  
    Compose
@@ -3480,27 +3493,17 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
  
 -  Transcript (open first)
 -  ⌃t            Open transcript
--  f3            Find text
--  pgup / pgdn   Scroll
--  ⌃space        Start selection
--  ⌃home / ⌃end  Top / latest
--  ⇧⌥, / ⇧⌥.     Top / latest
 +  Transcript / browsing
-+  ⇧f4              Cycle card display
-+  f3               Find text
-+  up / down        Scroll in browsing
-+  ctrl+up/down     Select matching card
-+  tab / shift+tab  Filter card types
-+  enter            Fold selected card
-+  ⌃e               Rewind selected
-+  question
-+  pgup / pgdn      Scroll
-+  ⌃space           Start selection
-+  ⌃home / ⌃end     Top / latest
-+  ⇧⌥, / ⇧⌥.        Top / latest
- 
-   /keymap customize
- 
++  ⇧f4           Cycle card display
+   f3            Find text
++  ↑ / ↓         Scroll in browsing
++  ⌃↑ / ⌃↓       Select matching card
++  tab / ⇧tab    Filter card types
++  enter         Fold selected card
++  ⌃e            Rewind selected question
+   pgup / pgdn   Scroll
+   ⌃space        Start selection
+   ⌃home / ⌃end  Top / latest
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__shortcut_help_above_wide.snap
@@ -3518,30 +3521,29 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4              Cycle card display
-+  @   Mention files      ⌥,       Less reasoning              f3               Find text
-+  !   Shell command      ⌥.       More reasoning              up / down        Scroll in browsing
-+  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ctrl+up/down     Select matching card
-+  ⌃v  Paste image        f4       Browse cards                tab / shift+tab  Filter card types
-+  ⌃g  External editor    ⌃c       Quit                        enter            Fold selected card
-+  ⌃r  Search history                                          ⌃e               Rewind selected question
-+                                                              pgup / pgdn      Scroll
-+                                                              ⌃space           Start selection
-+                                                              ⌃home / ⌃end     Top / latest
-+                                                              ⇧⌥, / ⇧⌥.        Top / latest
++  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  @   Mention files      ⌥,       Less reasoning              f3            Find text
++  !   Shell command      ⌥.       More reasoning              ↑ / ↓         Scroll in browsing
++  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ⌃↑ / ⌃↓       Select matching card
++  ⌃v  Paste image        f4       Browse cards                tab / ⇧tab    Filter card types
++  ⌃g  External editor    ⌃c       Quit                        enter         Fold selected card
++  ⌃r  Search history                                          ⌃e            Rewind selected question
++                                                              pgup / pgdn   Scroll
++                                                              ⌃space        Start selection
++                                                              ⌃home / ⌃end  Top / latest
++                                                              ⇧⌥, / ⇧⌥.     Top / latest
  
    /keymap customize
  
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__slash_popup_footer_wide.snap b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__slash_popup_footer_wide.snap
 --- a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__slash_popup_footer_wide.snap
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bottom_pane__chat_composer__status_surface__tests__slash_popup_footer_wide.snap
-@@ -13,8 +13,7 @@
-         "                                                                                ",
+@@ -14,7 +14,7 @@
          "› /m                                                                            ",
          "                                                                                ",
--        "  model · high · fast                                                           ",
+         "  model · high · fast                                                           ",
 -        "                                                                                ",
-+        "  model · high · fast                                              Codux 0.0.0  ",
++        "                                                                    Codux 0.0.0 ",
      ],
      styles: [
          x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
@@ -3589,7 +3591,22 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/status_surface_tests.rs 
          Some("ctrl+o t/f4 inspect activity")
      );
  }
-@@ -1051,7 +1062,10 @@
+@@ -903,9 +914,11 @@
+     composer.set_input_enabled(/*enabled*/ false, /*placeholder*/ None);
+     assert_eq!(composer.footer_hint_height(/*width*/ 18, options), 0);
+     let (text, _) = render(&composer, /*width*/ 80, /*footer*/ None);
+-    assert_eq!(
+-        text.lines().last().map(str::trim),
+-        Some("Goal paused (/goal resume)")
++    let last = text.lines().last().unwrap().trim();
++    assert!(last.starts_with("Goal paused (/goal resume)"), "{text}");
++    assert!(
++        last.ends_with(&crate::bottom_pane::footer::codux_version_line().to_string()),
++        "{text}"
+     );
+ }
+ 
+@@ -1051,7 +1064,10 @@
              /*footer*/ None,
              /*height*/ Some(8),
          );
@@ -4103,17 +4120,17 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 -"                                ⌃home / ⌃end  Top / latest                      "
 -"                                ⇧⌥, / ⇧⌥.     Top / latest                      "
 +"                         Transcript / browsing                                  "
-+"                         ⇧f4              Cycle card display                    "
-+"                         f3               Find text                             "
-+"                         up / down        Scroll in browsing                    "
-+"                         ctrl+up/down     Select matching card                  "
-+"                         tab / shift+tab  Filter card types                     "
-+"                         enter            Fold selected card                    "
-+"                         ⌃e               Rewind selected question              "
-+"                         pgup / pgdn      Scroll                                "
-+"                         ⌃space           Start selection                       "
-+"                         ⌃home / ⌃end     Top / latest                          "
-+"                         ⇧⌥, / ⇧⌥.        Top / latest                          "
++"                         ⇧f4           Cycle card display                       "
++"                         f3            Find text                                "
++"                         ↑ / ↓         Scroll in browsing                       "
++"                         ⌃↑ / ⌃↓       Select matching card                     "
++"                         tab / ⇧tab    Filter card types                        "
++"                         enter         Fold selected card                       "
++"                         ⌃e            Rewind selected question                 "
++"                         pgup / pgdn   Scroll                                   "
++"                         ⌃space        Start selection                          "
++"                         ⌃home / ⌃end  Top / latest                             "
++"                         ⇧⌥, / ⇧⌥.     Top / latest                             "
  "                                                                                "
  "  /keymap customize                                                             "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_running.snap
@@ -4149,17 +4166,17 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 +"  ⌃r  Search history     ⌃c       Interrupt                                     "
 +"                                                                                "
 +"                         Transcript / browsing                                  "
-+"                         ⇧f4              Cycle card display                    "
-+"                         f3               Find text                             "
-+"                         up / down        Scroll in browsing                    "
-+"                         ctrl+up/down     Select matching card                  "
-+"                         tab / shift+tab  Filter card types                     "
-+"                         enter            Fold selected card                    "
-+"                         ⌃e               Rewind selected question              "
-+"                         pgup / pgdn      Scroll                                "
-+"                         ⌃space           Start selection                       "
-+"                         ⌃home / ⌃end     Top / latest                          "
-+"                         ⇧⌥, / ⇧⌥.        Top / latest                          "
++"                         ⇧f4           Cycle card display                       "
++"                         f3            Find text                                "
++"                         ↑ / ↓         Scroll in browsing                       "
++"                         ⌃↑ / ⌃↓       Select matching card                     "
++"                         tab / ⇧tab    Filter card types                        "
++"                         enter         Fold selected card                       "
++"                         ⌃e            Rewind selected question                 "
++"                         pgup / pgdn   Scroll                                   "
++"                         ⌃space        Start selection                          "
++"                         ⌃home / ⌃end  Top / latest                             "
++"                         ⇧⌥, / ⇧⌥.     Top / latest                             "
  "                                                                                "
  "  /keymap customize                                                             "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__footer__tests__footer_shortcuts_shift_and_esc.snap
@@ -4195,17 +4212,17 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 +"  ⌃r      Search history     ⌃c       Quit                                      "
 +"                                                                                "
 +"                             Transcript / browsing                              "
-+"                             ⇧f4              Cycle card display                "
-+"                             f3               Find text                         "
-+"                             up / down        Scroll in browsing                "
-+"                             ctrl+up/down     Select matching card              "
-+"                             tab / shift+tab  Filter card types                 "
-+"                             enter            Fold selected card                "
-+"                             ⌃e               Rewind selected question          "
-+"                             pgup / pgdn      Scroll                            "
-+"                             ⌃space           Start selection                   "
-+"                             ⌃home / ⌃end     Top / latest                      "
-+"                             ⇧⌥, / ⇧⌥.        Top / latest                      "
++"                             ⇧f4           Cycle card display                   "
++"                             f3            Find text                            "
++"                             ↑ / ↓         Scroll in browsing                   "
++"                             ⌃↑ / ⌃↓       Select matching card                 "
++"                             tab / ⇧tab    Filter card types                    "
++"                             enter         Fold selected card                   "
++"                             ⌃e            Rewind selected question             "
++"                             pgup / pgdn   Scroll                               "
++"                             ⌃space        Start selection                      "
++"                             ⌃home / ⌃end  Top / latest                         "
++"                             ⇧⌥, / ⇧⌥.     Top / latest                         "
  "                                                                                "
  "  /keymap customize                                                             "
 diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shortcut_overlay__tests__shortcut_overlay_customized_wsl.snap b/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shortcut_overlay__tests__shortcut_overlay_customized_wsl.snap
@@ -4242,17 +4259,17 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shor
 -"                               ⌃home / ⌃end  Top / latest                       "
 -"                               ⇧⌥, / ⇧⌥.     Top / latest                       "
 +"                             Transcript / browsing                              "
-+"                             ⇧f4              Cycle card display                "
-+"                             f3               Find text                         "
-+"                             up / down        Scroll in browsing                "
-+"                             ctrl+up/down     Select matching card              "
-+"                             tab / shift+tab  Filter card types                 "
-+"                             enter            Fold selected card                "
-+"                             ⌃e               Rewind selected question          "
-+"                             pgup / pgdn      Scroll                            "
-+"                             ⌃space           Start selection                   "
-+"                             ⌃home / ⌃end     Top / latest                      "
-+"                             ⇧⌥, / ⇧⌥.        Top / latest                      "
++"                             ⇧f4           Cycle card display                   "
++"                             f3            Find text                            "
++"                             ↑ / ↓         Scroll in browsing                   "
++"                             ⌃↑ / ⌃↓       Select matching card                 "
++"                             tab / ⇧tab    Filter card types                    "
++"                             enter         Fold selected card                   "
++"                             ⌃e            Rewind selected question             "
++"                             pgup / pgdn   Scroll                               "
++"                             ⌃space        Start selection                      "
++"                             ⌃home / ⌃end  Top / latest                         "
++"                             ⇧⌥, / ⇧⌥.     Top / latest                         "
  "                                                                                "
  "  /keymap customize                                                             "
 diff --git a/codex-rs/tui/src/bottom_pane/textarea/mouse.rs b/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
@@ -21428,7 +21445,7 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
      ]
  }
  20 columns: <composer hints>
-@@ -23,35 +28,45 @@
+@@ -23,38 +28,47 @@
  Buffer {
      area: Rect { x: 0, y: 0, width: 32, height: 3 },
      content: [
@@ -21492,7 +21509,10 @@ diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_vi
 +        x: 18, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
      ]
  }
- expanded, 80 columns: ↑ previous · ↓ next · enter collapse · esc back
+-expanded, 80 columns: ↑ previous · ↓ next · enter collapse · esc back
+ "ctrl-x t": <composer hints>
+ ["ctrl-x t","f4"]: <composer hints>
+ []: <composer hints>
 diff --git a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__narrow_selection_and_search_keep_complete_exit_hints.snap b/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__narrow_selection_and_search_keep_complete_exit_hints.snap
 --- a/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__narrow_selection_and_search_keep_complete_exit_hints.snap
 +++ b/codex-rs/tui/src/transcript_view/snapshots/codex_tui__transcript_view__footer__tests__narrow_selection_and_search_keep_complete_exit_hints.snap
