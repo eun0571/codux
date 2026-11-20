@@ -1,5 +1,5 @@
 name: 1. Release to npm
-run-name: "${{ inputs.resume_run && 'npm recheck' || 'npm release' }} | Codux 0.1.13 | Codex 0.167.1 | patch 64${{ inputs.resume_run && format(' | reuse run {0}', inputs.resume_run) || '' }}"
+run-name: "${{ inputs.resume_run && 'npm recheck' || 'npm release' }} | Codux 0.1.14 | Codex 0.171.0 | patch 65${{ inputs.resume_run && format(' | reuse run {0}', inputs.resume_run) || '' }}"
 
 on:
   push:
