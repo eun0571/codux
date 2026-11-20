@@ -1,5 +1,5 @@
 name: Checks - Native packages
-run-name: "Native ${{ inputs.platform || 'windows' }} check (not published) | Codux 0.1.13 | Codex 0.167.1 | patch 64"
+run-name: "Native ${{ inputs.platform || 'windows' }} check (not published) | Codux 0.1.14 | Codex 0.171.0 | patch 65"
 
 on:
   workflow_dispatch:
@@ -93,6 +93,20 @@ jobs:
         run: |
           toolchain=$(python -c 'import json; print(json.load(open("upstream.lock.json"))["rust_toolchain"])')
           rustup toolchain install "$toolchain" --profile minimal
+      - name: Restore native build cache
+        id: rust-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            .build/cargo/registry
+            .build/cargo/git
+            .build/target
+          key: codux-native-v1-${{ matrix.platform }}-${{ hashFiles('upstream.lock.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            codux-native-v1-${{ matrix.platform }}-${{ hashFiles('upstream.lock.json') }}-
+            codux-native-v1-${{ matrix.platform }}-
       - name: Linux build dependencies
         if: matrix.platform == 'linux'
         run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libcap-dev libasound2-dev libssl-dev cmake ripgrep
@@ -110,6 +124,17 @@ jobs:
           name: logs-${{ matrix.platform }}
           overwrite: true
           path: .build/logs/
+      - name: Save native build cache
+        if: always() && !cancelled() && steps.rust-cache.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            .build/cargo/registry
+            .build/cargo/git
+            .build/target
+          key: ${{ steps.rust-cache.outputs.cache-primary-key }}
 
   assemble:
     name: Package (not published) | ${{ needs.select.outputs.label }}

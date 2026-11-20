@@ -1,5 +1,5 @@
 name: 3. Browser playground
-run-name: "${{ github.event_name == 'pull_request' && format('Playground check PR #{0}', github.event.pull_request.number) || github.ref_name == github.event.repository.default_branch && 'Playground deploy' || 'Playground check' }} | Codux 0.1.13 | Codex 0.167.1 | patch 64"
+run-name: "${{ github.event_name == 'pull_request' && format('Playground check PR #{0}', github.event.pull_request.number) || github.ref_name == github.event.repository.default_branch && 'Playground deploy' || 'Playground check' }} | Codux 0.1.14 | Codex 0.171.0 | patch 65"
 
 on:
   push:
