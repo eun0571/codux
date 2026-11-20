@@ -100,6 +100,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            .build/cargo/registry
+            .build/cargo/git
             .build/target
           key: codux-native-v1-${{ matrix.platform }}-${{ hashFiles('upstream.lock.json') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
@@ -129,6 +131,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            .build/cargo/registry
+            .build/cargo/git
             .build/target
           key: ${{ steps.rust-cache.outputs.cache-primary-key }}
 
