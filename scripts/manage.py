@@ -239,6 +239,52 @@ def fetch(lock: dict) -> None:
     print("Pinned upstream, V8 archive/bindings and Cargo dependencies are ready for local compilation.")
 
 
+def run_tui_regressions(options, cwd, env):
+    # Compile once before collecting failures. A compile failure cannot produce
+    # meaningful behavioral results and must stop immediately.
+    run("cargo", "test", *options, "--lib", "--no-run", cwd=cwd, env=env)
+    selectors = [
+        "transcript_view::mycodx::tests",
+        "app::codux_navigation::tests",
+        "transcript_view::follow_control::tests",
+        "codux_escape_does_not_interrupt",
+        "codux_working_",
+        "custom_terminal::tests::cursor::",
+        "codux_transcript_drag_preserves_hidden_prompt_cursor",
+        "codux_prompt_drag",
+        "bottom_pane::chat_composer::mouse::tests",
+        "keymap::",
+        "bottom_pane::shortcut_overlay::tests",
+        "bottom_pane::footer::tests",
+        "bottom_pane::chat_composer::footer_state::tests",
+        "bottom_pane::chat_composer::status_surface::tests",
+        "transcript_view::search::",
+        "transcript_view::footer::tests",
+        "transcript_view::prompt_header::tests",
+        "find_refreshes_live_details_before_searching_the_first_query",
+        "mycodx_ui::",
+        "status_indicator_widget::",
+        "history_cell::separators::tests",
+        "transcript_view::text::",
+        "codux_mermaid::",
+        "terminal_probe::",
+        "update_action::tests",
+        "updates_cache::tests",
+        "update_prompt::tests",
+        "bottom_pane::chat_composer::paste_tests",
+        "raw_multiline_paste_defers_rendering_and_submits_once",
+        "accepted_find_defers_paste_rendering_but_keeps_enter",
+    ]
+    failed = []
+    for selector in selectors:
+        try:
+            run("cargo", "test", *options, "--lib", selector, cwd=cwd, env=env)
+        except subprocess.CalledProcessError:
+            failed.append(selector)
+    if failed:
+        raise RuntimeError("TUI regression groups failed; packaging was not started: " + ", ".join(failed))
+
+
 def build(lock: dict, profile: str) -> None:
     doctor(lock)
     migration_checksums = prepare(lock)
@@ -274,36 +320,7 @@ def build(lock: dict, profile: str) -> None:
                 "MYCODEX_DISPLAY_VERSION": "0.0.0 (Codex test; patch 0)",
                 "RUST_MIN_STACK": str(max(8 * 1024 * 1024, int(env.get("RUST_MIN_STACK", "0"))))}
     print(f"Test thread stack: {test_env['RUST_MIN_STACK']} bytes (upstream CI minimum: 8 MiB)")
-    run("cargo", "test", *check_options, "--lib", "transcript_view::mycodx::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "app::codux_navigation::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "transcript_view::follow_control::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "codux_escape_does_not_interrupt", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "codux_working_", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "custom_terminal::tests::cursor::", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "codux_transcript_drag_preserves_hidden_prompt_cursor", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "codux_prompt_drag", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "bottom_pane::chat_composer::mouse::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "keymap::", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "bottom_pane::shortcut_overlay::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "bottom_pane::footer::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "bottom_pane::chat_composer::footer_state::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "bottom_pane::chat_composer::status_surface::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "transcript_view::search::", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "transcript_view::footer::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "transcript_view::prompt_header::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "find_refreshes_live_details_before_searching_the_first_query", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "mycodx_ui::", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "status_indicator_widget::", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "history_cell::separators::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "transcript_view::text::", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "codux_mermaid::", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "terminal_probe::", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "update_action::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "updates_cache::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "update_prompt::tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "bottom_pane::chat_composer::paste_tests", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "raw_multiline_paste_defers_rendering_and_submits_once", cwd=rust, env=test_env)
-    run("cargo", "test", *check_options, "--lib", "accepted_find_defers_paste_rendering_but_keeps_enter", cwd=rust, env=test_env)
+    run_tui_regressions(check_options, rust, test_env)
     target_label = "" if target == release["target"] else f"-{target}"
     package = ROOT / "dist" / f"{lock['package_version']}{target_label}-{profile}"
     if package.exists() and (not package.is_dir() or any(package.iterdir())):
