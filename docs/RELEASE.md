@@ -41,7 +41,7 @@ The workflows are included, but automatic npm publication is off until repositor
 
 The publisher verifies `SHA256SUMS.txt`, archive metadata, pinned build inputs, and command dependencies. It uploads native packages first and the command package last. Until the command package is published, users continue to see the previous release. Artifacts and logs remain in Actions; a GitHub Release or ZIP is not needed.
 
-To start a release manually, select **1. Release to npm**, choose the default branch, and enter the exact checked-in version. Leave `resume_run` empty for a new build. This uses the same build and validation gates. Publication must already be enabled.
+To start a release manually, select **1. Release to npm**, choose the default branch, and enter the exact checked-in version. Leave `resume_run` and `repackage_run` empty for a new build. This uses the same build and validation gates. Publication must already be enabled.
 
 If a publish step fails, rerun **failed jobs** in the same run to reuse its verified artifacts. An already published archive is skipped only when its version, checksum, and dist-tag match exactly. A rebuilt archive may have different bytes even for the same source; never overwrite an npm version. Bump the release version before rebuilding a partly published release. Fix patch/build failures before retrying; they do not publish any package.
 
@@ -72,6 +72,14 @@ python scripts/publish_npm.py --artifacts <artifact-directory> --verify-only
 An unavailable version is reported separately from a checksum mismatch. Do not rebuild or increment the version just to retry a pending registry check.
 
 If publication stopped while waiting for a native package, the command package has not been uploaded yet. Resume with the same archives and receipt; identical published archives are skipped before the remaining uploads. `--verify-only` never uploads the remaining command package.
+
+## Recover a rejected oversized upload
+
+npm packages omit the standalone `codex-exec-server` binary and its `execServer` manifest entry, matching upstream npm packaging. The same executor is available through `codux exec-server`. Other helpers remain bundled. Packaging and publication enforce a conservative 190 MiB archive budget; this is a Codux guardrail, not a documented npm service limit.
+
+For a Windows release rejected before any upload was accepted, `repackage_run` can recover a verified release candidate without compiling Rust again. Run **1. Release to npm** with the exact version and the failed run ID in `repackage_run`; leave `resume_run` empty. Recovery requires the original candidate and receipt, zero accepted uploads, no public package at that version, and unchanged runtime/build inputs. It removes only the duplicate executor and its manifest entry, verifies every retained file's bytes and mode, and reruns isolated installation, integrated executor, updater, and Mermaid checks on Windows before publication. Original archives remain in the failed run. The new run records measured sizes and checksums and retains a new receipt for normal publication rechecks.
+
+Never use repackaging for a version that npm accepted or published. Resume that version's exact archives, or release a new version for changed package contents.
 
 ## Read GitHub Actions
 

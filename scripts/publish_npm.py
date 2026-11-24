@@ -119,7 +119,7 @@ def verify_published(release, packages, *, lookup=registry_package):
         wait_for_published(package, release.get("npm_tag", "latest"), lookup=lookup)
 
 
-def validate(artifacts, root=ROOT):
+def validate(artifacts, root=ROOT, *, allow_oversize=False):
     release = read_release(root)
     lock = json.loads((root / "upstream.lock.json").read_bytes())
     if file_hash(safe_path(root, lock["patch"])).hexdigest() != lock["patch_sha256"]:
@@ -147,6 +147,9 @@ def validate(artifacts, root=ROOT):
     packages, platforms, command = [], {}, None
     repo_metadata = {"type": "git", "url": f"git+https://github.com/{repository}.git"}
     for path in paths:
+        if not allow_oversize:
+            from package_npm import check_archive_size
+            check_archive_size(path)
         if path.is_symlink() or file_hash(path).hexdigest() != expected[path.name]:
             raise ValueError(f"Archive checksum mismatch: {path.name}")
         with tarfile.open(path, "r:gz") as tar:

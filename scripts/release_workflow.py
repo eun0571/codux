@@ -9,6 +9,14 @@ import subprocess
 from prepare_upstream import ROOT, version
 from workflow_labels import identity
 
+# Recovery may change packaging, never the verified binaries or runtime assets.
+REPACKAGE_FILES = {
+    ".github/workflows/publish-npm.yml", ".gitignore", "docs/RELEASE.md",
+    "scripts/package_npm.py", "scripts/repackage_npm.py", "scripts/publish_npm.py",
+    "scripts/npm_smoke.py", "scripts/release_workflow.py", "scripts/workflow_labels.py",
+    "scripts/public_source.py",
+}
+
 
 def api(endpoint, data=None):
     args = ["gh", "api", endpoint]
@@ -46,7 +54,13 @@ def select(root=ROOT):
         raise ValueError("Release repository differs from the workflow repository")
     current = version(release["version"])
     resume = os.environ.get("RESUME_RUN", "").strip()
+    repackage = os.environ.get("REPACKAGE_RUN", "").strip()
+    if resume and repackage:
+        raise ValueError("Choose either resume_run or repackage_run")
+    if repackage and os.environ["GITHUB_EVENT_NAME"] != "workflow_dispatch":
+        raise ValueError("Repackaging requires an explicit workflow dispatch")
     source_sha = os.environ["GITHUB_SHA"]
+    binary_source_sha = source_sha
     if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch":
         if os.environ.get("REQUESTED_VERSION") != release["version"]:
             raise ValueError("Requested version differs from the checked-out source")
@@ -61,36 +75,49 @@ def select(root=ROOT):
             raise ValueError("Release version must not decrease")
         changed = current > previous
     receipt_run = ""
-    if resume:
-        if not resume.isdecimal() or int(resume) <= 0:
-            raise ValueError("Resume run must be a positive workflow run ID")
-        run = api(f"repos/{repository}/actions/runs/{resume}")
+    previous_run = resume or repackage
+    if previous_run:
+        if not previous_run.isdecimal() or int(previous_run) <= 0:
+            raise ValueError("Archive run must be a positive workflow run ID")
+        run = api(f"repos/{repository}/actions/runs/{previous_run}")
         if (run["path"] != ".github/workflows/publish-npm.yml" or run["status"] != "completed"
                 or run["head_branch"] != os.environ["DEFAULT_BRANCH"]
                 or run["head_repository"]["full_name"] != repository):
-            raise ValueError("Resume requires a completed release run from this repository's default branch")
-        source_sha = run["head_sha"]
+            raise ValueError("Reuse requires a completed release run from this repository's default branch")
+        binary_source_sha = run["head_sha"]
+        if repackage:
+            if run["conclusion"] != "failure":
+                raise ValueError("Repackage requires a failed release run")
+            changed_files = subprocess.check_output(
+                ["git", "diff", "--name-only", binary_source_sha, source_sha], cwd=root, text=True).splitlines()
+            if set(changed_files) - REPACKAGE_FILES:
+                raise ValueError("Runtime or build inputs changed; cannot reuse these binaries")
+        else:
+            source_sha = binary_source_sha
         # A workflow-only change is safe; changed build inputs require a new release.
         for name in ("release.json", "upstream.lock.json"):
-            record = api(f"repos/{repository}/contents/{name}?ref={source_sha}")
+            record = api(f"repos/{repository}/contents/{name}?ref={binary_source_sha}")
             if json.loads(base64.b64decode(record["content"])) != json.loads((root / name).read_bytes()):
                 raise ValueError("Resume release inputs differ from the current source")
-        if not artifact(repository, resume, "npm-release-candidate"):
+        if not artifact(repository, previous_run, "npm-release-candidate"):
             raise ValueError("Verified release artifacts are missing or expired; do not rebuild a partly published version")
-        if not artifact(repository, resume, "npm-publication-state"):
+        if not artifact(repository, previous_run, "npm-publication-state"):
             raise ValueError("Upload receipt missing; inspect the legacy run before retrying publication")
-        receipt_run = resume
+        receipt_run = resume  # Repackaging validates the old receipt but creates a new one.
     elif int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")) > 1:
         if artifact(repository, os.environ["GITHUB_RUN_ID"], "npm-publication-state"):
             receipt_run = os.environ["GITHUB_RUN_ID"]
     result = {"publish": changed, **identity(root, release, lock),
               "artifact_run": resume or os.environ["GITHUB_RUN_ID"], "receipt_run": receipt_run,
-              "source_sha": source_sha, "resume": bool(resume)}
+              "source_sha": source_sha, "resume": bool(resume), "repackage": bool(repackage),
+              "repackage_run": repackage, "binary_source_sha": binary_source_sha}
     output(result)
-    action = 'Resume verified archives; no rebuild.' if resume else (
-        'Build and verify before publishing.' if changed else 'Version unchanged; no build or publication.')
-    summary(f"## {'npm recheck' if resume else 'npm release'} | {result['label']}\n\n"
+    action = ('Repackage verified binaries; reject accepted or published uploads.' if repackage else
+              'Resume verified archives; no rebuild.' if resume else
+              'Build and verify before publishing.' if changed else 'Version unchanged; no build or publication.')
+    summary(f"## {'npm repackage' if repackage else 'npm recheck' if resume else 'npm release'} | {result['label']}\n\n"
             f"{action}\n\nSource commit: `{source_sha}`. Archive run: `{result['artifact_run']}`.\n\n"
+            f"Binary source: `{binary_source_sha}`.\n\n"
             "The release is complete only when the publication summary says **Published**.")
     return result
 

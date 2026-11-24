@@ -1,5 +1,5 @@
 name: 1. Release to npm
-run-name: "${{ inputs.resume_run && 'npm recheck' || 'npm release' }} | Codux 0.1.14 | Codex 0.171.0 | patch 65${{ inputs.resume_run && format(' | reuse run {0}', inputs.resume_run) || '' }}"
+run-name: "${{ inputs.repackage_run && 'npm repackage' || inputs.resume_run && 'npm recheck' || 'npm release' }} | Codux 0.1.14 | Codex 0.171.0 | patch 65${{ inputs.repackage_run && format(' | repackage run {0}', inputs.repackage_run) || inputs.resume_run && format(' | reuse run {0}', inputs.resume_run) || '' }}"
 
 on:
   push:
@@ -13,6 +13,10 @@ on:
         required: true
       resume_run:
         description: Optional completed release run ID; reuse its archives and upload receipt without rebuilding
+        type: string
+        required: false
+      repackage_run:
+        description: Optional failed release run ID; remove the duplicate executor only if nothing was accepted or published
         type: string
         required: false
 
@@ -37,6 +41,9 @@ jobs:
       receipt_run: ${{ steps.release.outputs.receipt_run }}
       source_sha: ${{ steps.release.outputs.source_sha }}
       resume: ${{ steps.release.outputs.resume }}
+      repackage: ${{ steps.release.outputs.repackage }}
+      repackage_run: ${{ steps.release.outputs.repackage_run }}
+      binary_source_sha: ${{ steps.release.outputs.binary_source_sha }}
     permissions:
       contents: read
       actions: read
@@ -53,6 +60,7 @@ jobs:
           BEFORE: ${{ github.event.before }}
           REQUESTED_VERSION: ${{ inputs.version }}
           RESUME_RUN: ${{ inputs.resume_run }}
+          REPACKAGE_RUN: ${{ inputs.repackage_run }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -62,16 +70,63 @@ jobs:
   build:
     name: Windows build | ${{ needs.select.outputs.label || 'release not selected' }}
     needs: select
-    if: needs.select.outputs.publish == 'true' && needs.select.outputs.resume != 'true'
+    if: needs.select.outputs.publish == 'true' && needs.select.outputs.resume != 'true' && needs.select.outputs.repackage != 'true'
     uses: ./.github/workflows/native-build.yml
     with:
       platform: windows
       ref: ${{ github.sha }}
 
+  repackage:
+    name: Repackage and verify Windows | ${{ needs.select.outputs.label || 'release not selected' }}
+    needs: select
+    if: needs.select.outputs.publish == 'true' && needs.select.outputs.repackage == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/audit_public.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-release-candidate
+          path: .build/npm-repackage-source
+          run-id: ${{ needs.select.outputs.repackage_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-publication-state
+          path: .build/npm-repackage-receipt
+          run-id: ${{ needs.select.outputs.repackage_run }}
+          github-token: ${{ github.token }}
+      - name: Verify receipt, shrink archive, and test an isolated installation
+        run: python scripts/repackage_npm.py --artifacts .build/npm-repackage-source --receipt .build/npm-repackage-receipt/publication.json --output .build/npm-repacked
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-release-candidate
+          path: .build/npm-repacked
+          if-no-files-found: error
+      - name: Report reused binary source and measured package size
+        env:
+          BINARY_SOURCE: ${{ needs.select.outputs.binary_source_sha }}
+          ARCHIVE_RUN: ${{ needs.select.outputs.repackage_run }}
+        run: |
+          "Reused verified binaries from commit $env:BINARY_SOURCE, run $env:ARCHIVE_RUN. No Rust rebuild." >> $env:GITHUB_STEP_SUMMARY
+          Get-Content .build/npm-repacked/repackage-report.json >> $env:GITHUB_STEP_SUMMARY
+
   publish:
     name: ${{ needs.select.outputs.resume == 'true' && 'npm recheck' || 'npm publish' }} | ${{ needs.select.outputs.label || 'release not selected' }}
-    needs: [select, build]
-    if: ${{ !cancelled() && needs.select.outputs.publish == 'true' && (needs.build.result == 'success' || needs.select.outputs.resume == 'true') }}
+    needs: [select, build, repackage]
+    if: ${{ !cancelled() && needs.select.outputs.publish == 'true' && (needs.build.result == 'success' || needs.repackage.result == 'success' || needs.select.outputs.resume == 'true') }}
     runs-on: ubuntu-22.04
     timeout-minutes: 45
     environment: npm
@@ -147,7 +202,7 @@ jobs:
 
   result:
     name: npm result | ${{ needs.select.outputs.label || 'release not selected' }}
-    needs: [select, build, publish]
+    needs: [select, build, repackage, publish]
     if: always() && needs.select.outputs.publish == 'true'
     runs-on: ubuntu-22.04
     permissions:

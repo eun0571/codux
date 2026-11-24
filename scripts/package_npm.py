@@ -21,6 +21,16 @@ TARGETS = {
     "x86_64-apple-darwin": ("darwin", "x64"),
 }
 NAME = re.compile(r"(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*")
+# Leave room for npm's base64-encoded upload envelope and registry metadata.
+# This is our conservative release budget, not a claimed npm service limit.
+MAX_ARCHIVE_BYTES = 190 * 1024 * 1024
+
+
+def check_archive_size(path):
+    size = path.stat().st_size
+    if size > MAX_ARCHIVE_BYTES:
+        raise ValueError(f"npm archive exceeds the {MAX_ARCHIVE_BYTES // (1024 * 1024)} MiB upload budget: "
+                         f"{path.name} ({size / (1024 * 1024):.1f} MiB). Reduce the package before publishing.")
 
 
 def json_bytes(value):
@@ -51,6 +61,7 @@ def archive(output, entries):
                 else:
                     info.size = len(value)
                     tar.addfile(info, io.BytesIO(value))
+        check_archive_size(pending)
         pending.rename(output)
     finally:
         pending.unlink(missing_ok=True)
@@ -92,7 +103,9 @@ def native(package, output, name=None, *, verify=True):
     if platform == "linux":
         metadata["libc"] = ["glibc"]
     entries = {"package.json": json_bytes(metadata), "LICENSE": ROOT / "LICENSE", "NOTICE": ROOT / "NOTICE"}
-    required = [f"bin/codux{suffix}", f"bin/codex-code-mode-host{suffix}", f"bin/codex-exec-server{suffix}",
+    # Match upstream npm packaging: `codux exec-server` supplies the executor.
+    # Keep the standalone helper in the full build, but do not duplicate it in npm.
+    required = [f"bin/codux{suffix}", f"bin/codex-code-mode-host{suffix}",
                 "codex-package.json", "codux-build.json", "migration-checksums.json"]
     for relative in required:
         if not (package / relative).is_file():
@@ -111,6 +124,7 @@ def native(package, output, name=None, *, verify=True):
                 entries["runtime/" + path.relative_to(package).as_posix()] = path
     upstream = json.loads((package / "codex-package.json").read_text(encoding="utf-8"))
     upstream.update(version=release["version"], entrypoint=f"bin/codux{suffix}")
+    upstream.pop("execServer", None)
     entries["runtime/codex-package.json"] = json_bytes(upstream)
     entries["runtime/release.json"] = json_bytes({**release, "target": target})
     entries["runtime/codux-npm.json"] = json_bytes({"package": name, "native_package": native_name,

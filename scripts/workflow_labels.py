@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # Commit these labels with the version inputs instead of relying on commit prose
 # or mutable repository variables that can describe a different release.
 PREFIXES = {
-    "publish-npm.yml": "${{ inputs.resume_run && 'npm recheck' || 'npm release' }}",
+    "publish-npm.yml": "${{ inputs.repackage_run && 'npm repackage' || inputs.resume_run && 'npm recheck' || 'npm release' }}",
     "playground.yml": "${{ github.event_name == 'pull_request' && format('Playground check PR #{0}', github.event.pull_request.number) || github.ref_name == github.event.repository.default_branch && 'Playground deploy' || 'Playground check' }}",
     "track-upstream.yml": "Maintenance | current",
     "verify-pr.yml": "PR #${{ github.event.pull_request.number }} check (not published)",
@@ -41,7 +41,8 @@ def updates(root=ROOT, release=None, lock=None):
     for name, prefix in PREFIXES.items():
         path = directory / name
         text = path.read_text(encoding="utf-8")
-        suffix = "${{ inputs.resume_run && format(' | reuse run {0}', inputs.resume_run) || '' }}" if name == "publish-npm.yml" else ""
+        suffix = ("${{ inputs.repackage_run && format(' | repackage run {0}', inputs.repackage_run) || "
+                  "inputs.resume_run && format(' | reuse run {0}', inputs.resume_run) || '' }}") if name == "publish-npm.yml" else ""
         line = "run-name: " + json.dumps(f"{prefix} | {label}{suffix}")
         if len(re.findall(r"^run-name:.*$", text, re.M)) != 1:
             raise ValueError(f"Expected one single-line run-name in {name}")

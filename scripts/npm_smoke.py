@@ -129,6 +129,13 @@ def smoke(archives):
             if len(markers) != 1:
                 raise RuntimeError("npm did not select exactly one native runtime")
             runtime = markers[0].parent
+            # The npm runtime uses the executor compiled into the main CLI.
+            package_layout = json.loads((runtime / "codex-package.json").read_bytes())
+            if "execServer" in package_layout or any((runtime / "bin" / name).exists()
+                    for name in ("codex-exec-server", "codex-exec-server.exe")):
+                raise RuntimeError("npm runtime still bundles the duplicate standalone executor")
+            from repackage_npm import check_executor
+            check_executor(runtime / "bin" / ("codux.exe" if os.name == "nt" else "codux"), env)
             required = runtime / "codex-resources/codux-mermaid/node_modules/puppeteer-core/package.json"
             if not required.is_file():
                 raise RuntimeError("npm dropped bundled renderer dependencies")
