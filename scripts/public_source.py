@@ -17,6 +17,7 @@ SOURCE_FILES = [
     "scripts/npm_smoke.py", "scripts/repackage_npm.py", "scripts/ci_build.py", ".github/workflows/native-build.yml",
     "scripts/prepare_upstream.py", "scripts/track_upstream.py", "scripts/publish_npm.py", "scripts/release_workflow.py", "scripts/workflow_labels.py",
     ".github/workflows/track-upstream.yml", ".github/workflows/verify-pr.yml", ".github/workflows/publish-npm.yml",
+    ".github/workflows/cleanup-branches.yml",
     ".github/workflows/playground.yml", "scripts/build_playground.py", "scripts/test_playground.cjs",
     "docs/PLAYGROUND.md", "playground/index.html", "playground/style.css", "playground/model.js",
     "playground/app.js", "playground/palettes.js", "playground/catalog.json",

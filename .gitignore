@@ -16,6 +16,7 @@
 !/renderers/mermaid-product/
 !/renderers/mermaid-text/
 !/.gitattributes
+!/.github/workflows/cleanup-branches.yml
 !/.github/workflows/native-build.yml
 !/.github/workflows/playground.yml
 !/.github/workflows/publish-npm.yml

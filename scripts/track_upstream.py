@@ -35,7 +35,8 @@ def track(root=ROOT, attempt=None):
         return {"changed": False, "reason": "Pinned Codex is current"}
     opened = api(f"repos/{repository}/pulls?state=open&per_page=100")
     for pr in opened:
-        if pr["head"]["ref"].startswith("automation/codex-") and pr["head"]["repo"]["full_name"] == repository:
+        if (pr["head"]["ref"].startswith(("automation/codex-", "port/codex-"))
+                and (pr["head"].get("repo") or {}).get("full_name") == repository):
             return {"changed": False, "reason": f"Review the existing upstream PR first: {pr['html_url']}"}
     base = git(root, "rev-parse", "HEAD")
     # Include the base commit so a changed patch or release version gets a fresh PR.

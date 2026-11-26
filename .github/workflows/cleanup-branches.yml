@@ -1,0 +1,61 @@
+name: Maintenance - Remove merged branches
+run-name: "Branch cleanup | merged Codex update branches | no build or publication"
+
+on:
+  pull_request_target:
+    types: [closed]
+  schedule:
+    - cron: '43 3 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-branches.yml
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: codux-merged-branch-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Delete unchanged branches from merged Codex update PRs
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.merged == true
+    runs-on: ubuntu-22.04
+    steps:
+      # No checkout or PR code execution: only inspect GitHub metadata.
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const repo = context.repo;
+            const { data: metadata } = await github.rest.repos.get(repo);
+            const open = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', per_page: 100 });
+            const closed = await github.paginate(github.rest.pulls.list, { ...repo, state: 'closed', per_page: 100 });
+            const deleted = [];
+            const seen = new Set();
+            for (const pr of closed) {
+              const branch = pr.head.ref;
+              if (!pr.merged_at || pr.head.repo?.full_name !== metadata.full_name ||
+                  branch === metadata.default_branch || !/^(port|automation)\/codex-/.test(branch) ||
+                  seen.has(branch) || open.some(other => other.head.repo?.full_name === metadata.full_name && other.head.ref === branch)) continue;
+              seen.add(branch);
+              let current;
+              try {
+                current = (await github.rest.repos.getBranch({ ...repo, branch })).data;
+              } catch (error) {
+                if (error.status === 404) continue;
+                throw error;
+              }
+              if (current.protected || current.commit.sha !== pr.head.sha) {
+                core.info(`Kept ${branch}: protected or changed since PR #${pr.number}.`);
+                continue;
+              }
+              await github.rest.git.deleteRef({ ...repo, ref: `heads/${branch}` });
+              deleted.push(`${branch} (merged PR #${pr.number})`);
+            }
+            await core.summary.addHeading('Merged branch cleanup')
+              .addRaw(deleted.length ? deleted.map(name => `- ${name}`).join('\n') : 'No eligible branches remain.')
+              .addRaw('\n\nNo build, release, or npm publication was performed.').write();
