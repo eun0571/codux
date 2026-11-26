@@ -1,5 +1,5 @@
 name: Checks - Native packages
-run-name: "Native ${{ inputs.platform || 'windows' }} check (not published) | Codux 0.1.14 | Codex 0.171.0 | patch 65"
+run-name: "Native ${{ inputs.platform || 'windows' }} check (not published) | Codux 0.1.15 | Codex 0.172.0 | patch 66"
 
 on:
   workflow_dispatch:

@@ -271,6 +271,7 @@ def run_tui_regressions(options, cwd, env):
         "update_action::tests",
         "updates_cache::tests",
         "update_prompt::tests",
+        "codux_daemon_statusline_",
         "bottom_pane::chat_composer::paste_tests",
         "raw_multiline_paste_defers_rendering_and_submits_once",
         "accepted_find_defers_paste_rendering_but_keeps_enter",
@@ -321,6 +322,8 @@ def build(lock: dict, profile: str) -> None:
                 "RUST_MIN_STACK": str(max(8 * 1024 * 1024, int(env.get("RUST_MIN_STACK", "0"))))}
     print(f"Test thread stack: {test_env['RUST_MIN_STACK']} bytes (upstream CI minimum: 8 MiB)")
     run_tui_regressions(check_options, rust, test_env)
+    run("cargo", "test", "--locked", "--target", target, "--profile", "dev-small",
+        "-p", "codex-app-server-daemon", "--lib", "codux_windows_", cwd=rust, env=test_env)
     target_label = "" if target == release["target"] else f"-{target}"
     package = ROOT / "dist" / f"{lock['package_version']}{target_label}-{profile}"
     if package.exists() and (not package.is_dir() or any(package.iterdir())):
