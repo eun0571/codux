@@ -88,6 +88,8 @@ jobs:
       - name: Enable long paths for Windows dependency checkouts
         if: matrix.platform == 'windows'
         run: git config --global core.longpaths true
+      - name: Verify source and patch checksums before restoring build cache
+        run: python scripts/audit_public.py
       - name: Install pinned Rust
         shell: bash
         run: |

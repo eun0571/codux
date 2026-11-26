@@ -22519,7 +22519,7 @@ new file mode 100644
 +        assert_eq!(layout.text, original);
 +        assert_eq!(layout.copy_block_ranges(), blocks);
 +        assert!(
-+         yout
++            layout
 +                .rows
 +                .iter()
 +                .all(|row| row.image.is_none() && !row.mermaid_pending)
