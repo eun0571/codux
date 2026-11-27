@@ -53,6 +53,8 @@ Use `/custom` to adjust the conversation UI. Preferences persist across sessions
 
 Edit styles by card. Within an element, **Apply to** targets the current card, selected cards, or all five card types. Only that element changes; Enter saves and Esc restores the preview.
 
+Use `/statusline` and enable **daemon-version** to show the connected local background server's version. It is separate from `codux --version`, and is omitted when no local daemon version is available.
+
 | Control | Action |
 | --- | --- |
 | `/custom` | Change card colors, spacing, visibility, and folding |
@@ -88,6 +90,8 @@ The [upstream tracker](.github/workflows/track-upstream.yml) checks official sta
 Updates are reviewed before merging. After the repository's [npm publishing setup](docs/RELEASE.md#enable-automated-publication), merging a release version change builds and verifies it again, then publishes the native package followed by the command package. Failed checks leave the existing npm release available. Automatic publication is disabled until that setup is complete.
 
 The [native build workflow](.github/workflows/native-build.yml) can also be started manually. Windows x64 is the required automated target; Linux and macOS remain experimental. See [upstream maintenance](docs/DEVELOPMENT.md#updating-the-pinned-upstream) for conflict handling and checks before merging.
+
+Merged `port/codex-*` and `automation/codex-*` branches are removed automatically when their heads still match the merged PR. Branches with new commits or open PRs are kept. The tracker waits while an upstream update PR is under review.
 
 ## License and attribution
 

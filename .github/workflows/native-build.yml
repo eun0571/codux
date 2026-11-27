@@ -1,5 +1,5 @@
 name: Checks - Native packages
-run-name: "Native ${{ inputs.platform || 'windows' }} check (not published) | Codux 0.1.14 | Codex 0.171.0 | patch 65"
+run-name: "Native ${{ inputs.platform || 'windows' }} check (not published) | Codux 0.1.15 | Codex 0.172.0 | patch 66"
 
 on:
   workflow_dispatch:
@@ -88,6 +88,8 @@ jobs:
       - name: Enable long paths for Windows dependency checkouts
         if: matrix.platform == 'windows'
         run: git config --global core.longpaths true
+      - name: Verify source and patch checksums before restoring build cache
+        run: python scripts/audit_public.py
       - name: Install pinned Rust
         shell: bash
         run: |
