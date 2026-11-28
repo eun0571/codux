@@ -1835,22 +1835,16 @@ diff --git a/codex-rs/tui/src/app/codux_navigation.rs b/codex-rs/tui/src/app/cod
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/app/codux_navigation.rs
-@@ -0,0 +1,613 @@
+@@ -0,0 +1,619 @@
 +//! Codux keeps transcript navigation in the card view. Prompt edits are explicit rewinds.
 +use super::*;
 +use crate::bottom_pane::{SelectionItem, SelectionViewParams};
 +
 +impl App {
-+    pub(super) fn cycle_codux_card_mode(&mut self, tui: &mut tui::Tui) {
-+        if let Err(error) = self
-+            .transcript_view
-+            .cycle_codux_card_mode(&self.transcript_cells, &self.local_settings.codex_home)
-+        {
-+            self.chat_widget
-+                .add_error_message(format!("Could not save card display mode: {error}"));
-+        } else {
-+            self.chat_widget.show_codux_card_mode();
-+        }
++    pub(super) fn open_codux_card_visibility(&mut self, tui: &mut tui::Tui) {
++        crate::mycodx_ui::begin_session();
++        self.chat_widget
++            .open_custom_page(crate::mycodx_ui::Page::CardVisibilityShortcut);
 +        tui.frame_requester().schedule_frame();
 +    }
 +
@@ -2260,9 +2254,8 @@ new file mode 100644
 +            None,
 +        );
 +        while operations.try_recv().is_ok() {}
-+        let mut mode = crate::mycodx_ui::current().card_mode();
++        let mode = crate::mycodx_ui::current().card_mode();
 +        for _ in 0..3 {
-+            mode = mode.next();
 +            app.handle_tui_event(
 +                &mut tui,
 +                &mut app_server,
@@ -2275,6 +2268,13 @@ new file mode 100644
 +            app.handle_tui_event(&mut tui, &mut app_server, TuiEvent::Key(repeat))
 +                .await?;
 +            assert_eq!(crate::mycodx_ui::current().card_mode(), mode);
++            assert!(app.chat_widget.has_active_modal());
++            app.handle_tui_event(
++                &mut tui,
++                &mut app_server,
++                TuiEvent::Key(KeyCode::Esc.into()),
++            )
++            .await?;
 +        }
 +        app.handle_tui_event(
 +            &mut tui,
@@ -2386,9 +2386,8 @@ new file mode 100644
 +                    action: "open_transcript",
 +                })
 +        );
-+        let mut expected = crate::mycodx_ui::current().card_mode();
++        let expected = crate::mycodx_ui::current().card_mode();
 +        for _ in 0..3 {
-+            expected = expected.next();
 +            app.handle_tui_event(
 +                &mut tui,
 +                &mut app_server,
@@ -2402,6 +2401,13 @@ new file mode 100644
 +            )
 +            .await?;
 +            assert_eq!(crate::mycodx_ui::current().card_mode(), expected);
++            assert!(app.chat_widget.has_active_modal());
++            app.handle_tui_event(
++                &mut tui,
++                &mut app_server,
++                TuiEvent::Key(KeyCode::Esc.into()),
++            )
++            .await?;
 +            assert!(app.transcript_view.is_activity_focused());
 +            assert!(!app.transcript_view.is_detailed());
 +        }
@@ -2473,25 +2479,26 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
                  self.scrollback_has_older_history = self
                      .chat_widget
                      .thread_id()
-@@ -1205,6 +1212,8 @@
+@@ -1205,6 +1212,9 @@
              AppEvent::ConsolidateAgentMessage {
                  phase,
                  interrupted_item,
 +                mycodx_id,
 +                mycodx_final_answer,
++                mycodx_plan,
                  source,
                  copy_source,
                  cwd,
-@@ -1217,7 +1226,7 @@
+@@ -1217,7 +1227,7 @@
                  cell.phase = phase;
                  self.handle_consolidate_agent_message(
                      tui,
 -                    cell,
-+                    cell.with_mycodx_final_answer(mycodx_final_answer).with_mycodx_id(mycodx_id),
++                    cell.with_mycodx_final_answer(mycodx_final_answer).with_mycodx_id(mycodx_id).with_mycodx_plan(mycodx_plan),
                      scrollback_reflow,
                      deferred_history_cell,
                  )?;
-@@ -1262,8 +1271,11 @@
+@@ -1262,8 +1272,11 @@
                  let start = trailing_run_start::<history_cell::ProposedPlanStreamCell>(
                      &self.transcript_cells,
                  );
@@ -2504,7 +2511,7 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
  
                  if start < end {
                      self.native_history.consolidate(&self.transcript_cells[start..end], &consolidated);
-@@ -4146,6 +4158,27 @@
+@@ -4146,6 +4159,44 @@
                          self.chat_widget.report_config_save_error(message);
                      }
                  }
@@ -2524,6 +2531,23 @@ diff --git a/codex-rs/tui/src/app/event_dispatch.rs b/codex-rs/tui/src/app/event
 +                };
 +                self.transcript_view.refresh_mycodx_ui();
 +                if saved { self.chat_widget.open_custom_page(return_to); }
++                tui.frame_requester().schedule_frame();
++            }
++            AppEvent::CoduxCardVisibility { section, shown, index } => {
++                let mut next = crate::mycodx_ui::current();
++                match section {
++                    crate::mycodx_ui::Section::Tools => next.show_tools = shown,
++                    crate::mycodx_ui::Section::Intermediate => next.show_intermediate = shown,
++                    crate::mycodx_ui::Section::Replies => next.show_replies = shown,
++                    _ => {}
++                }
++                let result = self.transcript_view.apply_codux_card_settings(
++                    &self.transcript_cells, &self.local_settings.codex_home, next);
++                self.chat_widget.finish_codux_visibility_toggle(index);
++                if let Err(error) = result {
++                    self.chat_widget.add_error_message(format!("Could not save card visibility: {error}"));
++                    self.chat_widget.open_custom_page(crate::mycodx_ui::Page::CardVisibilityShortcut);
++                }
 +                tui.frame_requester().schedule_frame();
 +            }
 +            AppEvent::MycodxUiPreviewed => {
@@ -2558,7 +2582,7 @@ diff --git a/codex-rs/tui/src/app/input.rs b/codex-rs/tui/src/app/input.rs
 -        {
 +        if app_keymap_shortcuts_available && self.keymap.app.open_transcript.is_pressed(key_event) {
 +            if key_event.kind != KeyEventKind::Repeat {
-+                self.cycle_codux_card_mode(tui);
++                self.open_codux_card_visibility(tui);
 +            }
 +            return;
 +        }
@@ -2609,7 +2633,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          let chat_widget = &self.chat_widget;
          let transcript_width = chat_widget.history_wrap_width(width);
          let view = &mut self.transcript_view;
-@@ -217,13 +220,20 @@
+@@ -217,13 +220,21 @@
              self.local_settings.tui.copy_on_select_clear_selection;
          view.set_keymap_bindings(&self.keymap);
          view.set_presentation(view.is_detailed(), chat_widget.history_render_mode());
@@ -2628,13 +2652,14 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          let active_key = chat_widget.active_cell_transcript_key();
 +        view.set_mycodx_stream(chat_widget.active_mycodx_stream());
 +        view.set_mycodx_stream_section(chat_widget.active_mycodx_stream_section());
++        view.set_codux_stream_plan(chat_widget.active_codux_plan_label());
 +        view.set_mycodx_stream_id(chat_widget.active_mycodx_stream_id());
 +        let expanded =
 +            view.sync_live_activity(&self.transcript_cells, chat_widget.active_activity_ids());
          let detailed = view.is_detailed();
          let search_changed = view.sync_search_live_tail(transcript_width, active_key, |width| {
              chat_widget.active_cell_transcript_hyperlink_lines(width)
-@@ -231,10 +241,6 @@
+@@ -231,10 +242,6 @@
          let changed = if detailed {
              view.sync_live_tail(transcript_width, active_key, |width| {
                  chat_widget.active_cell_transcript_hyperlink_lines(width)
@@ -2645,7 +2670,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
              })
          } else {
              view.sync_live_activity_tail(transcript_width, active_key, expanded, |width| {
-@@ -654,6 +660,7 @@
+@@ -654,6 +661,7 @@
              self.transcript_view
                  .rebind_observed_live_revision(previous, reflowed);
          }
@@ -2653,7 +2678,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          self.chat_widget.sync_warnings(&self.transcript_cells);
          let motion = MotionMode::from_animations_enabled(
              self.local_settings.tui.animations && self.local_settings.tui.effects.shimmer,
-@@ -886,6 +893,7 @@
+@@ -886,6 +894,7 @@
          );
          let first_image = frame.image_placements.len();
          prepared.paint_foreground(frame, chat_widget, view, &bottom, bottom_area);
@@ -2661,7 +2686,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          let animating =
              view.is_following() && active_key.is_some_and(|key| key.animation_tick.is_some());
          let loading = view.is_loading_history() && motion == MotionMode::Animated;
-@@ -1082,6 +1090,7 @@
+@@ -1082,6 +1091,7 @@
              );
          }
          dialog.render(area, frame.buffer);
@@ -2669,7 +2694,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          frame.cursor_position = dialog.cursor_pos(area).map(Into::into);
          frame.set_cursor_style(dialog.cursor_style(area));
      }
-@@ -1247,11 +1256,36 @@
+@@ -1247,11 +1257,36 @@
                  return Ok(false);
              }
          }
@@ -2681,7 +2706,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
 +        {
 +            if self.keymap.app.open_transcript.is_pressed(*key) {
 +                if key.kind != KeyEventKind::Repeat {
-+                    self.cycle_codux_card_mode(tui);
++                    self.open_codux_card_visibility(tui);
 +                }
 +                return Ok(true);
 +            }
@@ -2706,7 +2731,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
              && (!self.chat_widget.is_in_paste_burst()
                  || self.transcript_view.is_search_editing()
                  || self.transcript_view.is_activity_focused()
-@@ -1290,6 +1324,15 @@
+@@ -1290,6 +1325,15 @@
              tui.frame_requester().schedule_frame();
              return Ok(true);
          }
@@ -2722,7 +2747,7 @@ diff --git a/codex-rs/tui/src/app/owned_transcript.rs b/codex-rs/tui/src/app/own
          // Read-only Escape belongs to session navigation, even when the transcript is scrolled.
          // Search and selection still consume Escape first to dismiss their interaction.
          if let TuiEvent::Key(key) = event
-@@ -1321,25 +1364,6 @@
+@@ -1321,25 +1365,6 @@
              && self.handle_owned_backtrack_event(tui, event)?
          {
              self.request_owned_history(tui, app_server);
@@ -3204,16 +3229,17 @@ diff --git a/codex-rs/tui/src/app_backtrack.rs b/codex-rs/tui/src/app_backtrack.
 diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
 --- a/codex-rs/tui/src/app_event.rs
 +++ b/codex-rs/tui/src/app_event.rs
-@@ -1443,6 +1443,8 @@
+@@ -1443,6 +1443,9 @@
      ConsolidateAgentMessage {
          phase: Option<codex_protocol::models::MessagePhase>,
          interrupted_item: Option<(String, String)>,
 +        mycodx_id: Option<String>,
 +        mycodx_final_answer: bool,
++        mycodx_plan: bool,
          source: String,
          copy_source: Option<String>,
          cwd: PathBuf,
-@@ -1982,6 +1984,15 @@
+@@ -1982,6 +1985,20 @@
  
      /// Runtime syntax theme preview changed; refresh theme-derived UI colors.
      SyntaxThemePreviewed,
@@ -3226,9 +3252,47 @@ diff --git a/codex-rs/tui/src/app_event.rs b/codex-rs/tui/src/app_event.rs
 +        page: crate::mycodx_ui::Page,
 +    },
 +    MycodxUiPreviewed,
++    CoduxCardVisibility {
++        section: crate::mycodx_ui::Section,
++        shown: bool,
++        index: usize,
++    },
  
      /// Open set/remove actions for the selected keymap action.
      OpenKeymapActionMenu {
+diff --git a/codex-rs/tui/src/app_server_session/history.rs b/codex-rs/tui/src/app_server_session/history.rs
+--- a/codex-rs/tui/src/app_server_session/history.rs
++++ b/codex-rs/tui/src/app_server_session/history.rs
+@@ -254,9 +254,10 @@
+         let Some(mut state) = self.history_pagination.get(&thread_id).cloned() else {
+             return Ok(Vec::new());
+         };
+-        let items = self
++        let mut items = self
+             .merge_thread_item_page(thread_id, page, &mut state, turns)
+             .await?;
++        crate::thread_transcript::codux_history::enrich_page(thread_id, turns, &mut items);
+         mark_loaded_interruptions(turns, state.next_item_cursor.as_deref());
+         state.loading_older = false;
+         self.history_pagination.insert(thread_id, state);
+@@ -378,6 +379,8 @@
+                     .turns;
+             }
+             self.history_pagination.entry(thread_id).or_default();
++            crate::thread_transcript::codux_history::prepare(thread, !self.uses_remote_workspace())
++                .await;
+             return Ok(());
+         }
+ 
+@@ -484,6 +487,8 @@
+                 prepend_older_turns(&mut thread.turns, page.data);
+             }
+         }
++        crate::thread_transcript::codux_history::prepare(thread, !self.uses_remote_workspace())
++            .await;
+         mark_loaded_interruptions(&mut thread.turns, state.next_item_cursor.as_deref());
+         if config.is_some() {
+             self.history_pagination.insert(thread_id, state);
 diff --git a/codex-rs/tui/src/bottom_pane/chat_composer.rs b/codex-rs/tui/src/bottom_pane/chat_composer.rs
 --- a/codex-rs/tui/src/bottom_pane/chat_composer.rs
 +++ b/codex-rs/tui/src/bottom_pane/chat_composer.rs
@@ -3525,7 +3589,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  /   Commands           tab      Send message                ⇧f4           Choose visible cards
 +  @   Mention files      ⌥,       Less reasoning              f3            Find text
 +  !   Shell command      ⌥.       More reasoning              ↑ / ↓         Scroll in browsing
 +  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ⌃↑ / ⌃↓       Select matching card
@@ -3553,7 +3617,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  /   Commands           tab      Send message                ⇧f4           Choose visible cards
 +  @   Mention files      ⌥,       Less reasoning              f3            Find text
 +  !   Shell command      ⌥.       More reasoning              ↑ / ↓         Scroll in browsing
 +  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ⌃↑ / ⌃↓       Select matching card
@@ -3581,7 +3645,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  /   Commands           tab      Send message                ⇧f4           Choose visible cards
 +  @   Mention files      ⌥,       Less reasoning              f3            Find text
 +  !   Shell command      ⌥.       More reasoning              ↑ / ↓         Scroll in browsing
 +  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ⌃↑ / ⌃↓       Select matching card
@@ -3666,7 +3730,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  Transcript (open first)
 -  ⌃t            Open transcript
 +  Transcript / browsing
-+  ⇧f4           Cycle card display
++  ⇧f4           Choose visible cards
    f3            Find text
 +  ↑ / ↓         Scroll in browsing
 +  ⌃↑ / ⌃↓       Select matching card
@@ -3693,7 +3757,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/chat_composer/snapshots/codex_tui__bot
 -  ⌃r       Search history
 -  esc esc  Edit last message
 +  Compose                Session                              Transcript / browsing
-+  /   Commands           tab      Send message                ⇧f4           Cycle card display
++  /   Commands           tab      Send message                ⇧f4           Choose visible cards
 +  @   Mention files      ⌥,       Less reasoning              f3            Find text
 +  !   Shell command      ⌥.       More reasoning              ↑ / ↓         Scroll in browsing
 +  ⌃j  New line           ⌥← / ⌥→  Subagents (empty prompt)    ⌃↑ / ⌃↓       Select matching card
@@ -4175,7 +4239,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/shortcut_overlay.rs b/codex-rs/tui/src
      let alt_shift = KeyModifiers::ALT | KeyModifiers::SHIFT;
      let transcript = vec![
 -        Entry::hint(hints.show_transcript, "Open transcript"),
-+        Entry::hint(hints.show_transcript, "Cycle card display"),
++        Entry::hint(hints.show_transcript, "Choose visible cards"),
          Entry::hint(hints.find_transcript, "Find text"),
 +        Entry::pair(
 +            "Scroll in browsing",
@@ -4236,7 +4300,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/shortcut_overlay_tests.rs b/codex-rs/t
      assert!(
          list.lines()
 -            .any(|row| row.contains('é') && row.contains("Open transcript"))
-+            .any(|row| row.contains('é') && row.contains("Cycle card display"))
++            .any(|row| row.contains('é') && row.contains("Choose visible cards"))
      );
  }
  
@@ -4292,7 +4356,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 -"                                ⌃home / ⌃end  Top / latest                      "
 -"                                ⇧⌥, / ⇧⌥.     Top / latest                      "
 +"                         Transcript / browsing                                  "
-+"                         ⇧f4           Cycle card display                       "
++"                         ⇧f4           Choose visible cards                     "
 +"                         f3            Find text                                "
 +"                         ↑ / ↓         Scroll in browsing                       "
 +"                         ⌃↑ / ⌃↓       Select matching card                     "
@@ -4338,7 +4402,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 +"  ⌃r  Search history     ⌃c       Interrupt                                     "
 +"                                                                                "
 +"                         Transcript / browsing                                  "
-+"                         ⇧f4           Cycle card display                       "
++"                         ⇧f4           Choose visible cards                     "
 +"                         f3            Find text                                "
 +"                         ↑ / ↓         Scroll in browsing                       "
 +"                         ⌃↑ / ⌃↓       Select matching card                     "
@@ -4384,7 +4448,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__foot
 +"  ⌃r      Search history     ⌃c       Quit                                      "
 +"                                                                                "
 +"                             Transcript / browsing                              "
-+"                             ⇧f4           Cycle card display                   "
++"                             ⇧f4           Choose visible cards                 "
 +"                             f3            Find text                            "
 +"                             ↑ / ↓         Scroll in browsing                   "
 +"                             ⌃↑ / ⌃↓       Select matching card                 "
@@ -4431,7 +4495,7 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shor
 -"                               ⌃home / ⌃end  Top / latest                       "
 -"                               ⇧⌥, / ⇧⌥.     Top / latest                       "
 +"                             Transcript / browsing                              "
-+"                             ⇧f4           Cycle card display                   "
++"                             ⇧f4           Choose visible cards                 "
 +"                             f3            Find text                            "
 +"                             ↑ / ↓         Scroll in browsing                   "
 +"                             ⌃↑ / ⌃↓       Select matching card                 "
@@ -4447,19 +4511,32 @@ diff --git a/codex-rs/tui/src/bottom_pane/snapshots/codex_tui__bottom_pane__shor
 diff --git a/codex-rs/tui/src/bottom_pane/status_line_setup.rs b/codex-rs/tui/src/bottom_pane/status_line_setup.rs
 --- a/codex-rs/tui/src/bottom_pane/status_line_setup.rs
 +++ b/codex-rs/tui/src/bottom_pane/status_line_setup.rs
-@@ -166,6 +166,9 @@
+@@ -166,6 +166,15 @@
      /// Model provider ID for the active thread.
      #[strum(to_string = "provider", serialize = "model-provider")]
      Provider,
 +
 +    /// Version reported by the connected local background server.
 +    DaemonVersion,
++
++    /// Local reset date and time of the primary usage limit.
++    FiveHourReset,
++
++    /// Local reset date and time of the secondary usage limit.
++    WeeklyReset,
  }
  
  impl serde::Serialize for StatusLineItem {
-@@ -212,6 +215,9 @@
+@@ -211,7 +220,16 @@
+             StatusLineItem::WeeklyLimit => {
                  "Remaining usage on the secondary usage limit (omitted when unavailable)"
              }
++            StatusLineItem::FiveHourReset => {
++                "Primary usage limit reset in local time (omitted when unavailable)"
++            }
++            StatusLineItem::WeeklyReset => {
++                "Secondary usage limit reset in local time (omitted when unavailable)"
++            }
              StatusLineItem::CodexVersion => "Codex application version",
 +            StatusLineItem::DaemonVersion => {
 +                "Connected local background server version (omitted when unavailable)"
@@ -4467,20 +4544,63 @@ diff --git a/codex-rs/tui/src/bottom_pane/status_line_setup.rs b/codex-rs/tui/sr
              StatusLineItem::ContextWindowSize => {
                  "Total context window size in tokens (omitted when unknown)"
              }
-@@ -262,6 +268,7 @@
+@@ -261,7 +279,10 @@
+             StatusLineItem::ContextUsed => StatusSurfacePreviewItem::ContextUsed,
              StatusLineItem::FiveHourLimit => StatusSurfacePreviewItem::FiveHourLimit,
              StatusLineItem::WeeklyLimit => StatusSurfacePreviewItem::WeeklyLimit,
++            StatusLineItem::FiveHourReset => StatusSurfacePreviewItem::FiveHourReset,
++            StatusLineItem::WeeklyReset => StatusSurfacePreviewItem::WeeklyReset,
              StatusLineItem::CodexVersion => StatusSurfacePreviewItem::CodexVersion,
 +            StatusLineItem::DaemonVersion => StatusSurfacePreviewItem::DaemonVersion,
              StatusLineItem::ContextWindowSize => StatusSurfacePreviewItem::ContextWindowSize,
              StatusLineItem::UsedTokens => StatusSurfacePreviewItem::UsedTokens,
              StatusLineItem::TotalInputTokens => StatusSurfacePreviewItem::TotalInputTokens,
+@@ -566,6 +587,33 @@
+     }
+ 
+     #[test]
++    fn codux_reset_statusline_items_roundtrip_and_preview() {
++        for (id, item, expected) in [
++            (
++                "five-hour-reset",
++                StatusLineItem::FiveHourReset,
++                "5h resets Nov 28 18:00",
++            ),
++            (
++                "weekly-reset",
++                StatusLineItem::WeeklyReset,
++                "weekly resets Dec 1 09:00",
++            ),
++        ] {
++            assert_eq!(id.parse::<StatusLineItem>(), Ok(item));
++            assert_eq!(item.to_string(), id);
++            let preview = StatusSurfacePreviewData::from_iter([(item.preview_item(), expected)]);
++            let rows = preview.picker_items::<StatusLineItem>(
++                Some(&[id.to_owned()]),
++                StatusLineItem::description,
++                |item| Some(item.preview_item()),
++            );
++            assert_eq!(rows[0].id, id);
++            assert!(rows[0].enabled);
++        }
++    }
++
++    #[test]
+     fn run_state_is_canonical_and_accepts_status_legacy_id() {
+         assert_eq!(StatusLineItem::Status.to_string(), "run-state");
+         assert_eq!(
 diff --git a/codex-rs/tui/src/bottom_pane/status_line_style.rs b/codex-rs/tui/src/bottom_pane/status_line_style.rs
 --- a/codex-rs/tui/src/bottom_pane/status_line_style.rs
 +++ b/codex-rs/tui/src/bottom_pane/status_line_style.rs
-@@ -70,6 +70,7 @@
+@@ -68,8 +68,12 @@
+             | StatusLineItem::TotalOutputTokens
+             | StatusLineItem::ThreadCredits
              | StatusLineItem::EstimatedThreadCost => Self::Usage,
-             StatusLineItem::FiveHourLimit | StatusLineItem::WeeklyLimit => Self::Limit,
+-            StatusLineItem::FiveHourLimit | StatusLineItem::WeeklyLimit => Self::Limit,
++            StatusLineItem::FiveHourLimit
++            | StatusLineItem::WeeklyLimit
++            | StatusLineItem::FiveHourReset
++            | StatusLineItem::WeeklyReset => Self::Limit,
              StatusLineItem::CodexVersion
 +            | StatusLineItem::DaemonVersion
              | StatusLineItem::Hostname
@@ -4497,15 +4617,27 @@ diff --git a/codex-rs/tui/src/bottom_pane/status_surface_preview.rs b/codex-rs/t
      ContextWindowSize,
      UsedTokens,
      TotalInputTokens,
-@@ -71,6 +72,7 @@
+@@ -48,6 +49,8 @@
+     Profile,
+     Provider,
+     TaskProgress,
++    FiveHourReset,
++    WeeklyReset,
+ }
+ 
+ impl StatusSurfacePreviewItem {
+@@ -70,7 +73,10 @@
+             StatusSurfacePreviewItem::ContextUsed => "Context 0% used",
              StatusSurfacePreviewItem::FiveHourLimit => "primary 0%",
              StatusSurfacePreviewItem::WeeklyLimit => "secondary 0%",
++            StatusSurfacePreviewItem::FiveHourReset => "5h resets Nov 28 18:00",
++            StatusSurfacePreviewItem::WeeklyReset => "weekly resets Dec 1 09:00",
              StatusSurfacePreviewItem::CodexVersion => "0.0.0",
 +            StatusSurfacePreviewItem::DaemonVersion => "Daemon v0.0.0",
              StatusSurfacePreviewItem::ContextWindowSize => "0 window",
              StatusSurfacePreviewItem::UsedTokens => "0 used",
              StatusSurfacePreviewItem::TotalInputTokens => "0 in",
-@@ -111,6 +113,7 @@
+@@ -111,6 +117,7 @@
              Self::FiveHourLimit,
              Self::WeeklyLimit,
              Self::CodexVersion,
@@ -4513,6 +4645,15 @@ diff --git a/codex-rs/tui/src/bottom_pane/status_surface_preview.rs b/codex-rs/t
              Self::ContextWindowSize,
              Self::UsedTokens,
              Self::TotalInputTokens,
+@@ -128,6 +135,8 @@
+             Self::Profile,
+             Self::Provider,
+             Self::TaskProgress,
++            Self::FiveHourReset,
++            Self::WeeklyReset,
+         ]
+         .into_iter()
+     }
 diff --git a/codex-rs/tui/src/bottom_pane/textarea/mouse.rs b/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
 --- a/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
 +++ b/codex-rs/tui/src/bottom_pane/textarea/mouse.rs
@@ -4545,7 +4686,7 @@ diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
  //!
  //! Slash-command parsing lives in the bottom-pane composer, but slash-command acceptance lives
  //! here. That split lets the composer stage a recall entry before clearing input while this module
-@@ -1287,7 +1287,20 @@
+@@ -1287,7 +1287,21 @@
          self.add_boxed_history(Box::new(cell));
      }
  
@@ -4557,6 +4698,7 @@ diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
 +        {
 +            stream.mycodx_id = self.transcript.mycodx_stream_id.clone();
 +            stream.mycodx_final_answer = self.transcript.mycodx_stream_final.unwrap_or(true);
++            stream.mycodx_plan = self.transcript.mycodx_stream_plan;
 +        }
 +        if let Some(plan) = cell
 +            .as_any_mut()
@@ -4567,7 +4709,7 @@ diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
          let Err(cell) = self.absorb_activity_detail(cell) else {
              return;
          };
-@@ -1769,8 +1782,8 @@
+@@ -1769,8 +1783,8 @@
      pub(crate) fn on_terminal_resize(&mut self, width: u16) {
          let had_rendered_width = self.last_rendered_width.get().is_some();
          self.last_rendered_width.set(Some(width));
@@ -4581,7 +4723,7 @@ diff --git a/codex-rs/tui/src/chatwidget.rs b/codex-rs/tui/src/chatwidget.rs
 diff --git a/codex-rs/tui/src/chatwidget/activity_presentation.rs b/codex-rs/tui/src/chatwidget/activity_presentation.rs
 --- a/codex-rs/tui/src/chatwidget/activity_presentation.rs
 +++ b/codex-rs/tui/src/chatwidget/activity_presentation.rs
-@@ -9,6 +9,97 @@
+@@ -9,6 +9,103 @@
          self.transcript.active_cell.as_deref()
      }
  
@@ -4652,6 +4794,12 @@ diff --git a/codex-rs/tui/src/chatwidget/activity_presentation.rs b/codex-rs/tui
 +        })
 +    }
 +
++    pub(crate) fn active_codux_plan_label(&self) -> bool {
++        self.active_mycodx_plan()
++            || (self.transcript.mycodx_stream_plan
++                && self.transcript.mycodx_stream_final != Some(false))
++    }
++
 +    pub(crate) fn active_mycodx_stream_section(&self) -> crate::mycodx_ui::Section {
 +        if !self.active_mycodx_plan() && self.transcript.mycodx_stream_final == Some(false) {
 +            crate::mycodx_ui::Section::Intermediate
@@ -4679,7 +4827,7 @@ diff --git a/codex-rs/tui/src/chatwidget/activity_presentation.rs b/codex-rs/tui
      /// Render only the chosen activity presentation, before any auxiliary live text.
      pub(crate) fn active_cell_owned_transcript_lines(
          &self,
-@@ -17,15 +108,45 @@
+@@ -17,15 +114,45 @@
      ) -> Option<ActivityTranscriptLines> {
          let active = self.transcript.active_cell.as_deref();
          let mode = self.history_render_mode();
@@ -4746,7 +4894,21 @@ diff --git a/codex-rs/tui/src/chatwidget/input_flow.rs b/codex-rs/tui/src/chatwi
 diff --git a/codex-rs/tui/src/chatwidget/protocol.rs b/codex-rs/tui/src/chatwidget/protocol.rs
 --- a/codex-rs/tui/src/chatwidget/protocol.rs
 +++ b/codex-rs/tui/src/chatwidget/protocol.rs
-@@ -616,10 +616,16 @@
+@@ -102,6 +102,13 @@
+                 self.on_thread_settings_updated(notification);
+             }
+             ServerNotification::TurnStarted(notification) => {
++                if !from_replay {
++                    crate::thread_transcript::codux_history::remember_live_mode(
++                        self.thread_id,
++                        &notification.turn.id,
++                        self.active_mode_kind() == ModeKind::Plan,
++                    );
++                }
+                 self.turn_lifecycle.has_turn_history = true;
+                 if self
+                     .bottom_pane
+@@ -616,10 +623,25 @@
              }
              ThreadItemPayload::AgentMessage {
                  id,
@@ -4755,6 +4917,15 @@ diff --git a/codex-rs/tui/src/chatwidget/protocol.rs b/codex-rs/tui/src/chatwidg
                  questions,
                  ..
              } => {
++                self.transcript.mycodx_stream_plan = if replay_kind.is_some() {
++                    crate::thread_transcript::codux_history::is_plan(self.thread_id, &id)
++                } else {
++                    crate::thread_transcript::codux_history::live_plan(
++                        self.thread_id,
++                        &notification.turn_id,
++                        self.active_mode_kind() == ModeKind::Plan,
++                    )
++                };
 +                self.transcript.mycodx_stream_id = Some(format!("mycodx-message:{id}"));
 +                self.transcript.mycodx_stream_final = Some(
 +                    questions.as_ref().is_none_or(|q| q.is_empty())
@@ -4763,19 +4934,33 @@ diff --git a/codex-rs/tui/src/chatwidget/protocol.rs b/codex-rs/tui/src/chatwidg
                  let delegated = replay_kind.is_none()
                      && self.is_realtime_delegated_agent_item(&notification.turn_id, &id);
                  // Some streams carry their first text on item/started. Async questions
+diff --git a/codex-rs/tui/src/chatwidget/replay.rs b/codex-rs/tui/src/chatwidget/replay.rs
+--- a/codex-rs/tui/src/chatwidget/replay.rs
++++ b/codex-rs/tui/src/chatwidget/replay.rs
+@@ -475,7 +475,12 @@
+                 output,
+                 ..
+             } => {
+-                if let Some((source_thread_id, prompt)) =
++                if let Some(cell) = crate::thread_transcript::codux_history::clarification(
++                    namespace.as_deref(),
++                    &output,
++                ) {
++                    self.add_to_history(cell);
++                } else if let Some((source_thread_id, prompt)) =
+                     crate::dynamic_tools::parse_delegated_tool_output(
+                         &name,
+                         namespace.as_deref(),
 diff --git a/codex-rs/tui/src/chatwidget/settings_popups.rs b/codex-rs/tui/src/chatwidget/settings_popups.rs
 --- a/codex-rs/tui/src/chatwidget/settings_popups.rs
 +++ b/codex-rs/tui/src/chatwidget/settings_popups.rs
-@@ -6,6 +6,45 @@
+@@ -6,6 +6,42 @@
  use super::*;
  
  impl ChatWidget {
-+    pub(crate) fn show_codux_card_mode(&mut self) {
-+        let mode = crate::mycodx_ui::current().card_mode();
-+        self.bottom_pane.show_footer_flash(
-+            Line::from(format!("Cards {}: {}", mode.label(), mode.description())),
-+            std::time::Duration::from_secs(3),
-+        );
++    pub(crate) fn finish_codux_visibility_toggle(&mut self, index: usize) {
++        self.bottom_pane
++            .complete_selection_toggle_for_active_view("codux-card-visibility", index);
 +    }
 +
 +    pub(super) fn open_custom_picker(&mut self) {
@@ -4862,10 +5047,26 @@ diff --git a/codex-rs/tui/src/chatwidget/snapshots/codex_tui__chatwidget__tests_
 diff --git a/codex-rs/tui/src/chatwidget/status_surfaces.rs b/codex-rs/tui/src/chatwidget/status_surfaces.rs
 --- a/codex-rs/tui/src/chatwidget/status_surfaces.rs
 +++ b/codex-rs/tui/src/chatwidget/status_surfaces.rs
-@@ -806,6 +806,12 @@
+@@ -806,6 +806,28 @@
                  self.status_line_limit_display(Some(window), &label)
              }
              StatusLineItem::CodexVersion => Some(CODEX_CLI_VERSION.to_string()),
++            StatusLineItem::FiveHourReset | StatusLineItem::WeeklyReset => {
++                let snapshot = self.rate_limit_snapshots_by_limit_id.get("codex")?;
++                let (window, is_secondary) = match item {
++                    StatusLineItem::FiveHourReset => five_hour_status_window(snapshot),
++                    _ => weekly_status_window(snapshot),
++                }?;
++                let reset = chrono::DateTime::from_timestamp(window.resets_at_unix?, 0)?
++                    .with_timezone(&chrono::Local);
++                let label = limit_label_for_window(window.window_minutes, is_secondary);
++                // Include the date so cached values remain unambiguous after midnight.
++                // Read the server timestamp; never infer a reset from the window length.
++                Some(format!(
++                    "{label} resets {}",
++                    reset.format(self.clock_format.date_time_format())
++                ))
++            }
 +            StatusLineItem::DaemonVersion => self
 +                .remote_connection
 +                .as_ref()
@@ -4875,9 +5076,12 @@ diff --git a/codex-rs/tui/src/chatwidget/status_surfaces.rs b/codex-rs/tui/src/c
              StatusLineItem::ContextWindowSize => self
                  .status_line_context_window_size()
                  .map(|cws| format!("{} window", format_tokens_compact(cws))),
-@@ -883,6 +889,7 @@
+@@ -882,7 +904,10 @@
+             StatusSurfacePreviewItem::ContextUsed => StatusLineItem::ContextUsed,
              StatusSurfacePreviewItem::FiveHourLimit => StatusLineItem::FiveHourLimit,
              StatusSurfacePreviewItem::WeeklyLimit => StatusLineItem::WeeklyLimit,
++            StatusSurfacePreviewItem::FiveHourReset => StatusLineItem::FiveHourReset,
++            StatusSurfacePreviewItem::WeeklyReset => StatusLineItem::WeeklyReset,
              StatusSurfacePreviewItem::CodexVersion => StatusLineItem::CodexVersion,
 +            StatusSurfacePreviewItem::DaemonVersion => StatusLineItem::DaemonVersion,
              StatusSurfacePreviewItem::ContextWindowSize => StatusLineItem::ContextWindowSize,
@@ -4938,16 +5142,17 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
              }
              let deferred_history_cell =
                  if scrollback_reflow == crate::app_event::ConsolidationScrollbackReflow::Required {
-@@ -160,6 +184,8 @@
+@@ -160,6 +184,9 @@
                  self.app_event_tx.send(AppEvent::ConsolidateAgentMessage {
                      phase,
                      interrupted_item,
 +                    mycodx_final_answer,
++                    mycodx_plan: self.transcript.mycodx_stream_plan,
 +                    mycodx_id: self.transcript.mycodx_stream_id.clone(),
                      source,
                      copy_source,
                      cwd: self.config.cwd.to_path_buf(),
-@@ -325,12 +351,13 @@
+@@ -325,12 +352,13 @@
          }
          self.transcript.plan_delta_buffer.push_str(&delta);
          if self.plan_stream_controller.is_none() {
@@ -4962,7 +5167,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
                      &self.config.cwd,
                      self.history_render_mode(),
                  )
-@@ -400,12 +427,16 @@
+@@ -400,12 +428,16 @@
                      .send(AppEvent::ConsolidateProposedPlan(source));
              }
          } else if !plan_text.is_empty() {
@@ -4980,11 +5185,21 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
          if should_restore_after_stream {
              self.status_state.pending_status_indicator_restore = true;
              self.maybe_restore_status_indicator_after_stream_idle();
-@@ -653,6 +684,13 @@
+@@ -653,6 +685,23 @@
          if !unrelated_activity && current_copy && (completing || !cloud) {
              self.transcript.last_completed_agent_message = Some(key.clone());
          }
++        let mycodx_plan = if from_replay {
++            crate::thread_transcript::codux_history::is_plan(self.thread_id, &item.id)
++        } else {
++            crate::thread_transcript::codux_history::live_plan(
++                self.thread_id,
++                turn_id,
++                self.active_mode_kind() == ModeKind::Plan,
++            )
++        };
 +        if !unrelated_activity {
++            self.transcript.mycodx_stream_plan = mycodx_plan;
 +            self.transcript.mycodx_stream_id = Some(format!("mycodx-message:{}", item.id));
 +            self.transcript.mycodx_stream_final = Some(
 +                item.questions.as_ref().is_none_or(|q| q.is_empty())
@@ -4994,7 +5209,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
          if correcting && owns_stream && !unrelated_activity {
              // Commit any resumed stream fragment before replacing all fragments with
              // the authoritative message. Markdown references can span interruptions.
-@@ -665,7 +703,7 @@
+@@ -665,7 +714,7 @@
              if !unrelated_activity {
                  self.prepare_assistant_message();
                  self.mark_safety_buffering_agent_message_started();
@@ -5003,11 +5218,12 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
              }
              let context = self.thread_id.and_then(|thread_id| {
                  crate::inline_visualization::InlineVisualizationContext::from_config(
-@@ -680,7 +718,12 @@
+@@ -680,7 +729,13 @@
                  context,
                  questions,
              )
 -            .with_phase(item.phase.clone());
++            .with_mycodx_plan(mycodx_plan)
 +            .with_phase(item.phase.clone())
 +            .with_mycodx_id(Some(format!("mycodx-message:{}", item.id)))
 +            .with_mycodx_final_answer(
@@ -5017,7 +5233,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
              if parsed.visible_markdown.is_empty() {
                  cell = cell.with_copy_source(/*source*/ None);
              }
-@@ -701,6 +744,10 @@
+@@ -701,6 +756,10 @@
              }
              self.request_redraw();
          } else if !unrelated_activity {
@@ -5028,7 +5244,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
              self.finalize_completed_assistant_message(&message, item.phase.clone());
          }
          if self.transcript.last_flushed_agent_message.as_ref() == Some(&key) {
-@@ -781,9 +828,9 @@
+@@ -781,9 +840,9 @@
  
      /// Runs a commit tick for the current stream queue snapshot.
      ///
@@ -5041,7 +5257,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
      pub(crate) fn run_commit_tick_with_scope(&mut self, scope: CommitTickScope) {
          let now = Instant::now();
          let outcome = run_commit_tick(
-@@ -794,7 +841,7 @@
+@@ -794,7 +853,7 @@
              now,
          );
          for cell in outcome.cells {
@@ -5050,7 +5266,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
              self.add_boxed_history(cell);
          }
          if scope == CommitTickScope::AnyMode || outcome.has_controller {
-@@ -865,7 +912,7 @@
+@@ -865,7 +924,7 @@
              });
              self.stream_controller = Some(
                  StreamController::new_with_inline_visualizations(
@@ -5059,7 +5275,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
                      &self.config.cwd,
                      self.history_render_mode(),
                      inline_visualization_context,
-@@ -911,11 +958,11 @@
+@@ -911,11 +970,11 @@
                  return self.clear_active_stream_tail();
              }
  
@@ -5072,7 +5288,7 @@ diff --git a/codex-rs/tui/src/chatwidget/streaming.rs b/codex-rs/tui/src/chatwid
              if self
                  .transcript
                  .active_cell
-@@ -940,11 +987,11 @@
+@@ -940,11 +999,11 @@
                  return self.clear_active_stream_tail();
              }
  
@@ -5189,7 +5405,96 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/slash_commands.rs b/codex-rs/tui/
 diff --git a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs b/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs
 --- a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs
 +++ b/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs
-@@ -2451,6 +2451,111 @@
+@@ -1041,6 +1041,88 @@
+ }
+ 
+ #[tokio::test]
++async fn codux_reset_statusline_uses_matching_windows_and_local_clock() {
++    use crate::bottom_pane::StatusLineItem;
++    use crate::bottom_pane::StatusSurfacePreviewItem;
++    use crate::clock_format::ClockFormat;
++    use chrono::TimeZone;
++
++    let (mut chat, _rx, _op_rx) = make_chatwidget_manual(None).await;
++    for item in [StatusLineItem::FiveHourReset, StatusLineItem::WeeklyReset] {
++        assert_eq!(chat.status_line_value_for_item(item), None);
++    }
++    let five_hour = chrono::Local
++        .with_ymd_and_hms(2026, 11, 28, 18, 5, 0)
++        .unwrap();
++    let weekly = chrono::Local
++        .with_ymd_and_hms(2026, 12, 1, 9, 10, 0)
++        .unwrap();
++    // The service can reverse the primary and secondary windows.
++    chat.on_rate_limit_snapshot(Some(RateLimitSnapshot {
++        limit_id: None,
++        limit_name: None,
++        normal_model_slug: None,
++        primary: Some(RateLimitWindow {
++            used_percent: 94,
++            window_duration_mins: Some(7 * 24 * 60),
++            resets_at: Some(weekly.timestamp()),
++        }),
++        secondary: Some(RateLimitWindow {
++            used_percent: 40,
++            window_duration_mins: Some(5 * 60),
++            resets_at: Some(five_hour.timestamp()),
++        }),
++        credits: None,
++        individual_limit: None,
++        plan_type: None,
++        spend_control_reached: None,
++        rate_limit_reached_type: None,
++    }));
++    for (clock, five_hour_text, weekly_text) in [
++        (
++            ClockFormat::TwentyFourHour,
++            "5h resets Nov 28 18:05",
++            "weekly resets Dec 1 09:10",
++        ),
++        (
++            ClockFormat::TwelveHour,
++            "5h resets Nov 28 6:05 PM",
++            "weekly resets Dec 1 9:10 AM",
++        ),
++    ] {
++        chat.clock_format = clock;
++        assert_eq!(
++            chat.status_line_value_for_item(StatusLineItem::FiveHourReset),
++            Some(five_hour_text.into())
++        );
++        assert_eq!(
++            chat.status_surface_preview_value_for_item(StatusSurfacePreviewItem::WeeklyReset),
++            Some(weekly_text.into())
++        );
++    }
++    // Selecting reset dates does not alter the original percentage segments.
++    assert_eq!(
++        chat.status_line_value_for_item(StatusLineItem::FiveHourLimit),
++        Some("5h 60% left".into())
++    );
++    assert_eq!(
++        chat.status_line_value_for_item(StatusLineItem::WeeklyLimit),
++        Some("weekly 6% left".into())
++    );
++
++    let snapshot = chat
++        .rate_limit_snapshots_by_limit_id
++        .get_mut("codex")
++        .unwrap();
++    snapshot.primary.as_mut().unwrap().resets_at_unix = None;
++    snapshot.secondary.as_mut().unwrap().resets_at_unix = Some(i64::MAX);
++    // Missing/invalid timestamps must not use a stale formatted label or guess a date.
++    for item in [StatusLineItem::FiveHourReset, StatusLineItem::WeeklyReset] {
++        assert_eq!(chat.status_line_value_for_item(item), None);
++    }
++}
++
++#[tokio::test]
+ async fn status_line_shows_secondary_non_weekly_when_primary_is_weekly() {
+     let (mut chat, _rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
+ 
+@@ -2451,6 +2533,111 @@
  }
  
  #[tokio::test]
@@ -5301,7 +5606,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs b/codex-rs/t
  async fn streaming_final_answer_keeps_task_running_state() {
      let (mut chat, mut rx, mut op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
      chat.thread_id = Some(ThreadId::new());
-@@ -2575,6 +2680,11 @@
+@@ -2575,6 +2762,11 @@
  #[tokio::test]
  async fn esc_interrupt_pauses_active_goal_turn() {
      let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -5313,7 +5618,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/status_and_layout.rs b/codex-rs/t
      chat.show_welcome_banner = false;
      let thread_id = start_active_goal_turn(&mut chat);
  
-@@ -2606,6 +2716,11 @@
+@@ -2606,6 +2798,11 @@
          KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
      ] {
          let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(/*model_override*/ None).await;
@@ -5370,7 +5675,7 @@ diff --git a/codex-rs/tui/src/chatwidget/tests/status_surface_previews.rs b/code
 diff --git a/codex-rs/tui/src/chatwidget/transcript.rs b/codex-rs/tui/src/chatwidget/transcript.rs
 --- a/codex-rs/tui/src/chatwidget/transcript.rs
 +++ b/codex-rs/tui/src/chatwidget/transcript.rs
-@@ -36,6 +36,12 @@
+@@ -36,6 +36,13 @@
  
  #[derive(Default)]
  pub(super) struct TranscriptState {
@@ -5380,6 +5685,7 @@ diff --git a/codex-rs/tui/src/chatwidget/transcript.rs b/codex-rs/tui/src/chatwi
 +    pub(super) mycodx_stream_id: Option<String>,
 +    pub(super) mycodx_plan_id: Option<String>,
 +    pub(super) mycodx_stream_final: Option<bool>,
++    pub(super) mycodx_stream_plan: bool,
      pub(super) active_cell: Option<Box<dyn HistoryCell>>,
      /// Shared retained rows for concurrently running dynamic tools, removed on completion.
      pub(super) dynamic_calls:
@@ -7282,43 +7588,47 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
      }
  }
  
-@@ -509,6 +547,8 @@
+@@ -509,6 +547,9 @@
  
  #[derive(Debug)]
  pub(crate) struct AgentMessageCell {
 +    pub(crate) mycodx_id: Option<String>,
 +    pub(crate) mycodx_final_answer: bool,
++    pub(crate) mycodx_plan: bool,
      lines: Vec<HyperlinkLine>,
      is_first_line: bool,
  }
-@@ -517,6 +557,8 @@
+@@ -517,6 +558,9 @@
      #[cfg(test)]
      pub(crate) fn new(lines: Vec<Line<'static>>, is_first_line: bool) -> Self {
          Self {
 +            mycodx_id: None,
 +            mycodx_final_answer: true,
++            mycodx_plan: false,
              lines: plain_hyperlink_lines(lines),
              is_first_line,
          }
-@@ -524,6 +566,8 @@
+@@ -524,6 +568,9 @@
  
      pub(crate) fn new_hyperlink_lines(lines: Vec<HyperlinkLine>, is_first_line: bool) -> Self {
          Self {
 +            mycodx_id: None,
 +            mycodx_final_answer: true,
++            mycodx_plan: false,
              lines,
              is_first_line,
          }
-@@ -614,6 +658,8 @@
+@@ -614,6 +661,9 @@
      rendered_lines: Option<MarkdownRenderCache>,
      spoken_artifacts: bool,
      question_titles: Vec<std::ops::Range<usize>>,
 +    mycodx_final_answer: bool,
++    pub(crate) mycodx_plan: bool,
 +    mycodx_answer_id: String,
  }
  
  impl AgentMarkdownCell {
-@@ -627,6 +673,26 @@
+@@ -627,6 +677,31 @@
          Self::new_with_inline_visualizations(visible_markdown, cwd, context)
              .with_questions(questions)
              .with_copy_source(Some(source))
@@ -7336,6 +7646,11 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
 +        self
 +    }
 +
++    pub(crate) fn with_mycodx_plan(mut self, plan: bool) -> Self {
++        self.mycodx_plan = plan;
++        self
++    }
++
 +    pub(crate) fn mycodx_is_final_answer(&self) -> bool {
 +        self.mycodx_final_answer
 +    }
@@ -7345,16 +7660,17 @@ diff --git a/codex-rs/tui/src/history_cell/messages.rs b/codex-rs/tui/src/histor
      }
  
      pub(crate) fn with_copy_source(mut self, source: Option<String>) -> Self {
-@@ -668,6 +734,8 @@
+@@ -668,6 +743,9 @@
              rendered_lines,
              spoken_artifacts: false,
              question_titles: Vec::new(),
 +            mycodx_final_answer: true,
++            mycodx_plan: false,
 +            mycodx_answer_id: format!("mycodx-answer:{}", uuid::Uuid::new_v4()),
          }
      }
  
-@@ -871,6 +939,8 @@
+@@ -871,6 +949,8 @@
      remote_image_urls: Vec<String>,
  ) -> UserHistoryCell {
      UserHistoryCell {
@@ -7888,7 +8204,7 @@ diff --git a/codex-rs/tui/src/keymap/chords.rs b/codex-rs/tui/src/keymap/chords.
 -                    crate::keymap_setup::action_label(action.action).into(),
 +                    match action.action {
 +                        "focus_activity" => "browse cards".to_owned(),
-+                        "open_transcript" => "cycle card display".to_owned(),
++                        "open_transcript" => "choose visible cards".to_owned(),
 +                        action => crate::keymap_setup::action_label(action),
 +                    }
 +                    .into(),
@@ -8261,7 +8577,7 @@ diff --git a/codex-rs/tui/src/mycodx_menu.rs b/codex-rs/tui/src/mycodx_menu.rs
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/mycodx_menu.rs
-@@ -0,0 +1,1917 @@
+@@ -0,0 +1,1942 @@
 +use super::*;
 +use crate::app_event::AppEvent;
 +use crate::bottom_pane::{SelectionItem, SelectionViewParams};
@@ -8346,6 +8662,7 @@ new file mode 100644
 +    Root,
 +    Theme,
 +    CardMode,
++    CardVisibilityShortcut,
 +    Reset,
 +    WorkingAnimation,
 +    Mermaid,
@@ -8425,7 +8742,7 @@ new file mode 100644
 +            }),
 +            Self::Scope(s, e, mask) => Some(Self::scoped(s, e, mask)),
 +            Self::Targets(s, e, previous, _) => Some(Self::Scope(s, e, previous)),
-+            Self::Root => None,
++            Self::Root | Self::CardVisibilityShortcut => None,
 +            Self::Theme | Self::CardMode | Self::Reset => Some(Self::Root),
 +            Self::WorkingAnimation | Self::Mermaid => Some(Self::Group(Section::Answers)),
 +            Self::Group(_) | Self::Card(Section::Tools) => Some(Self::Root),
@@ -8467,7 +8784,7 @@ new file mode 100644
 +            Self::Targets(_, _, _, _) => "Custom UI / Select cards".into(),
 +            Self::Root => "Custom UI".into(),
 +            Self::Theme => "Custom UI / Theme".into(),
-+            Self::CardMode => "Custom UI / Card display".into(),
++            Self::CardMode | Self::CardVisibilityShortcut => "Card display".into(),
 +            Self::Reset => "Custom UI / Reset to defaults".into(),
 +            Self::WorkingAnimation => "Custom UI / Answer / Working animation".into(),
 +            Self::Mermaid => "Custom UI / Answer / Mermaid".into(),
@@ -8677,16 +8994,6 @@ new file mode 100644
 +            ("Restore shipped defaults".into(), Settings::default()),
 +        ]);
 +    }
-+    if page == Page::CardMode {
-+        let mut modes = CardMode::ALL.to_vec();
-+        if original.card_mode() == CardMode::Custom {
-+            modes.push(CardMode::Custom);
-+        }
-+        return Ok(modes
-+            .into_iter()
-+            .map(|mode| (mode.label().into(), original.with_card_mode(mode)))
-+            .collect());
-+    }
 +    if page == Page::Mermaid {
 +        return Ok([
 +            crate::codux_mermaid::Mode::Auto,
@@ -8727,7 +9034,10 @@ new file mode 100644
 +                match section {
 +                    Section::Tools => next.show_tools = shown,
 +                    Section::Intermediate => next.show_intermediate = shown,
-+                    _ => anyhow::bail!("Display applies only to tools and intermediate answers"),
++                    Section::Replies => next.show_replies = shown,
++                    _ => anyhow::bail!(
++                        "Display applies only to tools, intermediate answers and clarification Q&A"
++                    ),
 +                }
 +                list.push((if shown { "Shown" } else { "Hidden" }.into(), next));
 +            }
@@ -8812,11 +9122,51 @@ new file mode 100644
 +    #[cfg(not(test))]
 +    CURSORS.write().unwrap_or_else(|e| e.into_inner()).clear();
 +}
++pub(crate) fn visibility_picker(page: Page) -> SelectionViewParams {
++    use crate::bottom_pane::SelectionToggle;
++    let settings = current();
++    SelectionViewParams {
++        view_id: Some("codux-card-visibility"),
++        title: Some("Card display".into()),
++        subtitle: Some("Changes save immediately. Original questions, final answers and pending input stay visible.".into()),
++        footer_hint: Some(if page == Page::CardVisibilityShortcut {
++            "Up/Down select | Space/Enter toggle | Esc close"
++        } else {
++            "Up/Down select | Space/Enter toggle | Esc back"
++        }.into()),
++        allow_input_when_disconnected: true,
++        initial_selected_idx: Some(remembered_cursor(page).unwrap_or(0)),
++        on_selection_changed: Some(Box::new(move |index, _| remember_cursor(page, index))),
++        on_cancel: Some(Box::new(move |tx| {
++            if let Some(parent) = page.parent() {
++                tx.send(AppEvent::MycodxUiMenu { page: parent });
++            }
++        })),
++        items: [
++            (Section::Tools, "Tools"),
++            (Section::Intermediate, "Intermediate answers"),
++            (Section::Replies, "Clarification Q&A"),
++        ].into_iter().enumerate().map(|(index, (section, label))| SelectionItem {
++            name: label.into(),
++            checkbox_toggle: true,
++            toggle: Some(SelectionToggle {
++                is_on: settings.visible(section),
++                action: Box::new(move |shown, tx| tx.send(AppEvent::CoduxCardVisibility { section, shown, index })),
++            }),
++            ..Default::default()
++        }).collect(),
++        ..SelectionViewParams::picker()
++    }
++}
++
 +pub(crate) fn page_picker(home: &Path, page: Page) -> anyhow::Result<SelectionViewParams> {
 +    anyhow::ensure!(
 +        !page.is_input(),
 +        "Use the single-line editor for this setting"
 +    );
++    if matches!(page, Page::CardMode | Page::CardVisibilityShortcut) {
++        return Ok(visibility_picker(page));
++    }
 +    let original = current();
 +    let base_page = page.base();
 +    if let Some((_, _, mask)) = page.editor() {
@@ -8978,16 +9328,6 @@ new file mode 100644
 +            params.subtitle = Some("Preview this version's first-install settings. Enter saves; Esc restores your settings.".into());
 +            params.footer_note = Some("Resets Codux card styles, display mode, animation and Mermaid settings. Codex configuration, /theme and conversations are unchanged.".into());
 +        }
-+        if page == Page::CardMode {
-+            params.subtitle = Some("Questions, replies and final answers are always shown. Folding and styles are unchanged.".into());
-+            for (index, item) in params.items.iter_mut().enumerate() {
-+                let mode = CardMode::ALL
-+                    .get(index)
-+                    .copied()
-+                    .unwrap_or(CardMode::Custom);
-+                item.description = Some(mode.description().into());
-+            }
-+        }
 +        if page == Page::WorkingAnimation {
 +            params.subtitle = Some(
 +                "Choose an animation. Preview it beside the list; Enter saves, Esc restores."
@@ -9034,7 +9374,7 @@ new file mode 100644
 +        .collect();
 +        params.items.push(navigation(
 +            "Card display".into(),
-+            Some(original.card_mode().label().into()),
++            Some("Tools, intermediate answers and clarification Q&A".into()),
 +            Page::CardMode,
 +        ));
 +        params.items.push(navigation(
@@ -9339,48 +9679,49 @@ new file mode 100644
 +    }
 +
 +    #[test]
-+    fn codux_card_modes_preview_cancel_and_preserve_custom_card_styles() {
++    fn codux_visibility_picker_toggles_independently_without_preview_or_cancel_rollback() {
 +        with_settings(Settings::default(), || {
++            begin_session();
 +            let home = tempfile::tempdir().unwrap();
-+            let original = current().change_card(Section::Replies, |c| c.padding_x = 4);
-+            set(original.clone());
++            let original = current();
 +            let (raw, mut rx) = tokio::sync::mpsc::unbounded_channel();
 +            let tx = AppEventSender::new(raw);
 +            let mut picker = view(home.path(), Page::CardMode, &tx);
-+            assert_eq!(
-+                page_picker(home.path(), Page::CardMode)
-+                    .unwrap()
-+                    .initial_selected_idx,
-+                Some(0)
-+            );
 +            press(&mut picker, KeyCode::Down);
-+            assert_eq!(current().card_mode(), CardMode::Answers);
-+            assert_eq!(
-+                current().card(Section::Replies),
-+                original.card(Section::Replies)
-+            );
-+            press(&mut picker, KeyCode::Esc);
++            press(&mut picker, KeyCode::Down);
 +            assert_eq!(current(), original);
-+            while rx.try_recv().is_ok() {}
-+            let mut next = original.clone();
-+            for expected in [CardMode::Answers, CardMode::All, CardMode::Progress] {
-+                next = next.with_card_mode(next.card_mode().next());
-+                assert_eq!(next.card_mode(), expected);
-+                assert!(
-+                    next.visible(Section::Questions)
-+                        && next.visible(Section::Replies)
-+                        && next.visible(Section::Answers)
-+                );
-+                assert_eq!(next.with_card_mode(CardMode::Progress), original);
-+                save(home.path(), next.clone()).unwrap();
-+                load(home.path()).unwrap();
-+                assert_eq!(current(), next);
-+            }
-+            set(original.with_card_mode(CardMode::Custom));
-+            let custom = page_picker(home.path(), Page::CardMode).unwrap();
-+            assert_eq!(custom.initial_selected_idx, Some(3));
-+            assert_eq!(current().card_mode(), CardMode::Custom);
-+            assert_eq!(current().card_mode().next(), CardMode::Progress);
++            press(&mut picker, KeyCode::Char(' '));
++            assert!(matches!(
++                rx.try_recv().unwrap(),
++                AppEvent::CoduxCardVisibility {
++                    section: Section::Replies,
++                    shown: false,
++                    index: 2
++                }
++            ));
++            assert!(!picker.is_complete());
++            let mut saved = original.clone();
++            saved.show_replies = false;
++            save(home.path(), saved.clone()).unwrap();
++            press(&mut picker, KeyCode::Esc);
++            assert_eq!(current(), saved);
++            assert!(matches!(
++                rx.try_recv().unwrap(),
++                AppEvent::MycodxUiMenu { page: Page::Root }
++            ));
++            load(home.path()).unwrap();
++            assert!(!current().visible(Section::Replies));
++            assert!(current().visible(Section::Questions) && current().visible(Section::Answers));
++            let mut shortcut = view(home.path(), Page::CardVisibilityShortcut, &tx);
++            press(&mut shortcut, KeyCode::Esc);
++            assert!(rx.try_recv().is_err());
++            let mut legacy = serde_json::to_value(&original).unwrap();
++            legacy.as_object_mut().unwrap().remove("show_replies");
++            assert!(
++                serde_json::from_value::<Settings>(legacy)
++                    .unwrap()
++                    .show_replies
++            );
 +        });
 +    }
 +
@@ -11589,7 +11930,7 @@ diff --git a/codex-rs/tui/src/mycodx_ui.rs b/codex-rs/tui/src/mycodx_ui.rs
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/mycodx_ui.rs
-@@ -0,0 +1,577 @@
+@@ -0,0 +1,563 @@
 +//! Runtime transcript settings, independent of syntax highlighting themes.
 +#[path = "mycodx_input.rs"]
 +mod input;
@@ -11610,7 +11951,8 @@ new file mode 100644
 +
 +use serde::{Deserialize, Serialize};
 +
-+/// Presentation only: questions, replies, final answers and notices remain visible.
++/// Legacy boolean combinations retained as migration/regression fixtures.
++#[cfg(test)]
 +#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 +pub(crate) enum CardMode {
 +    Progress,
@@ -11619,27 +11961,9 @@ new file mode 100644
 +    Custom,
 +}
 +
++#[cfg(test)]
 +impl CardMode {
-+    pub(crate) const ALL: [Self; 3] = [Self::Progress, Self::Answers, Self::All];
-+
-+    pub(crate) fn label(self) -> &'static str {
-+        match self {
-+            Self::Progress => "0: Progress",
-+            Self::Answers => "1: Answers only",
-+            Self::All => "2: All cards",
-+            Self::Custom => "Custom",
-+        }
-+    }
-+
-+    pub(crate) fn description(self) -> &'static str {
-+        match self {
-+            Self::Progress => "Hide tools; show intermediate and final answers",
-+            Self::Answers => "Hide tools and intermediate answers",
-+            Self::All => "Show tools, intermediate and final answers",
-+            Self::Custom => "Show tools; hide intermediate answers",
-+        }
-+    }
-+
++    #[cfg(test)]
 +    pub(crate) fn next(self) -> Self {
 +        match self {
 +            Self::Progress => Self::Answers,
@@ -11661,6 +11985,7 @@ new file mode 100644
 +    pub intermediate: Option<CardStyle>,
 +    pub show_tools: bool,
 +    pub show_intermediate: bool,
++    pub show_replies: bool,
 +    #[serde(skip_serializing)]
 +    pub question_bubble: bool,
 +    #[serde(skip_serializing)]
@@ -11694,6 +12019,7 @@ new file mode 100644
 +}
 +
 +impl Settings {
++    #[cfg(test)]
 +    pub(crate) fn card_mode(&self) -> CardMode {
 +        match (self.show_tools, self.show_intermediate) {
 +            (false, true) => CardMode::Progress,
@@ -11703,6 +12029,7 @@ new file mode 100644
 +        }
 +    }
 +
++    #[cfg(test)]
 +    pub(crate) fn with_card_mode(&self, mode: CardMode) -> Self {
 +        let mut next = self.clone();
 +        next.show_tools = matches!(mode, CardMode::All | CardMode::Custom);
@@ -11729,6 +12056,7 @@ new file mode 100644
 +            intermediate: None,
 +            show_tools: false,
 +            show_intermediate: true,
++            show_replies: true,
 +            question_bubble: true,
 +            question_width: 70,
 +            question_padding: 1,
@@ -11798,6 +12126,7 @@ new file mode 100644
 +        match section {
 +            Section::Tools => self.show_tools,
 +            Section::Intermediate => self.show_intermediate,
++            Section::Replies => self.show_replies,
 +            _ => true,
 +        }
 +    }
@@ -11822,6 +12151,7 @@ new file mode 100644
 +            intermediate: Some(self.card(Section::Intermediate)),
 +            show_tools: self.show_tools,
 +            show_intermediate: self.show_intermediate,
++            show_replies: self.show_replies,
 +            answer_card: self.answer_card,
 +            ..Self::legacy_defaults()
 +        }
@@ -12077,10 +12407,7 @@ new file mode 100644
 +                assert_eq!(card.padding_x, 1);
 +                assert_eq!(card.padding_y, 1);
 +                assert!(!card.title_visible);
-+                assert_eq!(
-+                    card.background,
-+                    expected.card(section).background
-+                );
++                assert_eq!(card.background, expected.card(section).background);
 +            }
 +            assert_eq!(current().card(Section::Questions).max_width, 60);
 +            assert_eq!(current().card(Section::Replies).max_width, 70);
@@ -13463,7 +13790,44 @@ diff --git a/codex-rs/tui/src/terminal_probe/windows_tests.rs b/codex-rs/tui/src
 diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_transcript.rs
 --- a/codex-rs/tui/src/thread_transcript.rs
 +++ b/codex-rs/tui/src/thread_transcript.rs
-@@ -275,9 +275,10 @@
+@@ -24,6 +24,7 @@
+ use std::path::Path;
+ 
+ mod activity_pages;
++pub(crate) mod codux_history;
+ mod computer_groups;
+ mod exploration_groups;
+ mod other_items;
+@@ -139,6 +140,7 @@
+     let mut cells: TranscriptCells = Vec::new();
+     let mut pending = None;
+     for item in items {
++        let plan = codux_history::is_plan(thread_id, item.id());
+         if matches!(item, ThreadItemPayload::Reasoning { .. })
+             && let Some(group) = &mut pending
+         {
+@@ -206,12 +208,19 @@
+                 }
+             }
+             item => {
+-                let projected = item_to_cells(
++                let mut projected = item_to_cells(
+                     item,
+                     cwd,
+                     raw_reasoning_visibility,
+                     inline_visualization_context.clone(),
+                 );
++                for cell in &mut projected {
++                    if let Some(markdown) = Arc::get_mut(cell)
++                        .and_then(|cell| cell.as_any_mut().downcast_mut::<AgentMarkdownCell>())
++                    {
++                        markdown.mycodx_plan = plan;
++                    }
++                }
+                 if !projected.is_empty() {
+                     PendingActivity::flush(&mut pending, &mut cells);
+                     cells.extend(projected);
+@@ -275,9 +284,10 @@
              cells.push(Arc::new(cell.with_async_replies(replies, cwd)));
          }
          ThreadItemPayload::AgentMessage {
@@ -13475,7 +13839,7 @@ diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_tra
              ..
          } => {
              let parsed = parse_assistant_markdown(&text, cwd);
-@@ -288,8 +289,16 @@
+@@ -288,8 +298,16 @@
                          cwd,
                          inline_visualization_context,
                      )
@@ -13494,7 +13858,18 @@ diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_tra
                  ));
              }
          }
-@@ -312,9 +321,12 @@
+@@ -299,7 +317,9 @@
+             output,
+             ..
+         } => {
+-            if let Some((source_thread_id, prompt)) =
++            if let Some(cell) = codux_history::clarification(namespace.as_deref(), &output) {
++                cells.push(Arc::new(cell));
++            } else if let Some((source_thread_id, prompt)) =
+                 crate::dynamic_tools::parse_delegated_tool_output(
+                     &name,
+                     namespace.as_deref(),
+@@ -312,9 +332,12 @@
                  )));
              }
          }
@@ -13509,6 +13884,568 @@ diff --git a/codex-rs/tui/src/thread_transcript.rs b/codex-rs/tui/src/thread_tra
              }
          }
          ThreadItemPayload::Reasoning {
+diff --git a/codex-rs/tui/src/thread_transcript/codux_history.rs b/codex-rs/tui/src/thread_transcript/codux_history.rs
+new file mode 100644
+--- /dev/null
++++ b/codex-rs/tui/src/thread_transcript/codux_history.rs
+@@ -0,0 +1,557 @@
++//! Local, read-only history enrichment. Never changes the rollout or the server protocol.
++use codex_app_server_protocol::{Thread, ThreadItem, ThreadItemPayload, Turn};
++use codex_protocol::ThreadId;
++use codex_protocol::models::FunctionCallOutputBody;
++use serde_json::Value;
++use std::collections::{HashMap, HashSet};
++use std::hash::{Hash, Hasher};
++use std::io::{self, BufRead, BufReader};
++use std::path::PathBuf;
++use std::sync::atomic::{AtomicBool, Ordering};
++use std::sync::{Arc, LazyLock, Mutex};
++use std::time::SystemTime;
++
++const NAMESPACE: &str = "codux.clarification-history";
++const MAX_RECORD_BYTES: usize = 8 * 1024 * 1024;
++#[derive(Clone, Default)]
++struct TurnData {
++    mode: Option<String>,
++    anchors: HashMap<String, usize>,
++    exchanges: Vec<(usize, ThreadItemPayload)>,
++}
++#[derive(Default)]
++struct Metadata {
++    turns: HashMap<String, TurnData>,
++    plan_items: HashSet<String>,
++}
++#[derive(Clone, PartialEq, Eq)]
++struct Fingerprint(PathBuf, u64, Option<SystemTime>);
++struct Cached {
++    fingerprint: Fingerprint,
++    data: Metadata,
++}
++static CACHE: LazyLock<Mutex<HashMap<String, Cached>>> =
++    LazyLock::new(|| Mutex::new(HashMap::new()));
++static LIVE_MODES: LazyLock<Mutex<HashMap<(String, String), bool>>> =
++    LazyLock::new(|| Mutex::new(HashMap::new()));
++
++fn text(value: &Value) -> String {
++    match value {
++        Value::String(s) => s.clone(),
++        Value::Array(items) => items
++            .iter()
++            .map(text)
++            .filter(|s| !s.is_empty())
++            .collect::<Vec<_>>()
++            .join("\n"),
++        Value::Object(_) => value
++            .get("text")
++            .and_then(Value::as_str)
++            .unwrap_or_default()
++            .to_owned(),
++        _ => String::new(),
++    }
++}
++fn decoded(value: &Value) -> Option<Value> {
++    if let Some(s) = value.as_str() {
++        serde_json::from_str(s).ok()
++    } else {
++        Some(value.clone())
++    }
++}
++fn signature(role: &str, body: &str) -> String {
++    let mut hash = std::collections::hash_map::DefaultHasher::new();
++    body.trim().hash(&mut hash);
++    format!("{role}:{:x}", hash.finish())
++}
++fn payload_keys(item: &ThreadItemPayload) -> Vec<String> {
++    let mut keys = vec![format!("id:{}", item.id())];
++    match item {
++        ThreadItemPayload::AgentMessage { text, .. } => keys.push(signature("assistant", text)),
++        ThreadItemPayload::Plan { text, .. } => keys.push(signature("assistant", text)),
++        ThreadItemPayload::UserMessage { content, .. } => {
++            if let Ok(value) = serde_json::to_value(content) {
++                keys.push(signature("user", &text(&value)));
++            }
++        }
++        _ => {}
++    }
++    keys
++}
++fn position(data: &TurnData, item: &ThreadItemPayload) -> Option<usize> {
++    payload_keys(item)
++        .iter()
++        .find_map(|key| data.anchors.get(key).copied())
++}
++
++fn scan(mut reader: impl BufRead, expected_thread: &str) -> io::Result<Metadata> {
++    let mut result = Metadata::default();
++    let mut turn = String::new();
++    let mut calls: HashMap<String, (String, Value)> = HashMap::new();
++    let mut line = Vec::new();
++    let mut sequence = 0;
++    loop {
++        line.clear();
++        // A malformed giant record must not allocate the whole conversation.
++        let mut oversized = false;
++        loop {
++            let available = reader.fill_buf()?;
++            if available.is_empty() {
++                break;
++            }
++            let count = available
++                .iter()
++                .position(|b| *b == b'\n')
++                .map_or(available.len(), |i| i + 1);
++            let ended = available[count - 1] == b'\n';
++            if line.len() + count <= MAX_RECORD_BYTES {
++                line.extend_from_slice(&available[..count]);
++            } else {
++                oversized = true;
++            }
++            reader.consume(count);
++            if ended {
++                break;
++            }
++        }
++        if line.is_empty() && !oversized {
++            break;
++        }
++        sequence += 1;
++        if oversized {
++            continue;
++        }
++        let Ok(row) = serde_json::from_slice::<Value>(&line) else {
++            continue;
++        };
++        let p = &row["payload"];
++        let kind = row["type"].as_str().unwrap_or_default();
++        if kind == "session_meta" {
++            if p["id"].as_str().is_some_and(|id| id != expected_thread) {
++                return Err(io::Error::other("rollout belongs to a different thread"));
++            }
++            continue;
++        }
++        if let Some(id) = p["turn_id"].as_str() {
++            turn = id.to_owned();
++        }
++        if turn.is_empty() {
++            continue;
++        }
++        let data = result.turns.entry(turn.clone()).or_default();
++        if kind == "turn_context" {
++            if let Some(mode) = p["collaboration_mode"]["mode"].as_str() {
++                data.mode = Some(mode.to_owned());
++            }
++            continue;
++        }
++        let typ = p["type"].as_str().unwrap_or_default();
++        if kind == "response_item" && matches!(typ, "function_call" | "custom_tool_call") {
++            let name = p["name"]
++                .as_str()
++                .unwrap_or_default()
++                .rsplit('.')
++                .next()
++                .unwrap_or_default();
++            if name == "request_user_input" {
++                let args = decoded(
++                    p.get("arguments")
++                        .or_else(|| p.get("input"))
++                        .unwrap_or(&Value::Null),
++                );
++                if let (Some(id), Some(questions)) = (
++                    p["call_id"].as_str(),
++                    args.and_then(|a| a.get("questions").cloned())
++                        .filter(Value::is_array),
++                ) {
++                    calls.insert(id.into(), (turn.clone(), questions));
++                }
++            }
++        }
++        if kind == "response_item"
++            && matches!(typ, "function_call_output" | "custom_tool_call_output")
++        {
++            if let Some(id) = p["call_id"].as_str() {
++                data.anchors.insert(format!("id:{id}"), sequence);
++                if let Some((request_turn, questions)) = calls.remove(id)
++                    && request_turn == turn
++                    && let Some(output) = decoded(&p["output"])
++                    && output["answers"].is_object()
++                {
++                    let body = serde_json::json!({"questions": questions, "answers": output["answers"], "interrupted": output["interrupted"].as_bool().unwrap_or(false)});
++                    data.exchanges.push((
++                        sequence,
++                        ThreadItemPayload::FunctionCallOutput {
++                            id: id.into(),
++                            name: "request_user_input".into(),
++                            namespace: Some(NAMESPACE.into()),
++                            output: FunctionCallOutputBody::Text(body.to_string()),
++                        },
++                    ));
++                }
++            }
++        }
++        let item = if kind == "event_msg" && typ == "item_completed" {
++            &p["item"]
++        } else {
++            p
++        };
++        if let Some(id) = item["id"].as_str() {
++            data.anchors.insert(format!("id:{id}"), sequence);
++        }
++        let item_kind = item["type"]
++            .as_str()
++            .unwrap_or_default()
++            .replace('_', "")
++            .to_lowercase();
++        let role = match item_kind.as_str() {
++            "usermessage" => "user",
++            "agentmessage" | "plan" => "assistant",
++            "message" if kind == "response_item" => item["role"].as_str().unwrap_or_default(),
++            _ => "",
++        };
++        if matches!(role, "user" | "assistant") {
++            let body = item
++                .get("text")
++                .or_else(|| item.get("message"))
++                .map(text)
++                .filter(|s| !s.is_empty())
++                .unwrap_or_else(|| text(&item["content"]));
++            if !body.is_empty() {
++                data.anchors
++                    .entry(signature(role, &body))
++                    .or_insert(sequence);
++            }
++        }
++    }
++    Ok(result)
++}
++
++fn turn_data<'a>(metadata: &'a Metadata, turn: &Turn) -> Option<&'a TurnData> {
++    if let Some(data) = metadata.turns.get(&turn.id) {
++        return Some(data);
++    }
++    // Older materializers generated turn IDs. Only an unambiguous original prompt can bridge them.
++    let question = turn
++        .items
++        .iter()
++        .find(|item| matches!(item.payload, ThreadItemPayload::UserMessage { .. }))?;
++    let keys = payload_keys(&question.payload);
++    let mut matching = metadata
++        .turns
++        .values()
++        .filter(|data| keys.iter().any(|key| data.anchors.contains_key(key)));
++    let found = matching.next()?;
++    matching.next().is_none().then_some(found)
++}
++fn enrich(
++    metadata: &mut Metadata,
++    turns: &mut [Turn],
++    full: bool,
++) -> Vec<(String, ThreadItemPayload)> {
++    let mut inserted = Vec::new();
++    for turn in turns {
++        let Some(data) = turn_data(metadata, turn).cloned() else {
++            continue;
++        };
++        for item in &turn.items {
++            if data.mode.as_deref() == Some("plan") {
++                metadata.plan_items.insert(item.id().into());
++            }
++        }
++        let positions: Vec<_> = turn
++            .items
++            .iter()
++            .filter_map(|i| position(&data, &i.payload))
++            .collect();
++        let span = positions.iter().min().zip(positions.iter().max());
++        for (sequence, item) in &data.exchanges {
++            if let Some(existing) = turn.items.iter_mut().find(|entry| entry.id() == item.id()) {
++                existing.payload = item.clone();
++                continue;
++            }
++            if !full && !span.is_some_and(|(start, end)| (*start..=*end).contains(sequence)) {
++                continue;
++            }
++            let index = turn
++                .items
++                .iter()
++                .position(|entry| position(&data, &entry.payload).is_some_and(|p| p > *sequence))
++                .unwrap_or(turn.items.len());
++            turn.items.insert(index, ThreadItem::untimed(item.clone()));
++            inserted.push((turn.id.clone(), item.clone()));
++        }
++    }
++    inserted
++}
++
++pub(crate) async fn prepare(thread: &mut Thread, local: bool) {
++    if !local {
++        return;
++    }
++    let Some(mut path) = thread.path.clone() else {
++        return;
++    };
++    if !path.is_file() {
++        let mut compressed = path.as_os_str().to_os_string();
++        compressed.push(".zst");
++        path = PathBuf::from(compressed);
++    }
++    let Ok(stat) = std::fs::metadata(&path) else {
++        return;
++    };
++    let fingerprint = Fingerprint(path.clone(), stat.len(), stat.modified().ok());
++    {
++        let mut cache = CACHE.lock().unwrap_or_else(|e| e.into_inner());
++        if let Some(cached) = cache
++            .get_mut(&thread.id)
++            .filter(|c| c.fingerprint == fingerprint)
++        {
++            enrich(
++                &mut cached.data,
++                &mut thread.turns,
++                thread.history_mode == codex_app_server_protocol::ThreadHistoryMode::Legacy,
++            );
++            return;
++        }
++    }
++    let cancelled = Arc::new(AtomicBool::new(false));
++    struct Cancel(Arc<AtomicBool>);
++    impl Drop for Cancel {
++        fn drop(&mut self) {
++            self.0.store(true, Ordering::Relaxed);
++        }
++    }
++    let _cancel = Cancel(Arc::clone(&cancelled));
++    let id = thread.id.clone();
++    let result = tokio::task::spawn_blocking(move || {
++        let reader = codex_rollout::open_rollout_seekable_reader(&path, || {
++            cancelled.load(Ordering::Relaxed)
++        })?;
++        scan(BufReader::new(reader), &id)
++    })
++    .await;
++    match result {
++        Ok(Ok(mut data)) => {
++            enrich(
++                &mut data,
++                &mut thread.turns,
++                thread.history_mode == codex_app_server_protocol::ThreadHistoryMode::Legacy,
++            );
++            let mut cache = CACHE.lock().unwrap_or_else(|e| e.into_inner());
++            if cache.len() >= 8 {
++                cache.clear();
++            }
++            cache.insert(thread.id.clone(), Cached { fingerprint, data });
++        }
++        _ => tracing::debug!("Codux local history enrichment unavailable; keeping server history"),
++    }
++}
++
++pub(crate) fn enrich_page(
++    thread: ThreadId,
++    turns: &mut [Turn],
++    items: &mut Vec<(String, ThreadItemPayload)>,
++) {
++    let mut cache = CACHE.lock().unwrap_or_else(|e| e.into_inner());
++    let Some(cached) = cache.get_mut(&thread.to_string()) else {
++        return;
++    };
++    let added = enrich(&mut cached.data, turns, false);
++    for (turn_id, item) in items.iter_mut() {
++        if let Some(entry) = turns
++            .iter()
++            .find(|t| t.id == *turn_id)
++            .and_then(|t| t.items.iter().find(|e| e.id() == item.id()))
++        {
++            *item = entry.payload.clone();
++        }
++    }
++    items.extend(added);
++    items.sort_by_key(|(id, item)| {
++        turns
++            .iter()
++            .enumerate()
++            .find_map(|(ti, turn)| {
++                (turn.id == *id).then(|| {
++                    (
++                        ti,
++                        turn.items
++                            .iter()
++                            .position(|e| e.id() == item.id())
++                            .unwrap_or(usize::MAX),
++                    )
++                })
++            })
++            .unwrap_or((usize::MAX, usize::MAX))
++    });
++    let mut seen = HashSet::new();
++    items.retain(|(turn, item)| seen.insert((turn.clone(), item.id().to_owned())));
++}
++pub(crate) fn is_plan(thread: Option<ThreadId>, item: &str) -> bool {
++    let Some(thread) = thread else {
++        return false;
++    };
++    CACHE
++        .lock()
++        .unwrap_or_else(|e| e.into_inner())
++        .get(&thread.to_string())
++        .is_some_and(|c| c.data.plan_items.contains(item))
++}
++pub(crate) fn remember_live_mode(thread: Option<ThreadId>, turn: &str, plan: bool) {
++    if let Some(thread) = thread {
++        let mut modes = LIVE_MODES.lock().unwrap_or_else(|e| e.into_inner());
++        if modes.len() > 512 {
++            modes.clear();
++        }
++        modes
++            .entry((thread.to_string(), turn.into()))
++            .or_insert(plan);
++    }
++}
++pub(crate) fn live_plan(thread: Option<ThreadId>, turn: &str, fallback: bool) -> bool {
++    thread
++        .and_then(|thread| {
++            LIVE_MODES
++                .lock()
++                .unwrap_or_else(|e| e.into_inner())
++                .get(&(thread.to_string(), turn.into()))
++                .copied()
++        })
++        .unwrap_or(fallback)
++}
++pub(crate) fn clarification(
++    namespace: Option<&str>,
++    output: &FunctionCallOutputBody,
++) -> Option<crate::history_cell::RequestUserInputResultCell> {
++    if namespace != Some(NAMESPACE) {
++        return None;
++    }
++    let FunctionCallOutputBody::Text(body) = output else {
++        return None;
++    };
++    let mut data: Value = serde_json::from_str(body).ok()?;
++    // Older raw tool arguments used snake_case; the server UI type uses camelCase.
++    for question in data["questions"].as_array_mut()? {
++        if question["is_secret"].as_bool() == Some(true) {
++            question["isSecret"] = Value::Bool(true);
++        }
++    }
++    Some(crate::history_cell::RequestUserInputResultCell {
++        questions: serde_json::from_value(data["questions"].clone()).ok()?,
++        answers: serde_json::from_value(data["answers"].clone()).ok()?,
++        interrupted: data["interrupted"].as_bool().unwrap_or(false),
++    })
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn codux_history_preserves_secret_flags_in_both_saved_formats() {
++        for field in ["isSecret", "is_secret"] {
++            let mut question = serde_json::json!({"id":"secret","header":"Private","question":"Value?","options":null});
++            question[field] = Value::Bool(true);
++            let output = FunctionCallOutputBody::Text(serde_json::json!({"questions":[question],"answers":{"secret":{"answers":["private"]}}}).to_string());
++            assert!(clarification(Some(NAMESPACE), &output).unwrap().questions[0].is_secret);
++        }
++    }
++    fn fixture() -> Metadata {
++        let rows = [
++            serde_json::json!({"type":"turn_context","payload":{"turn_id":"turn","collaboration_mode":{"mode":"plan"}}}),
++            serde_json::json!({"type":"event_msg","payload":{"type":"user_message","message":"Original prompt"}}),
++            serde_json::json!({"type":"response_item","payload":{"type":"function_call","call_id":"call","name":"request_user_input","arguments":{"questions":[{"id":"x","header":"Choice","question":"Which?","options":null}]}}}),
++            serde_json::json!({"type":"response_item","payload":{"type":"function_call_output","call_id":"call","output":{"answers":{"x":{"answers":["One"]}}}}}),
++            serde_json::json!({"type":"response_item","payload":{"type":"message","role":"assistant","id":"answer","content":[{"type":"output_text","text":"Result"}]}}),
++        ];
++        scan(
++            rows.iter()
++                .map(Value::to_string)
++                .collect::<Vec<_>>()
++                .join("\n")
++                .as_bytes(),
++            "test",
++        )
++        .unwrap()
++    }
++    fn test_turn(with_prompt: bool) -> Turn {
++        let mut items = vec![];
++        if with_prompt {
++            items.push(serde_json::json!({"type":"userMessage","id":"prompt","content":[{"type":"text","text":"Original prompt","textElements":[]}]}));
++        }
++        items.push(serde_json::json!({"type":"agentMessage","id":"answer","text":"Result","phase":"final_answer"}));
++        serde_json::from_value(
++            serde_json::json!({"id":"turn","items":items,"itemsView":"full","status":"completed"}),
++        )
++        .unwrap()
++    }
++    #[test]
++    fn codux_history_paging_inserts_exchanges_once_in_source_order() {
++        let mut metadata = fixture();
++        let mut turns = [test_turn(false)];
++        assert!(enrich(&mut metadata, &mut turns, false).is_empty());
++        turns[0].items.insert(0, test_turn(true).items.remove(0));
++        assert_eq!(enrich(&mut metadata, &mut turns, false).len(), 1);
++        assert_eq!(
++            turns[0]
++                .items
++                .iter()
++                .map(ThreadItem::id)
++                .collect::<Vec<_>>(),
++            ["prompt", "call", "answer"]
++        );
++        assert!(enrich(&mut metadata, &mut turns, false).is_empty());
++        assert!(metadata.plan_items.contains("answer"));
++        let mut legacy = [test_turn(true)];
++        legacy[0].id = "legacy-generated-turn-id".into();
++        assert_eq!(enrich(&mut metadata, &mut legacy, true).len(), 1);
++    }
++    #[test]
++    fn codux_history_does_not_guess_ambiguous_legacy_turns() {
++        let mut metadata = fixture();
++        metadata
++            .turns
++            .insert("another".into(), metadata.turns["turn"].clone());
++        let mut turns = [test_turn(true)];
++        turns[0].id = "unknown".into();
++        assert!(enrich(&mut metadata, &mut turns, true).is_empty());
++        assert!(metadata.plan_items.is_empty());
++    }
++    #[test]
++    fn codux_history_pairs_only_answers_and_records_mode() {
++        let rows = [
++            serde_json::json!({"type":"session_meta","payload":{"id":"test"}}),
++            serde_json::json!({"type":"turn_context","payload":{"turn_id":"turn","collaboration_mode":{"mode":"plan"}}}),
++            serde_json::json!({"type":"response_item","payload":{"type":"function_call","call_id":"q","name":"request_user_input","arguments":"{\"questions\":[{\"id\":\"choice\",\"header\":\"Choice\",\"question\":\"Which option?\",\"options\":null}]}"}}),
++            serde_json::json!({"type":"response_item","payload":{"type":"function_call_output","call_id":"q","output":"{\"answers\":{\"choice\":{\"answers\":[\"One\"]}}}"}}),
++        ];
++        let source = rows
++            .iter()
++            .map(Value::to_string)
++            .collect::<Vec<_>>()
++            .join("\n");
++        let parsed = scan(source.as_bytes(), "test").unwrap();
++        let turn = &parsed.turns["turn"];
++        assert_eq!(turn.mode.as_deref(), Some("plan"));
++        assert_eq!(turn.exchanges.len(), 1);
++        let ThreadItemPayload::FunctionCallOutput {
++            namespace, output, ..
++        } = &turn.exchanges[0].1
++        else {
++            panic!()
++        };
++        let cell = clarification(namespace.as_deref(), output).unwrap();
++        assert_eq!(cell.questions[0].question, "Which option?");
++        assert_eq!(cell.answers["choice"].answers, ["One"]);
++        assert!(scan(source.as_bytes(), "different").is_err());
++        let accepted = source.replace(
++            "\\\"answers\\\":{\\\"choice\\\":{\\\"answers\\\":[\\\"One\\\"]}}",
++            "\\\"accepted\\\":true",
++        );
++        assert!(
++            scan(accepted.as_bytes(), "test").unwrap().turns["turn"]
++                .exchanges
++                .is_empty()
++        );
++    }
++}
 diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_view.rs
 --- a/codex-rs/tui/src/transcript_view.rs
 +++ b/codex-rs/tui/src/transcript_view.rs
@@ -13528,7 +14465,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
  mod prompt_header;
  mod search;
  mod select_mode;
-@@ -112,9 +114,17 @@
+@@ -112,9 +114,18 @@
      live_separated: Option<Arc<TextLayout>>,
      live_key: Option<(u16, ActiveCellTranscriptKey)>,
      live_continuation: bool,
@@ -13537,6 +14474,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 +    mycodx_live_join: Option<EntryKey>,
 +    mycodx_live_secondary: bool,
 +    mycodx_stream_section: crate::mycodx_ui::Section,
++    codux_stream_plan: bool,
 +    mycodx_ui: crate::mycodx_ui::Settings,
 +    mermaid_revision: u64,
      area: Rect,
@@ -13546,7 +14484,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      visible: Vec<VisibleRow>,
      selection: Option<Selection>,
      select_mode: Option<SelectMode>,
-@@ -156,9 +166,17 @@
+@@ -156,9 +167,18 @@
              live_separated: None,
              live_key: None,
              live_continuation: false,
@@ -13555,6 +14493,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 +            mycodx_live_join: None,
 +            mycodx_live_secondary: false,
 +            mycodx_stream_section: crate::mycodx_ui::Section::Answers,
++            codux_stream_plan: false,
 +            mycodx_ui: crate::mycodx_ui::current(),
 +            mermaid_revision: crate::codux_mermaid::revision(),
              area: Rect::default(),
@@ -13564,7 +14503,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              visible: Vec::new(),
              selection: None,
              select_mode: None,
-@@ -211,6 +229,18 @@
+@@ -211,6 +231,18 @@
      }
  
      fn paint_rows(&mut self, area: Rect, buf: &mut Buffer, cells: &[Arc<dyn HistoryCell>]) {
@@ -13583,7 +14522,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.composer_tip = None;
          self.prompt_header_target = None;
          self.cache.begin_frame();
-@@ -257,6 +287,25 @@
+@@ -257,6 +289,25 @@
          };
          let initial_start = render_start(self);
          let initial_position = self.position;
@@ -13609,7 +14548,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let mut start = initial_start;
          let mut body = area;
          let header_position = prompt_header::SuppressedHeader {
-@@ -264,28 +313,47 @@
+@@ -264,28 +315,47 @@
              key: self.entry_key(cells, start.0),
              row: start.1,
          };
@@ -13668,7 +14607,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
                  self.prompt_header_target = Some((header_area, key));
              } else {
                  body = area;
-@@ -297,6 +365,7 @@
+@@ -297,6 +367,7 @@
                  self.suppressed_prompt_header = Some(header_position);
              }
          }
@@ -13676,7 +14615,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let area = body;
          let (mut index, mut row) = start;
          let mut entry_activity_ids: Option<(usize, Arc<[String]>)> = None;
-@@ -326,11 +395,15 @@
+@@ -326,11 +397,15 @@
                  }
              };
              let row_area = Rect::new(area.x, y, area.width, /*height*/ 1);
@@ -13694,7 +14633,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              if self.highlight == Some(index) && self.selection.is_none() && !self.search.is_active()
              {
                  layout.highlight(0..layout.text().len(), row_area, buf, row);
-@@ -486,11 +559,12 @@
+@@ -486,11 +561,12 @@
          cells: &[Arc<dyn HistoryCell>],
          active: Option<&dyn HistoryCell>,
          auxiliary: &[HyperlinkLine],
@@ -13709,7 +14648,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let disclose = !self.disclosure.live_ids.is_empty() && self.mode == HistoryRenderMode::Rich;
          let mode = self.mode;
          let lines = |width| {
-@@ -550,6 +624,27 @@
+@@ -550,6 +626,34 @@
          })
      }
  
@@ -13717,6 +14656,13 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 +        if self.mycodx_stream_id != id {
 +            self.mycodx_stream_id = id;
 +            self.live_key = None;
++        }
++    }
++
++    pub(crate) fn set_codux_stream_plan(&mut self, plan: bool) {
++        if self.codux_stream_plan != plan {
++            self.codux_stream_plan = plan;
++            self.refresh_mycodx_ui();
 +        }
 +    }
 +
@@ -13737,7 +14683,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      pub(crate) fn sync_live_activity_tail(
          &mut self,
          width: u16,
-@@ -561,9 +656,51 @@
+@@ -561,9 +665,57 @@
              .disclosure
              .keymap
              .primary_hint(crate::keymap::KeymapContext::Global, "open_transcript");
@@ -13748,6 +14694,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 +        let _mermaid_scope = crate::codux_mermaid::scope(cards);
 +        let stream = cards && self.mycodx_stream;
 +        let stream_section = self.mycodx_stream_section;
++        let plan = self.codux_stream_plan;
 +        let count = if cards {
 +            self.disclosure.live_ids.len()
 +        } else {
@@ -13771,7 +14718,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 +            };
 +            lines(inner).map(|lines| {
 +                if stream || count > 0 {
-+                    mycodx::live_layout_section(
++                    let layout = mycodx::live_layout_section(
 +                        lines,
 +                        width,
 +                        count,
@@ -13779,7 +14726,12 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
 +                        stream,
 +                        heading,
 +                        stream_section,
-+                    )
++                    );
++                    if plan && stream {
++                        layout.with_plan_label()
++                    } else {
++                        layout
++                    }
 +                } else {
 +                    layout::activity_layout(lines, width, expanded, shortcut)
 +                }
@@ -13792,7 +14744,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      }
  
      pub(crate) fn sync_live_layout(
-@@ -572,6 +709,15 @@
+@@ -572,6 +724,15 @@
          key: Option<ActiveCellTranscriptKey>,
          layout: impl FnOnce(u16) -> Option<TextLayout>,
      ) -> bool {
@@ -13808,7 +14760,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let next = key.map(|key| (width, key));
          if key.is_some_and(|key| key.cacheable) && self.live_key == next {
              return false;
-@@ -582,6 +728,16 @@
+@@ -582,6 +743,16 @@
          self.live_separated = None;
          self.live_continuation = key.is_some_and(|key| key.is_stream_continuation);
          let live = layout(width).map(Arc::new);
@@ -13825,7 +14777,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          if self.live.as_ref().map(|layout| layout.activity_content())
              != live.as_ref().map(|layout| layout.activity_content())
          {
-@@ -593,6 +749,20 @@
+@@ -593,6 +764,20 @@
          let changed = self.live.is_some() || live.is_some();
          self.live = live;
          changed
@@ -13846,7 +14798,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
      }
  
      pub(crate) fn set_presentation(&mut self, detailed: bool, mode: HistoryRenderMode) {
-@@ -605,6 +775,7 @@
+@@ -605,6 +790,7 @@
          self.release_live_reading();
          self.cache.clear();
          self.suppressed_prompt_header = None;
@@ -13854,7 +14806,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.live_key = None;
          // Keep search's origin independent of either presentation's saved position.
          if self.detailed != detailed && !self.search.is_active() {
-@@ -665,6 +836,7 @@
+@@ -665,6 +851,7 @@
  
      pub(crate) fn jump_to_latest(&mut self) {
          self.disclosure.resume_after_approval = None;
@@ -13862,7 +14814,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          self.cancel_search();
          self.cancel_beginning();
          self.position = Position::Latest;
-@@ -683,6 +855,10 @@
+@@ -683,6 +870,10 @@
              self.cancel_beginning();
          }
          if self.area.is_empty() {
@@ -13873,7 +14825,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
              return;
          }
          let current_cells = cells;
-@@ -736,15 +912,19 @@
+@@ -736,15 +927,19 @@
      }
  
      pub(crate) fn jump_to_entry(&mut self, cells: &[Arc<dyn HistoryCell>], index: usize) {
@@ -13894,7 +14846,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          });
      }
  
-@@ -823,6 +1003,14 @@
+@@ -823,6 +1018,14 @@
      }
  
      fn bottom_start(&mut self, cells: &[Arc<dyn HistoryCell>]) -> (usize, usize) {
@@ -13909,7 +14861,7 @@ diff --git a/codex-rs/tui/src/transcript_view.rs b/codex-rs/tui/src/transcript_v
          let snapshot = self.snapshot_cells();
          let cells = snapshot.as_deref().unwrap_or(cells);
          let has_live = self.snapshot().map_or(self.live.is_some(), |snapshot| {
-@@ -836,19 +1024,14 @@
+@@ -836,19 +1039,14 @@
              .layout(cells, last)
              .map_or(/*default*/ 0, |l| l.row_count());
          let recap_gap = usize::from(
@@ -13962,7 +14914,7 @@ diff --git a/codex-rs/tui/src/transcript_view/codux_navigation.rs b/codex-rs/tui
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/codux_navigation.rs
-@@ -0,0 +1,271 @@
+@@ -0,0 +1,272 @@
 +//! Navigation changes must preserve source positions when hiding tools joins prose cards.
 +use super::*;
 +use crate::mycodx_ui::Section;
@@ -14024,6 +14976,7 @@ new file mode 100644
 +            && self.copy_mode.is_none()
 +    }
 +
++    #[cfg(test)]
 +    pub(crate) fn cycle_codux_card_mode(
 +        &mut self,
 +        cells: &[Arc<dyn HistoryCell>],
@@ -15168,7 +16121,7 @@ diff --git a/codex-rs/tui/src/transcript_view/disclosure.rs b/codex-rs/tui/src/t
 +            .primary_hint(crate::keymap::KeymapContext::Global, "open_transcript")
 +            .map(|key| key.display_label())
 +            .unwrap_or_default();
-+        let mode = crate::mycodx_ui::current().card_mode().label();
++        let mode = "cards";
 +        let scope = self.disclosure.navigation_scope.label();
 +        let empty = if self.disclosure.focused.is_none() {
 +            " (no visible cards)"
@@ -16013,7 +16966,7 @@ diff --git a/codex-rs/tui/src/transcript_view/mycodx.rs b/codex-rs/tui/src/trans
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/mycodx.rs
-@@ -0,0 +1,485 @@
+@@ -0,0 +1,505 @@
 +//! Presentation-only cards. Canonical history, tool execution and persisted source stay upstream.
 +
 +use super::*;
@@ -16056,6 +17009,21 @@ new file mode 100644
 +    crate::mycodx_ui::current()
 +        .card(crate::mycodx_ui::Section::Answers)
 +        .message_content_width(width)
++}
++
++pub(super) fn is_plan(cell: &Arc<dyn HistoryCell>) -> bool {
++    cell.as_any().is::<crate::history_cell::ProposedPlanCell>()
++        || cell
++            .as_any()
++            .is::<crate::history_cell::ProposedPlanStreamCell>()
++        || cell
++            .as_any()
++            .downcast_ref::<AgentMarkdownCell>()
++            .is_some_and(|c| c.mycodx_plan && c.mycodx_is_final_answer())
++        || cell
++            .as_any()
++            .downcast_ref::<crate::history_cell::AgentMessageCell>()
++            .is_some_and(|c| c.mycodx_plan && c.mycodx_final_answer)
 +}
 +
 +pub(super) fn section(cell: &Arc<dyn HistoryCell>) -> Option<crate::mycodx_ui::Section> {
@@ -16217,7 +17185,7 @@ new file mode 100644
 +) -> Option<crate::mycodx_ui::Section> {
 +    use crate::mycodx_ui::Section;
 +    let kind = section(cells.get(index)?);
-+    if kind != Some(Section::Answers) {
++    if kind != Some(Section::Answers) || is_plan(&cells[index]) {
 +        return kind;
 +    }
 +    let id = identity(cells, index);
@@ -16418,13 +17386,18 @@ new file mode 100644
 +            .as_any()
 +            .is::<crate::history_cell::ProposedPlanStreamCell>();
 +    let heading = !first.is_stream_continuation();
-+    TextLayout::new(lines, inner).with_message_card(
++    let layout = TextLayout::new(lines, inner).with_message_card(
 +        width,
 +        style,
 +        expanded,
 +        heading,
 +        !streaming && !live_join,
-+    )
++    );
++    if is_plan(first) {
++        layout.with_plan_label()
++    } else {
++        layout
++    }
 +}
 +
 +#[cfg(test)]
@@ -20954,8 +21927,8 @@ new file mode 100644
 +                |snapshot| snapshot.search_live_section,
 +            ))
 +        } else {
-+            // This also handles plan answers and earlier final candidates that have
-+            // become intermediate messages after a later final answer arrives.
++            // Plans remain final answers. Ordinary earlier final candidates become
++            // intermediate messages after a later final answer arrives.
 +            mycodx::section_at(cells, anchor.index)
 +        };
 +        self.search.scope.includes(section)
@@ -20969,7 +21942,7 @@ diff --git a/codex-rs/tui/src/transcript_view/search_scope_tests.rs b/codex-rs/t
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/search_scope_tests.rs
-@@ -0,0 +1,232 @@
+@@ -0,0 +1,241 @@
 +use super::*;
 +use crate::history_cell::{AgentMarkdownCell, PlainHistoryCell};
 +use crate::mycodx_ui::Settings;
@@ -21124,15 +22097,24 @@ new file mode 100644
 +        scan(&mut view, &cells);
 +        assert_eq!(index(&view), Some(1));
 +        view.cancel_search();
++        // A structured plan stays a final answer even after a later answer arrives.
++        // Ordinary replaced final candidates still become intermediate messages.
++        cells.push(assistant("needle replaced final", true));
 +        cells.push(assistant("needle final", true));
 +        view.begin_search();
 +        view.paste_search("needle");
 +        scan(&mut view, &cells);
-+        assert_eq!(index(&view), Some(2));
++        assert_eq!(index(&view), Some(3));
++        view.handle_search_key(
++            KeyEvent::new(KeyCode::Char('n'), KeyModifiers::CONTROL),
++            &cells,
++        );
++        scan(&mut view, &cells);
++        assert_eq!(index(&view), Some(1));
 +        view.handle_search_key(KeyCode::BackTab.into(), &cells);
 +        scan(&mut view, &cells);
 +        assert_eq!(view.search.scope, SearchScope::Intermediate);
-+        assert_eq!(index(&view), Some(1));
++        assert_eq!(index(&view), Some(2));
 +    });
 +}
 +
@@ -22609,7 +23591,7 @@ diff --git a/codex-rs/tui/src/transcript_view/text_mycodx.rs b/codex-rs/tui/src/
 new file mode 100644
 --- /dev/null
 +++ b/codex-rs/tui/src/transcript_view/text_mycodx.rs
-@@ -0,0 +1,545 @@
+@@ -0,0 +1,618 @@
 +//! Shared geometry for all three card kinds. All decoration has empty source ranges.
 +use super::*;
 +use crate::mycodx_ui::style::{Paint, color};
@@ -22620,6 +23602,7 @@ new file mode 100644
 +    style: CardStyle,
 +    summary: Option<String>,
 +    message: bool,
++    plan: bool,
 +    expanded: bool,
 +    heading: bool,
 +    footer: bool,
@@ -22642,7 +23625,9 @@ new file mode 100644
 +        heading: bool,
 +        footer: bool,
 +    ) -> Self {
-+        self.with_card(width, style, summary, expanded, heading, footer, false)
++        self.with_card(
++            width, style, summary, expanded, heading, footer, false, false,
++        )
 +    }
 +
 +    pub(in crate::transcript_view) fn with_message_card(
@@ -22653,7 +23638,15 @@ new file mode 100644
 +        heading: bool,
 +        footer: bool,
 +    ) -> Self {
-+        self.with_card(width, style, None, expanded, heading, footer, true)
++        self.with_card(width, style, None, expanded, heading, footer, true, false)
++    }
++
++    pub(in crate::transcript_view) fn with_plan_label(self) -> Self {
++        let Some(mut card) = self.common_card.clone() else {
++            return self;
++        };
++        card.plan = true;
++        self.rewrap_common(self.width, &card)
 +    }
 +
 +    fn with_card(
@@ -22665,15 +23658,26 @@ new file mode 100644
 +        heading: bool,
 +        footer: bool,
 +        message: bool,
++        plan: bool,
 +    ) -> Self {
 +        let max = style.maximum(width);
 +        let inset = style.inset(max);
 +        // Source-free state gutter; tools retain their interactive action summary.
-+        let marker_gutter = if message && style.expandable { 2 } else { 0 };
++        let marker_gutter = if message && style.expandable {
++            2 + if plan && !expanded { 7 } else { 0 }
++        } else {
++            0
++        };
 +        let label = summary
 +            .as_ref()
 +            .map(|s| format!("{} {s}", if expanded { "[-]" } else { "[+]" }));
-+        let title = if heading && style.title_visible {
++        let title = if heading && plan && expanded {
++            if style.title_visible && !style.title.is_empty() {
++                format!("PLAN · {}", style.title)
++            } else {
++                "PLAN".into()
++            }
++        } else if heading && style.title_visible && !plan {
 +            style.title.clone()
 +        } else {
 +            String::new()
@@ -22761,7 +23765,12 @@ new file mode 100644
 +        }
 +        let title_rows = usize::from(!title.is_empty());
 +        if title_rows != 0 {
-+            let line = truncate_line_to_width(Line::from(title).dim(), usize::from(outer));
++            let title = if plan {
++                Line::from(title).magenta()
++            } else {
++                Line::from(title).dim()
++            };
++            let line = truncate_line_to_width(title, usize::from(outer));
 +            let offset = left
 +                + if style.align == Align::Right {
 +                    outer.saturating_sub(line.width() as u16)
@@ -22784,6 +23793,7 @@ new file mode 100644
 +            style,
 +            summary,
 +            message,
++            plan,
 +            expanded,
 +            heading,
 +            footer,
@@ -22815,6 +23825,7 @@ new file mode 100644
 +            card.heading,
 +            card.footer,
 +            card.message,
++            card.plan,
 +        )
 +        .append_mycodx_auxiliary(Self::from_logical(
 +            self.logical[card.body_lines..].to_vec(),
@@ -22922,6 +23933,19 @@ new file mode 100644
 +        }
 +        if c.marker_row == Some(index) && c.marker_gutter > 0 {
 +            let x = c.left + c.style.inset(c.width);
++            if c.plan && !c.expanded && c.marker_gutter > 2 {
++                let width =
++                    usize::from((c.marker_gutter - 2).min(area.width.saturating_sub(x + 2)));
++                if width > 0 {
++                    buf.set_stringn(
++                        area.x + x + 2,
++                        area.y + y,
++                        "PLAN · ",
++                        width,
++                        body.fg(ratatui::style::Color::Magenta),
++                    );
++                }
++            }
 +            if x < area.width {
 +                if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
 +                    cell.set_symbol(if c.expanded { "▾" } else { "▸" })
@@ -22976,6 +24000,37 @@ new file mode 100644
 +#[cfg(test)]
 +mod tests {
 +    use super::*;
++    #[test]
++    fn codux_plan_label_preserves_source_links_and_resize() {
++        let source = "https://example.com/plan";
++        for expanded in [false, true] {
++            let mut style = CardStyle::preview(2);
++            style.title_visible = false;
++            let lines = crate::terminal_hyperlinks::annotate_web_urls(vec![Line::from(source)]);
++            let layout = TextLayout::new(lines, style.message_content_width(60))
++                .with_message_card(60, style, expanded, true, true)
++                .with_plan_label();
++            for width in [60, 40, 12, 4, 1] {
++                let layout = layout.rewrap_common(width, layout.common_card.as_ref().unwrap());
++                assert_eq!(layout.text(), source);
++                assert!(layout.common_card.as_ref().unwrap().plan);
++                let row = layout.row_for_offset(0);
++                let column = layout.column_for_offset(0);
++                assert_eq!(layout.link_at(row, column).as_deref(), Some(source));
++                let area = Rect::new(0, 0, width, layout.row_count() as u16);
++                let mut buf = Buffer::empty(area);
++                layout.render(area, &mut buf, 0);
++                if width >= 40 {
++                    let rendered = buf
++                        .content
++                        .iter()
++                        .map(|cell| cell.symbol())
++                        .collect::<String>();
++                    assert!(rendered.contains("PLAN"));
++                }
++            }
++        }
++    }
 +    use crate::mycodx_ui::{Background, Settings};
 +    #[test]
 +    fn codux_unknown_palette_keeps_padding_blank_and_text_copyable() {

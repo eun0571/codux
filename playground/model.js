@@ -21,12 +21,6 @@
     ['Amber',{rgb:[100,74,31]}],['Rose',{rgb:[99,48,65]}],['Purple',{rgb:[72,51,96]}]];
   const card = (settings, role) => role === 'reply' || role === 'intermediate'
     ? settings[role] : settings.cards[{question: 0, tools: 1, answer: 2}[role]];
-  const cardMode = settings => settings.show_tools ? (settings.show_intermediate?'2: All cards':'Custom')
-    : (settings.show_intermediate?'0: Progress':'1: Answers only');
-  function nextCardMode(settings) {
-    const mode=cardMode(settings);
-    return {...settings,show_tools:mode==='1: Answers only',show_intermediate:mode!=='0: Progress'};
-  }
   function applyPalette(settings, palette) {
     const next = copy(settings);
     roles.forEach((role, index) => Object.assign(card(next, role), copy(palette.colors[index])));
@@ -36,7 +30,7 @@
     if (!settings || !Array.isArray(settings.cards) || settings.cards.length !== 3) return false;
     const color = value => ['none','auto'].includes(value)
       || (value && Array.isArray(value.rgb) && value.rgb.length === 3 && value.rgb.every(n => Number.isInteger(n) && n >= 0 && n <= 255));
-    return typeof settings.show_tools === 'boolean' && typeof settings.show_intermediate === 'boolean' && roles.every(role => {
+    return (settings.show_replies === undefined || typeof settings.show_replies === 'boolean') && typeof settings.show_tools === 'boolean' && typeof settings.show_intermediate === 'boolean' && roles.every(role => {
       const c = card(settings, role);
       return c && [50,60,70,80,100].includes(c.max_width) && Number.isInteger(c.padding_x) && c.padding_x >= 0 && c.padding_x <= 6
         && Number.isInteger(c.padding_y) && c.padding_y >= 0 && c.padding_y <= 6 && typeof c.title === 'string' && c.title.length <= 100
@@ -53,6 +47,7 @@
   }
   function migrate(settings) {
     const next = copy(settings);
+    next.show_replies = settings.show_replies !== false;
     roles.forEach(role => delete card(next,role).background_active);
     return next;
   }
@@ -71,9 +66,9 @@
   function groups(items,settings,revealId=null){
     const result=[];
     for(const item of items){
-      if(item.id!==revealId&&((item.role==='tools'&&!settings.show_tools)||(item.role==='intermediate'&&!settings.show_intermediate)))continue;
+      if(item.id!==revealId&&((item.role==='tools'&&!settings.show_tools)||(item.role==='intermediate'&&!settings.show_intermediate)||(item.role==='reply'&&settings.show_replies===false)))continue;
       const previous=result.at(-1);
-      if(previous&&previous.role===item.role&&['tools','intermediate'].includes(item.role)){
+      if(previous&&previous.role===item.role&&!previous.plan&&!item.plan&&['tools','intermediate'].includes(item.role)){
         previous.text+='\n\n'+item.text;previous.members.push(item.id);previous.actions+=(item.actions||0);previous.failed||=item.failed;
       }else result.push({...item,members:[item.id]});
     }
@@ -124,7 +119,7 @@
     if(event.key==='Tab'||event.key==='Enter')return event.repeat?'ignore':event.key==='Tab'?'complete':'submit';
     return null;
   }
-  function footer({columns=120,browsing=false,navigationFilter='all',navigationEmpty=false,searchMode='closed',query='',matches=0,filter='all',hasDraft=false,working=false,help=false,scrolled=false,mode='0: Progress'}={}){
+  function footer({columns=120,browsing=false,navigationFilter='all',navigationEmpty=false,searchMode='closed',query='',matches=0,filter='all',hasDraft=false,working=false,help=false,scrolled=false}={}){
     const fit=lines=>lines.find(line=>Array.from(line).length<=columns)||lines.at(-1);
     if(help)return '? or esc close';
     if(searchMode==='editing'){
@@ -133,7 +128,7 @@
     }
     if(searchMode==='reading')return fit([`Find${filter==='all'?'':` [${filterLabels[filter]}]`} · ctrl+p older · ctrl+n newer · esc latest`,'ctrl+p older · ctrl+n newer · esc latest','esc latest']);
     if(browsing){const label=filterLabels[navigationFilter],empty=navigationEmpty?' (no visible cards)':'';return fit([
-      `Browsing [${label}]${empty} · tab filter · ↑↓ scroll · ctrl+up/down cards · enter fold · shift+f4 ${mode} · esc back`,
+      `Browsing [${label}]${empty} · tab filter · ↑↓ scroll · ctrl+up/down cards · enter fold · shift+f4 cards · esc back`,
       `Browsing [${label}]${empty} · tab filter · ctrl+up/down cards · enter fold · esc back`,
       `[${label}]${empty} · tab filter · ctrl+up/down cards · enter fold`,
       `[${label}]${empty} · tab filter · esc back`,`[${label}] · tab filter`,'tab filter · esc back']);}
@@ -195,6 +190,6 @@
     if(key==='Enter'&&!button&&(browsing||card))return 'fold';
     return null;
   }
-  root.PlaygroundModel = {copy, roles, roleLabels, sharedCardKeys, applyCardValue, targetLabel, colors, card, cardMode, nextCardMode, applyPalette, validSettings, brighten, surface, migrate, restoredAnswers, foreground, contrast, groups, excerpt, search, filters, filterLabels, matchesFilter, nextFilter, nearestCard, navigate, keyAction, workingPreview, statusFrame, composerAction, commandSuggestion, commandSuggestionAction, footer};
+  root.PlaygroundModel = {copy, roles, roleLabels, sharedCardKeys, applyCardValue, targetLabel, colors, card, applyPalette, validSettings, brighten, surface, migrate, restoredAnswers, foreground, contrast, groups, excerpt, search, filters, filterLabels, matchesFilter, nextFilter, nearestCard, navigate, keyAction, workingPreview, statusFrame, composerAction, commandSuggestion, commandSuggestionAction, footer};
   if (typeof module !== 'undefined') module.exports = root.PlaygroundModel;
 })(globalThis);

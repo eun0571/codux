@@ -139,6 +139,36 @@ for(let value=0;value<=255;value++){
 }
 const S=require('../playground/sessions.js');
 const row=(type,payload)=>JSON.stringify({timestamp:'2026-11-06T00:00:00Z',type,payload});
+// Visibility is independent of styles, and hidden replies remain searchable.
+{
+  const items=[{id:'q',role:'question',text:'Original prompt'},{id:'r',role:'reply',text:'Clarification answer'},{id:'a',role:'answer',text:'Final answer'}];
+  const settings={...M.copy(defaults),show_replies:false};
+  assert.deepEqual(M.groups(items,settings).map(i=>i.id),['q','a']);
+  assert.deepEqual(M.search(items,'Clarification','questions'),['r']);
+  assert.deepEqual(M.groups(items,settings,'r').map(i=>i.id),['q','r','a']);
+  const legacy=M.copy(settings);delete legacy.show_replies;
+  assert.equal(M.migrate(legacy).show_replies,true);
+  assert.equal(M.applyPalette(settings,JSON.parse(JSON.stringify(palettes[0].choices[0]))).show_replies,false);
+}
+{
+  const records=[
+    row('turn_context',{turn_id:'plan-turn',collaboration_mode:{mode:'plan'}}),
+    row('response_item',{type:'function_call',call_id:'ask',name:'request_user_input',arguments:JSON.stringify({questions:[{id:'x',question:'Choose a path?'},{id:'secret',question:'Private value?',isSecret:true}]})}),
+    row('response_item',{type:'function_call_output',call_id:'ask',output:JSON.stringify({answers:{x:{answers:['Path A']},secret:{answers:['do-not-show']}}})}),
+    row('response_item',{type:'message',role:'assistant',phase:'final_answer',content:[{type:'output_text',text:'A plain final answer in Plan mode.'}]}),
+    row('turn_context',{turn_id:'default-turn',collaboration_mode:{mode:'default'}}),
+    row('response_item',{type:'message',role:'user',content:[{type:'input_text',text:'Implement the plan.'}]}),
+    row('response_item',{type:'message',role:'assistant',phase:'final_answer',content:[{type:'output_text',text:'Implementation result.'}]}),
+  ];
+  const parsed=S.parse(records.join('\n')).items;
+  assert.deepEqual(parsed.map(i=>i.role),['reply','answer','question','answer']);
+  assert.match(parsed[0].text,/Choose a path\?[\s\S]*Path A/);
+  assert(!parsed[0].text.includes('do-not-show'));
+  assert.equal(parsed[1].plan,true);
+  assert.equal(parsed[3].plan,false);
+  const accepted=records.slice(0,2).concat(row('response_item',{type:'function_call_output',call_id:'ask',output:'{"accepted":true}'}));
+  assert.equal(S.parse(accepted.join('\n')).items.length,0);
+}
 const event=payload=>row('event_msg',payload),response=payload=>row('response_item',payload);
 const completed=(type,id,content,phase)=>event({type:'item_completed',item:{type,id,content:[{type:'text',text:content}],phase}});
 const parsed=S.parse([
@@ -250,22 +280,17 @@ assert.equal(M.navigate(grouped,null,'down','tools'),null);
 assert.equal(M.nextFilter('all'),'questions');assert.equal(M.nextFilter('all',true),'answer');
 assert.equal(M.nextFilter('answer'),'all');assert.equal(M.nextFilter('questions',true),'all');
 assert.equal(M.nearestCard([],null,'all'),null);
-// Visibility modes leave questions, notices, final answers and styles intact.
+// Every checkbox combination leaves original questions, finals and styles intact.
 const originalModeSettings=M.copy(defaults);
 originalModeSettings.cards[0].padding_x=4;
-let modeSettings=originalModeSettings;
-for(const [label,tools,intermediate]of[
-  ['1: Answers only',false,false],['2: All cards',true,true],['0: Progress',false,true]]){
-  modeSettings=M.nextCardMode(modeSettings);
-  assert.equal(M.cardMode(modeSettings),label);
+for(const tools of [false,true])for(const intermediate of [false,true])for(const replies of [false,true]){
+  const modeSettings={...originalModeSettings,show_tools:tools,show_intermediate:intermediate,show_replies:replies};
   const cards=M.groups(sample,modeSettings);
   assert.equal(cards.some(i=>i.role==='tools'),tools);
   assert.equal(cards.some(i=>i.role==='intermediate'),intermediate);
   for(const role of ['question','notice','answer'])assert(cards.some(i=>i.role===role));
   assert.deepEqual(modeSettings.cards,originalModeSettings.cards);
 }
-assert.deepEqual(modeSettings,originalModeSettings);
-assert.equal(M.cardMode(M.nextCardMode({...defaults,show_tools:true,show_intermediate:false})),'0: Progress');
 // Exercise keyboard conflicts as well as ordinary browsing/search actions.
 const key=(key,state={},modifiers={})=>M.keyAction({key,...modifiers},state);
 assert.equal(key('ArrowDown',{browsing:true}),'scroll-ArrowDown');
