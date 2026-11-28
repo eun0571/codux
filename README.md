@@ -55,6 +55,8 @@ Edit styles by card. Within an element, **Apply to** targets the current card, s
 
 Use `/statusline` and enable **daemon-version** to show the connected local background server's version. It is separate from `codux --version`, and is omitted when no local daemon version is available.
 
+Enable **five-hour-reset** or **weekly-reset** in `/statusline` to show the server-reported usage reset date and time in your local time zone. These can be combined with the existing remaining-usage items and are omitted when reset information is unavailable.
+
 | Control | Action |
 | --- | --- |
 | `/custom` | Change card colors, spacing, visibility, and folding |
@@ -65,11 +67,13 @@ Use `/statusline` and enable **daemon-version** to show the connected local back
 | Tab / Shift+Tab in F4 | Filter selectable card types |
 | Ctrl+Up/Down in F4 | Select a matching card and align its bottom above the prompt |
 | Enter in F4 | Fold or unfold the selected card; reveal it first if off-screen |
-| Shift+F4 | Cycle card display: Progress → Answers only → All cards |
+| Shift+F4 | Choose visible cards |
 | Ctrl+End | Return to the latest message |
 | Ctrl+E in F4 | Confirm rewinding to and editing an original question |
 
-Card display modes keep questions, replies, final answers and notices visible. **Progress** hides tools (the default); **Answers only** also hides intermediate answers; **All cards** shows both. Shift+F4 saves the mode without changing styles or folding. Per-card Display settings remain available in `/custom`. Explicit custom keybindings are preserved; `tui.keymap.global.open_transcript` now controls card display.
+Shift+F4 opens a checklist for **Tools**, **Intermediate answers**, and **Clarification Q&A**. Space, Enter, or a click toggles a row and saves immediately; Esc closes the menu. Original questions, final answers, notices, and unanswered input forms stay visible. By default, tools are hidden and the other two categories are shown. The same checklist is available under `/custom → Card display`. Explicit custom keybindings are preserved; `tui.keymap.global.open_transcript` opens this menu.
+
+Final answers written in Plan mode carry a magenta **PLAN** label, including when folded. The label describes how the answer was written; it does not claim that the plan was implemented. Local resume restores saved clarification exchanges where the session record contains both the question and the answer.
 
 In F4, Tab cycles All, Questions/replies, Tools, Intermediate, and Final answers; Shift+Tab cycles backward. This filters keyboard selection without hiding or folding cards. Ctrl+Up/Down moves through visible cards of the selected type. F3 search uses its own independent filter.
 

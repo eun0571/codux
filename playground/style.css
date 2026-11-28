@@ -169,3 +169,6 @@ mark{color:#201b0a;background:#e7c875;border-radius:2px}
   .guide-section dl{gap:5px 10px;margin-top:5px}
   #announcement{-webkit-line-clamp:1}
 }
+
+/* Semantic Plan label follows the terminal Plan mode accent. */
+.plan-title{color:var(--plan-accent,#c678dd);font-weight:600}

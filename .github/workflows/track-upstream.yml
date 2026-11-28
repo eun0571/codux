@@ -1,5 +1,5 @@
 name: 2. Codex updates and release status
-run-name: "Maintenance | current | Codux 0.1.15 | Codex 0.172.0 | patch 66"
+run-name: "Maintenance | current | Codux 0.1.16 | Codex 0.172.0 | patch 67"
 
 on:
   schedule:

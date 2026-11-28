@@ -16,7 +16,7 @@ card, language heading, or nested scroll area.
 | Codux feature | How to try it |
 | --- | --- |
 | Separate question, reply, tool, intermediate, and final-answer styles | Open a local conversation and inspect its cards |
-| Tool and intermediate-answer visibility | Change Display in /custom; cycle Progress, Answers only, and All cards with Shift+F4 |
+| Tool and intermediate-answer visibility | Choose Tools, Intermediate answers, and Clarification Q&A in /custom or Shift+F4 |
 | Folding and card navigation | F4, Tab to filter card types, Ctrl+Up/Down to select, Enter to fold, or double-click empty card background |
 | Search filters by message type | F3, then Tab in the search box |
 | Card colors, padding, width, titles, and initial fold state | /custom; changes preview on the loaded excerpt |
@@ -136,7 +136,7 @@ Click inside the terminal before using shortcuts:
 | Tab / Shift+Tab in search | Switch message type |
 | Enter in search | Accept the current match and return to reading |
 | Ctrl+P / Ctrl+N in search | Older / newer matching card |
-| Shift+F4 | Cycle card display: Progress → Answers only → All cards |
+| Shift+F4 | Choose visible cards |
 | Ctrl+End | Return to the bottom of this excerpt |
 | Esc | Close the current menu, search, or browsing layer |
 | ? in an empty prompt | Show the in-terminal shortcut guide |

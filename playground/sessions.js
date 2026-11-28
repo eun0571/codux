@@ -25,7 +25,7 @@
     if(typeof source!=='string')throw Error('Expected a JSONL session file.');
     if(source.length>maxBytes)throw Error(`Session exceeds the ${Math.floor(maxBytes/1024/1024)} MB viewer limit.`);
     const records=[], stats={malformed:0,ignored:0,duplicates:0};
-    const preferences=new Map(); let turn='start', meta={name}, sequence=0;
+    const preferences=new Map(),turnModes=new Map(); let turn='start', meta={name}, sequence=0;
     const promote=(turn,category,rank)=>{const key=turn+':'+category;preferences.set(key,Math.max(preferences.get(key)||0,rank));};
     let byteOffset=baseOffset+(source.startsWith('\uFEFF')?3:0);const encoder=new TextEncoder();
     for(const line of source.replace(/^\uFEFF/,'').split('\n')){
@@ -45,6 +45,7 @@
         turn=p.turn_id;
       }else if(starts)turn=`turn-${++sequence}`;
       const row={r,p,turn:p.turn_id||turn,index:records.length}; records.push(row);
+      if(r.type==='turn_context'&&p.collaboration_mode?.mode)turnModes.set(row.turn,p.collaboration_mode.mode);
     }
     // Build precedence only after the leading partial turn has been resolved.
     for(const row of records){
@@ -63,7 +64,7 @@
       if(!body.trim())return null;
       const key=extra.sourceId?`${row.turn}:${role}:${extra.sourceId}`:null;
       if(key&&seen.has(key)){stats.duplicates++;return seen.get(key);}
-      const item={id:`entry-${items.length}`,role,text:body,turn:row.turn,timestamp:row.r.timestamp,sourceOffset:row.r.preview_offset,...extra};
+      const item={id:`entry-${items.length}`,role,text:body,turn:row.turn,timestamp:row.r.timestamp,sourceOffset:row.r.preview_offset,plan:role==='answer'&&(turnModes.get(row.turn)==='plan'||extra.structuredPlan===true),...extra};
       items.push(item);if(key)seen.set(key,item);return item;
     };
     const allowed=(row,category,rank)=>(preferences.get(row.turn+':'+category)||1)<=rank;
@@ -82,7 +83,7 @@
           const prompts=questions.map(q=>q.title||q.question||'').filter(q=>q&&!body.includes(q));
           body=[body,...prompts].filter(Boolean).join('\n\n');
         }
-        add(asks||phase==='commentary'||phase==='analysis'?'intermediate':'answer',answerText(body),row,{sourceId:id});
+        add(asks||phase==='commentary'||phase==='analysis'?'intermediate':'answer',answerText(body),row,{sourceId:id,structuredPlan:/<proposed_plan>[\s\S]*?<\/proposed_plan>/.test(body)});
       }
     }
     for(const row of records){
@@ -91,7 +92,7 @@
         const it=p.item||{},k=kind(it.type),body=text(it.content)||it.text||it.message||'';
         if(k==='usermessage')message(row,'user',body,null,it.id);
         else if(k==='agentmessage')message(row,'assistant',body,it.phase,it.id,it.questions);
-        else if(k==='plan')add('answer',answerText(it.text||body),row,{sourceId:it.id});
+        else if(k==='plan')add('answer',answerText(it.text||body),row,{sourceId:it.id,structuredPlan:true});
         else if(k==='contextcompaction')add('notice','Context compacted',row);
         else if(k==='commandexecution')add('tools',`Ran ${Array.isArray(it.command)?it.command.join(' '):it.command||'command'}\n${it.aggregated_output||''}`,row,{actions:1,sourceId:it.id,failed:it.status==='failed'||Number(it.exit_code)>0});
         else if(k==='filechange')add('tools',`Edited files\n${JSON.stringify(it.changes||[],null,2)}\n${it.stdout||''}${it.stderr||''}`,row,{actions:1,sourceId:it.id,failed:it.status==='failed'});
@@ -103,16 +104,16 @@
       } else if(r.type==='response_item'&&p.type==='message'){
         if(['user','assistant'].includes(p.role)&&p.channel!=='analysis'&&allowed(row,p.role,1))message(row,p.role,text(p.content),p.phase||p.channel,p.id,p.questions);
       } else if(r.type==='response_item'&&['function_call','custom_tool_call'].includes(p.type)){
-        if(/request_user_input/.test(p.name||'')){
+        if(/(?:^|\.)request_user_input(?:_async)?$/.test(p.name||'')){
           const input=decode(p.arguments||p.input),questions=input?.questions;
-          if(Array.isArray(questions)){add('intermediate',questions.map(q=>q.question||q.title||'').join('\n'),row,{sourceId:p.call_id});calls.set(p.call_id,{question:true});}
+          if(Array.isArray(questions))calls.set(p.call_id,{question:true,questions});
         } else if(allowed(row,'tools',1)){
           const item=add('tools',`${p.name||'Tool'}\n${p.arguments||p.input||''}`,row,{actions:1,sourceId:p.call_id||p.id});
           if(item)calls.set(p.call_id,item);
         }
       } else if(r.type==='response_item'&&['function_call_output','custom_tool_call_output'].includes(p.type)){
         const call=calls.get(p.call_id);
-        if(call?.question){const output=decode(p.output);if(output?.answers){add('reply',Object.entries(output.answers).map(([key,v])=>`${key}: ${text(v.answers||v.answer)||JSON.stringify(v)}`).join('\n'),row);}}
+        if(call?.question){const output=decode(p.output);if(output?.answers&&typeof output.answers==='object'){const body=call.questions.map(q=>{const answer=output.answers[q.id],value=text(answer?.answers||answer?.answer);return `> ${q.question||q.title||q.id}\n\n${value?((q.is_secret||q.isSecret)?'******':value):'(unanswered)'}`;}).join('\n\n');add('reply',body,row,{sourceId:'clarification:'+p.call_id});}}
         else if(call)call.text+='\n'+(text(p.output)||JSON.stringify(p.output));
       } else if(r.type==='event_msg'&&['task_complete','turn_complete'].includes(p.type)){
         const last=typeof p.last_agent_message==='string'?answerText(p.last_agent_message):'';
@@ -125,7 +126,7 @@
     }
     // Native Codux retains only the last final-answer candidate before each new prompt.
     let candidate=null;
-    for(const item of items){if(item.role==='question')candidate=null;else if(item.role==='answer'){if(candidate)candidate.role='intermediate';candidate=item;}}
+    for(const item of items){if(item.role==='question')candidate=null;else if(item.role==='answer'){if(candidate&&!candidate.structuredPlan){candidate.role='intermediate';candidate.plan=false;}candidate=item;}}
     return {meta,items,stats};
   }
   function firstPrompt(value){

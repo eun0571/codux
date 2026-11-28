@@ -77,7 +77,7 @@
     if (!commit && previous.values) settings = previous.before;
     render();
     if (stack.length) showPage();
-    else { $('#menu').hidden = true; $('#command-input').focus(); }
+    else { $('#menu').hidden = true; viewer?.restoreFocus?.(); }
   }
   function close() { while (stack.length) back(); }
   function chooseEntry(index, focus = true) {
@@ -160,12 +160,12 @@
     else if (p.page==='root') rows([
       navigation('Theme','theme'),
       navigation('Question','question-group'),navigation('Tools','card:tools','tools'),navigation('Answer','answer-group'),
-      {...navigation('Card display','card-display'),detail:M.cardMode(settings)},navigation('Reset to defaults','reset')]);
+      {...navigation('Card display','card-display'),detail:'Choose visible card types'},navigation('Reset to defaults','reset')]);
     else if(p.page==='card-display'){
-      p.values=true;
-      const modes=[['0: Progress',false,true],['1: Answers only',false,false],['2: All cards',true,true]];
-      if(!cursors.has(p.page))cursors.set(p.page,Math.max(0,modes.findIndex(([,tools,intermediate])=>tools===settings.show_tools&&intermediate===settings.show_intermediate)));
-      rows(modes.map(([label,tools,intermediate])=>({label,preview:()=>({...M.copy(p.before),show_tools:tools,show_intermediate:intermediate}),action:()=>{persist();back(true);}})));
+      rows([['Tools','show_tools'],['Intermediate answers','show_intermediate'],['Clarification Q&A','show_replies']].map(([label,key])=>({
+        label,detail:settings[key]===false?'[ ]':'[x]',action:()=>{
+          settings={...settings,[key]:settings[key]===false};persist();cursors.set(p.page,cursor);render();showPage();
+        }})));
     }
     else if(p.page==='reset'){
       p.values=true;
@@ -215,11 +215,12 @@
   }
   function openCustom() {if(viewer?.isWorking()){say('/custom is available after the Working preview finishes.');return;}if(!stack.length){cursors.clear();open('root','Custom UI');}else $('#menu-content .menu-item[aria-current=true], #menu-content input')?.focus();}
 
-  viewer=createSessionViewer({getSettings:()=>settings,changeSettings:next=>{settings=next;persist();},say,openCustom,statusChanged:syncStatusAnimation});
+  viewer=createSessionViewer({getSettings:()=>settings,changeSettings:next=>{settings=next;persist();},say,openCustom,openCardDisplay:()=>{cursors.clear();open('card-display','Card display');},statusChanged:syncStatusAnimation});
   $('#back').addEventListener('click',()=>back());$('#close').addEventListener('click',close);
   document.addEventListener('pointerdown',event=>{if(stack.length&&!$('#menu').contains(event.target))close();});
   $('#menu').addEventListener('keydown',event=>{
     if(event.key==='Escape'){event.preventDefault();back();return;}
+    if(current()?.page==='card-display'&&[' ','Enter'].includes(event.key)){event.preventDefault();if(!event.repeat)entries[cursor]?.action?.();return;}
     if(field)return;
     if(event.target.classList.contains('apply-scope')){
       if(event.key==='ArrowDown'){event.preventDefault();chooseEntry(cursor);}return;

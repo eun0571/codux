@@ -1,5 +1,5 @@
 name: Checks - Pull request
-run-name: "PR #${{ github.event.pull_request.number }} check (not published) | Codux 0.1.15 | Codex 0.172.0 | patch 66"
+run-name: "PR #${{ github.event.pull_request.number }} check (not published) | Codux 0.1.16 | Codex 0.172.0 | patch 67"
 
 on:
   pull_request:

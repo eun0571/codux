@@ -244,6 +244,7 @@ def run_tui_regressions(options, cwd, env):
     # meaningful behavioral results and must stop immediately.
     run("cargo", "test", *options, "--lib", "--no-run", cwd=cwd, env=env)
     selectors = [
+        "thread_transcript::codux_history::tests",
         "transcript_view::mycodx::tests",
         "app::codux_navigation::tests",
         "transcript_view::follow_control::tests",
@@ -272,6 +273,10 @@ def run_tui_regressions(options, cwd, env):
         "updates_cache::tests",
         "update_prompt::tests",
         "codux_daemon_statusline_",
+        "codux_reset_statusline_",
+        "bottom_pane::status_line_setup::tests",
+        "bottom_pane::status_surface_preview::tests",
+        "bottom_pane::status_line_style::tests",
         "bottom_pane::chat_composer::paste_tests",
         "raw_multiline_paste_defers_rendering_and_submits_once",
         "accepted_find_defers_paste_rendering_but_keeps_enter",
@@ -284,6 +289,21 @@ def run_tui_regressions(options, cwd, env):
             failed.append(selector)
     if failed:
         raise RuntimeError("TUI regression groups failed; packaging was not started: " + ", ".join(failed))
+
+    # Compare the browser defaults against this exact compiled native renderer.
+    # Never update the checked-in catalog implicitly during a build.
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="catalog-check-", dir=BUILD) as temporary:
+        catalog = Path(temporary) / "palettes.js"
+        run("cargo", "test", *options, "--lib",
+            "mycodx_ui::theme::tests::mycodx_export_playground_catalog",
+            "--", "--ignored", "--exact", cwd=cwd,
+            env={**env, "MYCODEX_PLAYGROUND_OUTPUT": str(catalog)})
+        if not catalog.is_file():
+            raise RuntimeError("Native playground catalog exporter did not run")
+        if catalog.read_bytes().replace(b"\r\n", b"\n") != (ROOT / "playground/palettes.js").read_bytes().replace(b"\r\n", b"\n"):
+            raise RuntimeError("Playground catalog differs from the compiled native defaults")
+    print("Compiled native defaults match the checked-in playground catalog.")
 
 
 def build(lock: dict, profile: str) -> None:
